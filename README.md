@@ -1,6 +1,22 @@
 # Supabase MCP Server
 
-An implementation of MCP server for connecting to Supabase PostgreSQL database. Exposes tools to interact with Supabase via MCP protocol.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/supabase/supabase-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="assets/supabase/supabase-light.svg" />
+    <img alt="Supabase" src="assets/supabase/supabase-light.svg" height="40" />
+  </picture>
+  &nbsp;+&nbsp;
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/mcp/mcp-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="assets/mcp/mcp-light.svg" />
+    <img alt="MCP" src="assets/mcp/mcp-light.svg" height="40" />
+  </picture>
+</p>
+
+<p align="center">
+  <strong>Supabase MCP server for use with Cursor and Windsurf.</strong>
+</p>
 
 ## Key features
 - 💻 Integrates with both Windsurf and Cursor IDEs via `stdio` protocol
@@ -8,19 +24,11 @@ An implementation of MCP server for connecting to Supabase PostgreSQL database. 
 - 🤑 Rich schema and table metadata for more informative responses
 - 🔐 Read-only enforced access to all tables
 
-## Future features
-- 🐍 Support every method and object available in native Python SDK 
-
-## To do:
-- [ ] Add support for all methods and objects available in native Python SDK
-- [ ] Add proper SQL syntax parsing
-
 
 ## Prerequisites
-- Python 3.12 or higher
-- [uv](https://github.com/astral-sh/uv) - Modern Python package installer
-- Local Supabase instance or Supabase project credentials
-- [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) - Official MCP implementation
+- Python 3.12+
+- [uv](https://github.com/astral-sh/uv)
+- [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 - PostgreSQL development libraries (required for psycopg2):
   ```bash
   # macOS
@@ -71,7 +79,7 @@ uv run main.py
 ```bash
 mcp dev main.py
 ```
-## Local Development
+
 Make sure your local Supabase instance is running:
 ```bash
 supabase start
@@ -80,6 +88,11 @@ supabase start
 Use the following credentials (defaults for local development):
 - Host: `127.0.0.1:54322` (PostgreSQL port)
 - Password: `postgres`
+
+## Potential improvements
+- 🐍 Support every method and object available in native Python SDK 
+- 🔍 Add proper SQL syntax parsing
+
 
 
 

@@ -69,5 +69,3 @@ logs/
 .env.test.local
 .env.production.local
 
-# Project specific
-supabase/

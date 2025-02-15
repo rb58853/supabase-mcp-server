@@ -20,3 +20,9 @@ class QueryError(DatabaseError):
     """Raised when query execution fails."""
 
     pass
+
+
+class ValidationError(Exception):
+    """Raised when input validation fails."""
+
+    pass

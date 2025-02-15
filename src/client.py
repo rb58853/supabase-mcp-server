@@ -1,4 +1,3 @@
-import logging
 from dataclasses import dataclass
 from typing import Any, List
 
@@ -9,9 +8,8 @@ from psycopg2.pool import SimpleConnectionPool
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from src.exceptions import ConnectionError, PermissionError, QueryError
+from src.logger import logger
 from src.settings import settings
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass

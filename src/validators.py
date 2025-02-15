@@ -1,7 +1,7 @@
 from src.exceptions import ValidationError
 
 
-def validate_schema_name(schema: str) -> str:
+def validate_schema_name(schema_name: str) -> str:
     """Validate schema name.
 
     Rules:
@@ -9,13 +9,13 @@ def validate_schema_name(schema: str) -> str:
     - Cannot be empty
     - Cannot contain spaces or special characters
     """
-    if not isinstance(schema, str):
+    if not isinstance(schema_name, str):
         raise ValidationError("Schema name must be a string")
-    if not schema.strip():
+    if not schema_name.strip():
         raise ValidationError("Schema name cannot be empty")
-    if " " in schema:
+    if " " in schema_name:
         raise ValidationError("Schema name cannot contain spaces")
-    return schema
+    return schema_name
 
 
 def validate_table_name(table: str) -> str:

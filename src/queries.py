@@ -26,7 +26,7 @@ class PreBuiltQueries:
         """
 
     @staticmethod
-    def get_table_schema_query(schema_name: str, table_name: str) -> str:
+    def get_table_schema_query(schema_name: str, table: str) -> str:
         """Returns SQL query to get detailed table schema with column descriptions"""
         return f"""
             SELECT DISTINCT
@@ -38,9 +38,9 @@ class PreBuiltQueries:
                 c.ordinal_position
             FROM information_schema.columns c
             JOIN pg_class pc 
-                ON pc.relname = '{table_name}'
+                ON pc.relname = '{table}'
                 AND pc.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = '{schema_name}')
             WHERE c.table_schema = '{schema_name}'
-                AND c.table_name = '{table_name}'
+                AND c.table_name = '{table}'
             ORDER BY c.ordinal_position;
         """

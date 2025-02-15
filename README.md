@@ -1,6 +1,6 @@
 # Supabase MCP Server
 
-An implementation of MCP server for connecting 
+An implementation of MCP server for connecting to Supabase PostgreSQL database.
 
 ## Key features
 - 💻 Integrates with both Windsurf and Cursor IDEs via `stdio` protocol
@@ -14,7 +14,7 @@ An implementation of MCP server for connecting
 - Proper logging - ✅
 - Proper connection pooling - ✅
 - Transaction support & rollback on error - ✅
-- Input schema validation
+- Input schema validation - ✅
 - Demo video with a local db
 
 ## Installation
@@ -22,3 +22,17 @@ An implementation of MCP server for connecting
 ### Windsurf
 
 ### Cursor
+
+## Development
+
+1. Clone
+
+2. Install dependencies
+
+3. Run the server
+
+4. Run MCP inspector
+
+5. Use the server in your IDE
+
+

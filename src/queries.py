@@ -17,7 +17,7 @@ class PreBuiltQueries:
             GROUP BY s.schema_name
             ORDER BY 
                 COUNT(t.tablename) DESC,           -- Schemas with most tables first
-                size_bytes DESC,                   -- Then by size
+                total_size DESC,                   -- Then by size
                 s.schema_name;                     -- Then alphabetically
         """
 

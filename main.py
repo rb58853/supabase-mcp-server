@@ -3,6 +3,7 @@ from mcp.server.fastmcp import FastMCP
 from src.client import SupabaseClient
 from src.logger import logger
 from src.queries import PreBuiltQueries
+from src.settings import settings
 from src.validators import validate_schema_name, validate_sql_query, validate_table_name
 
 try:
@@ -46,5 +47,5 @@ async def query_db(query: str):
 
 
 if __name__ == "__main__":
-    logger.info("Starting Supabase MCP server...")
+    logger.info("Starting Supabase MCP server to connect to project ref: %s", settings.supabase_project_ref)
     mcp.run()

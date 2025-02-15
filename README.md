@@ -94,7 +94,10 @@ Add this configuration to Cursor:
 ```
 name: supabase
 protocol: stdio
-command: uv run main.py
+# Local development
+command: uv --directory /Users/az/cursor/supabase-mcp-server run main.p # path to the project
+# Staging/Production
+command: SUPABASE_PROJECT_REF=your-project-ref SUPABASE_DB_PASSWORD=your-db-password uv run main.py
 ```
 Once added, Agent mode will be able to use tools provided by MCP server.
 
@@ -136,7 +139,6 @@ mcp dev main.py
 ```bash
 supabase start
 ```
-
 
 
 ## Future improvements

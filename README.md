@@ -15,18 +15,17 @@
 </p>
 
 <p align="center">
-  <strong>Supabase MCP server for use with Cursor and Windsurf</strong>
+  <strong>Let Cursor & Windsurf interact with Supabase</strong>
 </p>
 
-An implementation of MCP server for connecting to Supabase PostgreSQL database. Exposes tools to interact with Supabase via MCP protocol. Designed for use with Cursor and Windsurf primarily.
+Implementaton of Supabase MCP server that enables Cursor and Windsurf to interact directly with Supabase PostgreSQL database. It provides a set of database management tools that work seamlessly with these IDEs through the MCP protocol.
 
 ## Key features
-- 💻 Can be used with both Windsurf and Cursor IDEs via `stdio` protocol
-- ✅ Supports both local development and production Supabase projects
-- 🤑 Pre-built schema and table queries to help LLMs understand the data + custom query tool to explore data
-- 🔐 Read-only access on connection level
-- 🔍 Basic SQL syntax validation
-
+- 💻 Works with both Windsurf and Cursor IDEs
+- ✅ Compatible with local development and production Supabase projects
+- 🔨 Built-in database exploration tools with schema insights
+- 🔐 Secure read-only database access
+- 🔍 SQL query validation
 
 ## Prerequisites
 - Python 3.12+
@@ -79,27 +78,32 @@ uv sync
 
 ## Usage
 
-- **Local development**: MCP server is configured to use local Supabase project by default:
-    - Host (project ref): `127.0.0.1:54322` 
-    - Password: `postgres`
+### Local Development
+MCP server connects to your local Supabase project by default:
+- Host: `127.0.0.1:54322` 
+- Password: `postgres`
 
-- **Staging/Production**: MCP server can be configured to connect to any Supabase project:
-    ```bash
-    export SUPABASE_PROJECT_REF="your-project-ref"  # e.g., "abcdefghijklm"
-    export SUPABASE_DB_PASSWORD="your-db-password"
-    ```
+### Production Setup
+For staging or production Supabase projects, set these environment variables (setup differs for Cursor and Windsurf):
+```bash
+SUPABASE_PROJECT_REF="your-project-ref"  # e.g., "abcdefghijklm"
+SUPABASE_DB_PASSWORD="your-db-password"
+```
 
-### Cursor
-Add this configuration to Cursor:
+### Cursor Setup
+Add an MCP server with this configuration:
 ```
 name: supabase
 protocol: stdio
-# Local development
-command: uv --directory /Users/az/cursor/supabase-mcp-server run main.p # path to the project
-# Staging/Production
-command: SUPABASE_PROJECT_REF=your-project-ref SUPABASE_DB_PASSWORD=your-db-password uv run main.py
+command: uv --directory /path/to/cloned/supabase-mcp-server run main.py
 ```
-Once added, Agent mode will be able to use tools provided by MCP server.
+
+Example with actual path:
+```
+command: uv --directory /Users/az/cursor/supabase-mcp-server run main.py
+```
+
+After adding this configuration, Agent mode will have access to all database tools.
 
 
 
@@ -113,29 +117,28 @@ Windsurf relies on a 'Claude Desktop' like configuration to connect to MCP serve
       "command": "/Users/az/.local/bin/uv",
       "args": [
         "--directory",
-        "/Users/az/cursor/supabase-mcp-server",
+        "/Users/username/cursor/supabase-mcp-server",  // Your repository path
         "run",
         "main.py"
       ],
       "env": {
-        "SUPABASE_PROJECT_REF": "127.0.0.1:54322", // can be omitted if using local development, required for staging/production
-        "SUPABASE_DB_PASSWORD": "postgres" // can be omitted if using local development, required for staging/production
+        "SUPABASE_PROJECT_REF": "127.0.0.1:54322",  // Local development default
+        "SUPABASE_DB_PASSWORD": "postgres"  // Local development default
       }
     }
   }
 }
 ```
-Once you add this configuration, click refresh and start chatting - Cascade will now be able to use tools provided by MCP server.
-
+After saving and refreshing, Cascade will have access to all database tools.
 
 ## Development
 
-1. Run MCP inspector (for development)
+1. Start the development server
 ```bash
 mcp dev main.py
 ```
 
-2. Make sure your local Supabase instance is running:
+2. Start your local Supabase instance
 ```bash
 supabase start
 ```

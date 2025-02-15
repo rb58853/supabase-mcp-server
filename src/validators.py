@@ -41,10 +41,10 @@ def validate_sql_query(query: str) -> str:
     Rules:
     - Must be a string
     - Cannot be empty
-    - Must start with SELECT (read-only)
     """
     if not isinstance(query, str):
         raise ValidationError("Query must be a string")
     if not query.strip():
         raise ValidationError("Query cannot be empty")
+
     return query

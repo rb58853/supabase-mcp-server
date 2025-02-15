@@ -13,61 +13,34 @@ except Exception as e:
     raise e
 
 
-@mcp.tool(description="Get all schemas from Supabase.")
+@mcp.tool(description="List all database schemas with their sizes and table counts.")
 async def get_db_schemas():
-    """Get all schemas from Supabase."""
+    """Get all accessible database schemas with their total sizes and number of tables."""
     query = PreBuiltQueries.get_schemas_query()
     result = supabase.readonly_query(query)
     return result
 
 
-@mcp.tool(description="Get all tables from a schema in Supabase.")
+@mcp.tool(description="List all tables in a schema with their sizes, row counts, and metadata.")
 async def get_tables(schema_name: str):
-    """Get all tables from a schema in Supabase."""
+    """Get all tables from a schema with size, row count, column count, and index information."""
     schema_name = validate_schema_name(schema_name)
     query = PreBuiltQueries.get_tables_in_schema_query(schema_name)
     return supabase.readonly_query(query)
 
 
-@mcp.tool(description="Get the schema of a table in Supabase.")
+@mcp.tool(description="Get detailed table structure including columns, keys, and relationships.")
 async def get_table_schema(schema_name: str, table: str):
-    """Get the schema of a table in Supabase."""
+    """Get table schema including column definitions, primary keys, and foreign key relationships."""
     schema_name = validate_schema_name(schema_name)
     table = validate_table_name(table)
     query = PreBuiltQueries.get_table_schema_query(schema_name, table)
     return supabase.readonly_query(query)
 
 
-@mcp.tool(description="Get the stats of a table in Supabase.")
-async def get_table_stats(schema_name: str, table: str):
-    """Get the stats of a table in Supabase."""
-    schema_name = validate_schema_name(schema_name)
-    table = validate_table_name(table)
-    query = PreBuiltQueries.get_table_stats_query(schema_name, table)
-    return supabase.readonly_query(query)
-
-
-@mcp.tool(description="Get the indexes of a table in Supabase.")
-async def get_table_indexes(schema_name: str, table: str):
-    """Get the indexes of a table in Supabase."""
-    schema_name = validate_schema_name(schema_name)
-    table = validate_table_name(table)
-    query = PreBuiltQueries.get_table_indexes_query(schema_name, table)
-    return supabase.readonly_query(query)
-
-
-@mcp.tool(description="Get the relationships of a table in Supabase.")
-async def get_table_relationships(schema_name: str, table: str):
-    """Get the relationships of a table in Supabase."""
-    schema_name = validate_schema_name(schema_name)
-    table = validate_table_name(table)
-    query = PreBuiltQueries.get_table_relationships_query(schema_name, table)
-    return supabase.readonly_query(query)
-
-
 @mcp.tool(description="Query the database with a raw SQL query.")
 async def query_db(query: str):
-    """Query the database with a raw SQL query."""
+    """Execute a read-only SQL query with validation."""
     query = validate_sql_query(query)
     return supabase.readonly_query(query)
 

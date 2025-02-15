@@ -11,6 +11,10 @@ An implementation of MCP server for connecting to Supabase PostgreSQL database. 
 ## Future features
 - 🐍 Support every method and object available in native Python SDK 
 
+## To do:
+- [ ] Add support for all methods and objects available in native Python SDK
+- [ ] Add proper SQL syntax parsing
+
 
 ## Prerequisites
 - Python 3.12 or higher

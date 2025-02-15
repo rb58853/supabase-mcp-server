@@ -24,6 +24,8 @@ class QueryResult:
 class SupabaseClient:
     """Connects to Supabase PostgreSQL database directly."""
 
+    _instance = None  # Singleton instance
+
     def __init__(self):
         """Initialize the PostgreSQL connection pool."""
         self._pool = None
@@ -63,6 +65,23 @@ class SupabaseClient:
                 raise ConnectionError(f"Unexpected connection error: {e}")
         return self._pool
 
+    @classmethod
+    def create(cls) -> "SupabaseClient":
+        """Create and return a configured SupabaseClient instance."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def close(self):
+        """Explicitly close the connection pool."""
+        if self._pool is not None:
+            try:
+                self._pool.closeall()
+                self._pool = None
+                logger.info("Closed PostgreSQL connection pool")
+            except Exception as e:
+                logger.error(f"Error closing connection pool: {e}")
+
     def readonly_query(self, query: str, params: tuple = None) -> QueryResult:
         """Execute a SQL query and return structured results.
 
@@ -78,6 +97,10 @@ class SupabaseClient:
             QueryError: When query execution fails (schema or general errors)
             PermissionError: When user lacks required privileges
         """
+        if self._pool is None:
+            # Reinitialize pool if it was closed
+            self._pool = self._get_pool()
+
         pool = self._get_pool()
         conn = pool.getconn()
         try:
@@ -102,17 +125,5 @@ class SupabaseClient:
                 finally:
                     conn.rollback()  # Always rollback READ ONLY transaction
         finally:
-            pool.putconn(conn)
-
-    @classmethod
-    def create(cls) -> "SupabaseClient":
-        """Create and return a configured SupabaseClient instance."""
-        return cls()
-
-    def __del__(self):
-        """Cleanup with error handling."""
-        if self._pool is not None:
-            try:
-                self._pool.closeall()
-            except Exception as e:
-                logger.error(f"Error closing connection pool: {e}")
+            if pool and conn:
+                pool.putconn(conn)

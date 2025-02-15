@@ -2,10 +2,13 @@ import logging
 from dataclasses import dataclass
 from typing import Any, List
 
+import psycopg2
+from psycopg2 import errors as psycopg2_errors
 from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from src.exceptions import ConnectionError, PermissionError, QueryError
 from src.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -45,22 +48,24 @@ class SupabaseClient:
         wait=wait_exponential(multiplier=1, min=4, max=15),
     )
     def _get_pool(self):
-        """Get or create PostgreSQL connection pool with read-only enforcement."""
+        """Get or create PostgreSQL connection pool with better error handling."""
         if self._pool is None:
             try:
                 logger.debug(f"Creating connection pool for: {self.db_url.split('@')[1]}")
                 self._pool = SimpleConnectionPool(minconn=1, maxconn=10, cursor_factory=RealDictCursor, dsn=self.db_url)
                 # Test the connection
                 with self._pool.getconn() as conn:
-                    conn.set_session(readonly=True)
                     self._pool.putconn(conn)
-                logger.info("✓ Created PostgreSQL connection pool in READ ONLY mode")
-            except Exception:
-                logger.exception("Failed to create PostgreSQL connection pool")
-                raise
+                logger.info("✓ Created PostgreSQL connection pool")
+            except psycopg2.OperationalError as e:
+                logger.error(f"Failed to connect to database: {e}")
+                raise ConnectionError(f"Could not connect to database: {e}")
+            except Exception as e:
+                logger.exception("Unexpected error creating connection pool")
+                raise ConnectionError(f"Unexpected connection error: {e}")
         return self._pool
 
-    def query(self, query: str, params: tuple = None) -> QueryResult:
+    def readonly_query(self, query: str, params: tuple = None) -> QueryResult:
         """Execute a SQL query and return structured results.
 
         Args:
@@ -70,21 +75,34 @@ class SupabaseClient:
         Returns:
             QueryResult containing rows and metadata
 
-        Example:
-            >>> result = client.query("SELECT * FROM chat.messages")
-            >>> print(f"Found {result.count} messages")
-            >>> for row in result.rows:
-            >>>     print(row['content'])
+        Raises:
+            ConnectionError: When database connection fails
+            QueryError: When query execution fails (schema or general errors)
+            PermissionError: When user lacks required privileges
         """
         pool = self._get_pool()
         conn = pool.getconn()
         try:
             conn.set_session(readonly=True)
             with conn.cursor() as cur:
-                cur.execute(query, params)
-                rows = cur.fetchall() or []
-                status = cur.statusmessage
-                return QueryResult(rows=rows, count=len(rows), status=status)
+                try:
+                    cur.execute("BEGIN TRANSACTION READ ONLY")
+                    cur.execute(query, params)
+                    rows = cur.fetchall() or []
+                    status = cur.statusmessage
+                    conn.commit()
+                    return QueryResult(rows=rows, count=len(rows), status=status)
+                except psycopg2_errors.InsufficientPrivilege as e:
+                    logger.error(f"Permission denied: {e}")
+                    raise PermissionError(f"Access denied: {str(e)}")
+                except (psycopg2_errors.UndefinedTable, psycopg2_errors.UndefinedColumn) as e:
+                    logger.error(f"Schema error: {e}")
+                    raise QueryError(str(e))
+                except psycopg2.Error as e:
+                    logger.error(f"Database error: {e.pgerror}")
+                    raise QueryError(f"Query failed: {str(e)}")
+                finally:
+                    conn.rollback()  # Always rollback READ ONLY transaction
         finally:
             pool.putconn(conn)
 
@@ -94,6 +112,9 @@ class SupabaseClient:
         return cls()
 
     def __del__(self):
-        """Close all connections in the pool when object is destroyed."""
+        """Cleanup with error handling."""
         if self._pool is not None:
-            self._pool.closeall()
+            try:
+                self._pool.closeall()
+            except Exception as e:
+                logger.error(f"Error closing connection pool: {e}")

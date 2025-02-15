@@ -47,6 +47,4 @@ def validate_sql_query(query: str) -> str:
         raise ValidationError("Query must be a string")
     if not query.strip():
         raise ValidationError("Query cannot be empty")
-    if not query.strip().upper().startswith("SELECT"):
-        raise ValidationError("Only SELECT queries are allowed")
     return query

@@ -44,3 +44,59 @@ class PreBuiltQueries:
                 AND c.table_name = '{table}'
             ORDER BY c.ordinal_position;
         """
+
+    @staticmethod
+    def get_table_stats_query(schema_name: str, table_name: str) -> str:
+        """Returns SQL query to get table statistics like row count, size, etc"""
+        return f"""
+            SELECT 
+                pg_size_pretty(pg_total_relation_size('{schema_name}.{table_name}')) as total_size,
+                pg_size_pretty(pg_table_size('{schema_name}.{table_name}')) as table_size,
+                pg_size_pretty(pg_indexes_size('{schema_name}.{table_name}')) as index_size,
+                (SELECT reltuples::bigint FROM pg_class WHERE oid = '{schema_name}.{table_name}'::regclass) as row_estimate
+        """
+
+    @staticmethod
+    def get_table_relationships_query(schema_name: str, table_name: str) -> str:
+        """Returns SQL query to get foreign key relationships"""
+        return f"""
+            SELECT
+                tc.table_schema as schema_name,
+                tc.constraint_name,
+                tc.table_name,
+                kcu.column_name,
+                ccu.table_schema AS foreign_schema_name,
+                ccu.table_name AS foreign_table_name,
+                ccu.column_name AS foreign_column_name
+            FROM information_schema.table_constraints AS tc
+            JOIN information_schema.key_column_usage AS kcu
+                ON tc.constraint_name = kcu.constraint_name
+                AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage AS ccu
+                ON ccu.constraint_name = tc.constraint_name
+                AND ccu.table_schema = tc.table_schema
+            WHERE tc.constraint_type = 'FOREIGN KEY'
+                AND tc.table_schema = '{schema_name}'
+                AND tc.table_name = '{table_name}';
+        """
+
+    @staticmethod
+    def get_table_indexes_query(schema_name: str, table_name: str) -> str:
+        """Returns SQL query to get index information"""
+        return f"""
+            SELECT
+                i.relname as index_name,
+                a.attname as column_name,
+                ix.indisunique as is_unique,
+                ix.indisprimary as is_primary
+            FROM pg_class t
+            JOIN pg_index ix ON t.oid = ix.indrelid
+            JOIN pg_class i ON i.oid = ix.indexrelid
+            JOIN pg_attribute a ON a.attrelid = t.oid
+            JOIN pg_namespace n ON n.oid = t.relnamespace
+            WHERE t.relkind = 'r'
+                AND n.nspname = '{schema_name}'
+                AND t.relname = '{table_name}'
+                AND a.attnum = ANY(ix.indkey)
+            ORDER BY ix.indisprimary DESC, ix.indisunique DESC, i.relname;
+        """

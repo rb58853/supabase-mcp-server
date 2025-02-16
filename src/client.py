@@ -51,8 +51,15 @@ class SupabaseClient:
         """Get or create PostgreSQL connection pool with better error handling."""
         if self._pool is None:
             try:
-                logger.debug(f"Creating connection pool for: {self.db_url.split('@')[1]}")
-                self._pool = SimpleConnectionPool(minconn=1, maxconn=10, cursor_factory=RealDictCursor, dsn=self.db_url)
+                logger.debug(
+                    f"Creating connection pool for: {self.db_url.split('@')[1]}"
+                )
+                self._pool = SimpleConnectionPool(
+                    minconn=1,
+                    maxconn=10,
+                    cursor_factory=RealDictCursor,
+                    dsn=self.db_url,
+                )
                 # Test the connection
                 with self._pool.getconn() as conn:
                     self._pool.putconn(conn)
@@ -116,7 +123,10 @@ class SupabaseClient:
                 except psycopg2_errors.InsufficientPrivilege as e:
                     logger.error(f"Permission denied: {e}")
                     raise PermissionError(f"Access denied: {str(e)}")
-                except (psycopg2_errors.UndefinedTable, psycopg2_errors.UndefinedColumn) as e:
+                except (
+                    psycopg2_errors.UndefinedTable,
+                    psycopg2_errors.UndefinedColumn,
+                ) as e:
                     logger.error(f"Schema error: {e}")
                     raise QueryError(str(e))
                 except psycopg2.Error as e:

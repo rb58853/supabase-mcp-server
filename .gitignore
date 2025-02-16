@@ -69,3 +69,6 @@ logs/
 .env.test.local
 .env.production.local
 
+
+# Assets
+assets/

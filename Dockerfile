@@ -27,4 +27,4 @@ RUN uv venv && \
     uv sync
 
 # Command to run the server
-CMD [".venv/bin/mcp", "dev", "main.py"] 
+CMD [".venv/bin/mcp", "dev", "main.py"]

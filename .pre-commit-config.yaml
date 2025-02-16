@@ -1,0 +1,78 @@
+repos:
+  # === Syntax & Basic Checks ===
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-ast
+        name: Validate Python syntax
+      - id: check-toml
+        name: Validate TOML files
+      - id: mixed-line-ending
+        name: Normalize line endings
+        args: ['--fix=lf']
+      - id: trailing-whitespace
+        name: Remove trailing whitespace
+      - id: end-of-file-fixer
+        name: Ensure file ends with newline
+
+  # === Security ===
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: detect-private-key
+        name: Check for private keys
+        stages: [pre-commit, pre-push, manual]
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+        stages: [pre-commit, manual]
+      - id: debug-statements
+        name: Check for debugger imports
+        stages: [pre-commit, manual]
+
+  # === Type Checking ===
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: "v1.13.0"
+    hooks:
+      - id: mypy
+        name: Run mypy type checker
+        args: [
+          "--config-file=pyproject.toml",
+          "--show-error-codes",
+          "--pretty",
+        ]
+        additional_dependencies: [
+            "types-requests",
+            "types-aiofiles",
+            "types-pytz",
+            "pydantic",
+            "chainlit",
+            "anthropic",
+            "fastapi",
+            "httpx",
+            "tiktoken",
+            "weave",
+            "chromadb",
+            "cohere",
+            "langchain"
+        ]
+        entry: bash -c 'mypy "$@" || true' --
+
+  # === Code Quality & Style ===
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.2
+    hooks:
+      - id: ruff
+        name: Run Ruff linter
+        args: [
+          --fix,
+          --exit-zero,
+          --quiet,
+        ]
+        types_or: [python, pyi, jupyter]
+        files: ^(src|tests)/
+        exclude: ^src/experimental/
+        verbose: false
+      - id: ruff-format
+        name: Run Ruff formatter
+        types_or: [python, pyi, jupyter]

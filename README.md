@@ -2,15 +2,15 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/supabase/supabase-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="assets/supabase/supabase-light.svg" />
-    <img alt="Supabase" src="assets/supabase/supabase-light.svg" height="40" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/4a363bcd-7c15-47fa-a72a-d159916517f7" />
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/d255388e-cb1b-42ea-a7b2-0928f031e0df" />
+    <img alt="Supabase" src="https://github.com/user-attachments/assets/d255388e-cb1b-42ea-a7b2-0928f031e0df" height="40" />
   </picture>
   &nbsp;&nbsp;
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/mcp/mcp-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="assets/mcp/mcp-light.svg" />
-    <img alt="MCP" src="assets/mcp/mcp-light.svg" height="40" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/38db1bcd-50df-4a49-a106-1b5afd924cb2" />
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/82603097-07c9-42bb-9cbc-fb8f03560926" />
+    <img alt="MCP" src="https://github.com/user-attachments/assets/82603097-07c9-42bb-9cbc-fb8f03560926" height="40" />
   </picture>
 </p>
 
@@ -22,7 +22,7 @@ Implementaton of Supabase MCP server that enables Cursor and Windsurf to interac
 
 ## Key features
 - 💻 Works with both Windsurf and Cursor IDEs
-- ✅ Compatible with local development and production Supabase projects
+- ✅ Supports local Supabase projects and production Supabase projects
 - 🔨 Built-in database exploration tools with schema insights
 - 🔐 Secure read-only database access
 - 🔍 SQL query validation
@@ -79,8 +79,9 @@ uv sync
 ## Usage
 
 ### Local Development
+
 MCP server connects to your local Supabase project by default:
-- Host: `127.0.0.1:54322` 
+- Host: `127.0.0.1:54322`
 - Password: `postgres`
 
 ### Production Setup
@@ -145,11 +146,5 @@ supabase start
 
 
 ## Future improvements
-- 🐍 Support methods and objects available in native Python SDK 
+- 🐍 Support methods and objects available in native Python SDK
 - 🔍 Improve SQL syntax validation
-
-
-
-
-
-

@@ -22,7 +22,9 @@ async def get_db_schemas():
     return result
 
 
-@mcp.tool(description="List all tables in a schema with their sizes, row counts, and metadata.")
+@mcp.tool(
+    description="List all tables in a schema with their sizes, row counts, and metadata."
+)
 async def get_tables(schema_name: str):
     """Get all tables from a schema with size, row count, column count, and index information."""
     schema_name = validate_schema_name(schema_name)
@@ -30,7 +32,9 @@ async def get_tables(schema_name: str):
     return supabase.readonly_query(query)
 
 
-@mcp.tool(description="Get detailed table structure including columns, keys, and relationships.")
+@mcp.tool(
+    description="Get detailed table structure including columns, keys, and relationships."
+)
 async def get_table_schema(schema_name: str, table: str):
     """Get table schema including column definitions, primary keys, and foreign key relationships."""
     schema_name = validate_schema_name(schema_name)
@@ -47,5 +51,8 @@ async def query_db(query: str):
 
 
 if __name__ == "__main__":
-    logger.info("Starting Supabase MCP server to connect to project ref: %s", settings.supabase_project_ref)
+    logger.info(
+        "Starting Supabase MCP server to connect to project ref: %s",
+        settings.supabase_project_ref,
+    )
     mcp.run()

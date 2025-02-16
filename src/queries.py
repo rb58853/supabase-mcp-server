@@ -3,7 +3,7 @@ class PreBuiltQueries:
     def get_schemas_query() -> str:
         """Returns SQL query to get all accessible schemas"""
         return """
-            SELECT 
+            SELECT
                 s.schema_name,
                 COALESCE(pg_size_pretty(sum(pg_total_relation_size(
                     quote_ident(t.schemaname) || '.' || quote_ident(t.tablename)
@@ -15,7 +15,7 @@ class PreBuiltQueries:
                 AND s.schema_name NOT LIKE 'pg_%'
                 AND s.schema_name NOT LIKE 'pg_toast%'
             GROUP BY s.schema_name
-            ORDER BY 
+            ORDER BY
                 COUNT(t.tablename) DESC,           -- Schemas with most tables first
                 total_size DESC,                   -- Then by size
                 s.schema_name;                     -- Then alphabetically
@@ -34,8 +34,8 @@ class PreBuiltQueries:
                 (SELECT COUNT(*) FROM pg_indexes i WHERE i.schemaname = t.table_schema AND i.tablename = t.table_name) as index_count,
                 pg_total_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name)) as size_bytes  -- Added for ordering
             FROM information_schema.tables t
-            JOIN pg_class pc 
-                ON pc.relname = t.table_name 
+            JOIN pg_class pc
+                ON pc.relname = t.table_name
                 AND pc.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = '{schema_name}')
             WHERE t.table_schema = '{schema_name}'
                 AND t.table_type = 'BASE TABLE'
@@ -57,27 +57,27 @@ class PreBuiltQueries:
                 fk.foreign_table_name,
                 fk.foreign_column_name
             FROM information_schema.columns c
-            JOIN pg_class pc 
+            JOIN pg_class pc
                 ON pc.relname = '{table}'
                 AND pc.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = '{schema_name}')
             LEFT JOIN (
                 SELECT ccu.column_name
                 FROM information_schema.table_constraints tc
-                JOIN information_schema.constraint_column_usage ccu 
+                JOIN information_schema.constraint_column_usage ccu
                     ON tc.constraint_name = ccu.constraint_name
                 WHERE tc.table_schema = '{schema_name}'
                     AND tc.table_name = '{table}'
                     AND tc.constraint_type = 'PRIMARY KEY'
             ) pk ON c.column_name = pk.column_name
             LEFT JOIN (
-                SELECT 
+                SELECT
                     kcu.column_name,
                     ccu.table_name as foreign_table_name,
                     ccu.column_name as foreign_column_name
                 FROM information_schema.table_constraints tc
-                JOIN information_schema.key_column_usage kcu 
+                JOIN information_schema.key_column_usage kcu
                     ON tc.constraint_name = kcu.constraint_name
-                JOIN information_schema.constraint_column_usage ccu 
+                JOIN information_schema.constraint_column_usage ccu
                     ON tc.constraint_name = ccu.constraint_name
                 WHERE tc.table_schema = '{schema_name}'
                     AND tc.table_name = '{table}'

@@ -22,7 +22,7 @@ Implementaton of Supabase MCP server that enables Cursor and Windsurf to interac
 
 ## Key features
 - 💻 Works with both Windsurf and Cursor IDEs
-- ✅ Supports local Supabase projects and production Supabase projects
+- ✅ Supports both local Supabase projects and production Supabase instances
 - 🔨 Built-in database exploration tools with schema insights
 - 🔐 Secure read-only database access
 - 🔍 SQL query validation
@@ -37,7 +37,7 @@ Implementaton of Supabase MCP server that enables Cursor and Windsurf to interac
    ```bash
    brew install postgresql@16
    ```
-   > ⚠️ **Important**: PostgreSQL must be installed BEFORE installing project dependencies. The `psycopg2` package requires PostgreSQL development libraries during compilation.
+   > ⚠️ **Important**: PostgreSQL must be installed BEFORE installing project dependencies, as psycopg2 requires PostgreSQL development libraries during compilation.
 
 2. **uv Package Manager**
    ```bash
@@ -56,8 +56,9 @@ Implementaton of Supabase MCP server that enables Cursor and Windsurf to interac
 
 ## Installation
 
-1. Clone and setup environment
+1. Clone the repository and setup environment
 ```bash
+# Clone the repository
 git clone https://github.com/alexander-zuev/supabase-mcp-server.git
 cd supabase-mcp-server
 
@@ -70,7 +71,7 @@ source .venv/bin/activate
 .venv\Scripts\activate
 ```
 
-2. Install dependencies
+2. Install dependencies from the lock file
 ```bash
 uv sync
 ```
@@ -78,35 +79,43 @@ uv sync
 
 ## Usage
 
-### Local Development
+### With local Supabase project
 
-MCP server connects to your local Supabase project by default:
+You don't need to create .env file. Connection to local Supabase project is configured by default:
 - Host: `127.0.0.1:54322`
 - Password: `postgres`
 
-### Production Setup
-For staging or production Supabase projects, set these environment variables (setup differs for Cursor and Windsurf):
+### With production Supabase project
+You **need** to create .env file in the root of the project with these variables:
 ```bash
 SUPABASE_PROJECT_REF="your-project-ref"  # e.g., "abcdefghijklm"
 SUPABASE_DB_PASSWORD="your-db-password"
 ```
 
+### Troubleshooting
+
+Before connecting to IDEs, verify server functionality using the MCP Inspector:
+```bash
+mcp dev main.py
+```
+This connects to MCP Inspector which allows you to debug and test the server without a client.
+
 ### Cursor Setup
-Add an MCP server with this configuration:
+Go to `Cursor Settings` -> `Features` -> `MCP Servers` and add:
+
 ```
 name: supabase
-protocol: stdio
+protocol: command
 command: uv --directory /path/to/cloned/supabase-mcp-server run main.py
 ```
+Replace `/path/to/cloned/supabase-mcp-server` with your actual repository path.
 
-Example with actual path:
+Example:
 ```
 command: uv --directory /Users/az/cursor/supabase-mcp-server run main.py
 ```
 
 After adding this configuration, Agent mode will have access to all database tools.
-
-
 
 ### Windsurf
 Windsurf relies on a 'Claude Desktop' like configuration to connect to MCP server. This means you need to edit `mcp_config.json` file to connect to MCP server:
@@ -121,30 +130,21 @@ Windsurf relies on a 'Claude Desktop' like configuration to connect to MCP serve
         "/Users/username/cursor/supabase-mcp-server",  // Your repository path
         "run",
         "main.py"
-      ],
-      "env": {
-        "SUPABASE_PROJECT_REF": "127.0.0.1:54322",  // Local development default
-        "SUPABASE_DB_PASSWORD": "postgres"  // Local development default
-      }
+      ]
     }
   }
 }
 ```
 After saving and refreshing, Cascade will have access to all database tools.
 
-## Development
+## Troubleshooting
 
-1. Start the development server
+Start the development server
 ```bash
 mcp dev main.py
 ```
 
-2. Start your local Supabase instance
-```bash
-supabase start
-```
-
-
 ## Future improvements
 - 🐍 Support methods and objects available in native Python SDK
 - 🔍 Improve SQL syntax validation
+- 📦 Simplify packaging (no installation and dependencies should be necessary)

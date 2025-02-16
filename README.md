@@ -20,6 +20,9 @@
 
 Implementaton of Supabase MCP server that enables Cursor and Windsurf to interact directly with Supabase PostgreSQL database. It provides a set of database management tools that work seamlessly with these IDEs through the MCP protocol.
 
+## Demo
+![Supabase MCP Server Demo](https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdm93M2c5aHR4YTIzNXRyN2RwMjBmbGNmeWc5YWVsbDltcnV0MXhidSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/I90j0gzm9eEv12QJML/giphy.gif)
+
 ## Key features
 - 💻 Works with both Windsurf and Cursor IDEs
 - ✅ Supports local Supabase projects and production Supabase projects

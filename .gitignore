@@ -70,5 +70,7 @@ logs/
 .env.production.local
 
 
-# Assets
+# Ignore local assets
 assets/
+*.gif
+*.mp4

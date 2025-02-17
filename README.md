@@ -148,3 +148,4 @@ mcp dev main.py
 - 🐍 Support methods and objects available in native Python SDK
 - 🔍 Improve SQL syntax validation
 - 📦 Simplify packaging (no installation and dependencies should be necessary)
+- Support for creating edge functions, managing secrets (similar to Loveble integration)

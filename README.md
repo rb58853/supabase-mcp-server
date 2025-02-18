@@ -1,7 +1,5 @@
 # Supabase MCP Server
 
-[![smithery badge](https://smithery.ai/badge/@alexander-zuev/supabase-mcp)](https://smithery.ai/server/@alexander-zuev/supabase-mcp)
-
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/4a363bcd-7c15-47fa-a72a-d159916517f7" />
@@ -20,21 +18,22 @@
   <strong>Let Cursor & Windsurf interact with Supabase</strong>
 </p>
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
-[![uv package manager](https://img.shields.io/badge/uv-package%20manager-blueviolet)](https://github.com/astral-sh/uv)
-[![smithery badge](https://smithery.ai/badge/@alexander-zuev/supabase-mcp)](https://smithery.ai/server/@alexander-zuev/supabase-mcp)
-[![MCP Server](https://img.shields.io/badge/MCP-Server-orange)](https://modelcontextprotocol.io/introduction)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-
+<p align="center">
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue.svg" alt="Python 3.12+" /></a>
+  <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/badge/uv-package%20manager-blueviolet" alt="uv package manager" /></a>
+  <a href="https://smithery.ai/server/@alexander-zuev/supabase-mcp"><img src="https://smithery.ai/badge/@alexander-zuev/supabase-mcp" alt="smithery badge" /></a>
+  <a href="https://modelcontextprotocol.io/introduction"><img src="https://img.shields.io/badge/MCP-Server-orange" alt="MCP Server" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
+</p>
 
 Implementation of Supabase MCP server that enables Cursor and Windsurf to interact directly with Supabase PostgreSQL database. It provides a set of database management tools that work seamlessly with these IDEs through the MCP protocol.
 
 ## Key features
-- 💻 Works with both Windsurf and Cursor IDEs
-- ✅ Supports both local Supabase projects and production Supabase instances
-- 🔨 Built-in database exploration tools with schema insights
-- 🔐 Secure read-only database access
-- 🔍 SQL query validation
+- 💻 Designed to work with Windsurf, Cursor, Cline and other MCP-compatible IDEs
+- ✅ Pre-configured to work with both free and paid Supabase projects (direct and transaction pooling connection)
+- 🔨 Pre-built database exploration tools with schema insights greatly improve LLM 'onboarding experience' into your db
+- 🔐 Enforces read-only mode when executing SQL queries
+- 🔍 Basic QoL features like query validation, retry logic for connection errors
 
 ## Prerequisites
 - Python 3.12+

@@ -1,0 +1,7 @@
+# Goal
+# Verify build works
+# Verify tests pass
+# Verify it can be installed via pipx
+# Verify it can be installed via uv
+# Verify it runs via pipx command
+# Verify it runs via uv command

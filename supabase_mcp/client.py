@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, List
+from typing import Any
 
 import psycopg2
 from psycopg2 import errors as psycopg2_errors
@@ -7,16 +7,16 @@ from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from src.exceptions import ConnectionError, PermissionError, QueryError
-from src.logger import logger
-from src.settings import settings
+from supabase_mcp.exceptions import ConnectionError, PermissionError, QueryError
+from supabase_mcp.logger import logger
+from supabase_mcp.settings import settings
 
 
 @dataclass
 class QueryResult:
     """Represents a query result with metadata."""
 
-    rows: List[dict[str, Any]]
+    rows: list[dict[str, Any]]
     count: int
     status: str
 
@@ -51,9 +51,7 @@ class SupabaseClient:
         """Get or create PostgreSQL connection pool with better error handling."""
         if self._pool is None:
             try:
-                logger.debug(
-                    f"Creating connection pool for: {self.db_url.split('@')[1]}"
-                )
+                logger.debug(f"Creating connection pool for: {self.db_url.split('@')[1]}")
                 self._pool = SimpleConnectionPool(
                     minconn=1,
                     maxconn=10,
@@ -66,10 +64,10 @@ class SupabaseClient:
                 logger.info("✓ Created PostgreSQL connection pool")
             except psycopg2.OperationalError as e:
                 logger.error(f"Failed to connect to database: {e}")
-                raise ConnectionError(f"Could not connect to database: {e}")
+                raise ConnectionError(f"Could not connect to database: {e}") from e
             except Exception as e:
                 logger.exception("Unexpected error creating connection pool")
-                raise ConnectionError(f"Unexpected connection error: {e}")
+                raise ConnectionError(f"Unexpected connection error: {e}") from e
         return self._pool
 
     @classmethod
@@ -122,16 +120,16 @@ class SupabaseClient:
                     return QueryResult(rows=rows, count=len(rows), status=status)
                 except psycopg2_errors.InsufficientPrivilege as e:
                     logger.error(f"Permission denied: {e}")
-                    raise PermissionError(f"Access denied: {str(e)}")
+                    raise PermissionError(f"Access denied: {str(e)}") from e
                 except (
                     psycopg2_errors.UndefinedTable,
                     psycopg2_errors.UndefinedColumn,
                 ) as e:
                     logger.error(f"Schema error: {e}")
-                    raise QueryError(str(e))
+                    raise QueryError(str(e)) from e
                 except psycopg2.Error as e:
                     logger.error(f"Database error: {e.pgerror}")
-                    raise QueryError(f"Query failed: {str(e)}")
+                    raise QueryError(f"Query failed: {str(e)}") from e
                 finally:
                     conn.rollback()  # Always rollback READ ONLY transaction
         finally:

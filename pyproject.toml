@@ -89,3 +89,16 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_return_any = true
 warn_unreachable = true
+
+[tool.pytest]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v -ra -q"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-mock>=3.14.0",
+]

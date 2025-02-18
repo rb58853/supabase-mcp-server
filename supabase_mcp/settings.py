@@ -6,31 +6,23 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from supabase_mcp.logger import logger
 
-# Startup scenarios
-# .env file exists and env vars are set
-# .env.mcp file exists and env vars are set
-# .env file exists but env vars are not set
-# .env.mcp file exists but env vars are not set
-# Global config file exists
-# No config files exist
-
 
 def find_config_file() -> str | None:
-    """Find the .env.mcp file in order of precedence:
+    """Find the .env file in order of precedence:
     1. Current working directory (where command is run)
-    2. Global config (~/.config/supabase-mcp/.env.mcp)
+    2. Global config (~/.config/supabase-mcp/.env)
     """
     logger.info("Searching for configuration files...")
 
     # 1. Check current directory
-    cwd_config = Path.cwd() / ".env.mcp"
+    cwd_config = Path.cwd() / ".env"
     if cwd_config.exists():
         logger.info(f"Found local config file: {cwd_config}")
         return str(cwd_config)
 
     # 2. Check global config
     home = Path.home()
-    global_config = home / ".config" / "supabase-mcp" / ".env.mcp"
+    global_config = home / ".config" / "supabase-mcp" / ".env"
     if global_config.exists():
         logger.info(f"Found global config file: {global_config}")
         return str(global_config)
@@ -56,7 +48,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=find_config_file(),
         env_file_encoding="utf-8",
-        # Environment variables take precedence over .env.mcp file
+        # Environment variables take precedence over .env file
         env_nested_delimiter="__",
         extra="ignore",
     )

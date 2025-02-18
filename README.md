@@ -129,16 +129,14 @@ npx -y @smithery/cli install @alexander-zuev/supabase-mcp --client claude
 
 This MCP server was designed to be used with AI IDEs like Cursor and Windsurf and not tested with other clients.
 
-> 💡 **0.2.0 Update**: You'll need to update your IDE configuration to use the new command:
-> - Old: `python main.py`
-> - New: `uv run supabase-mcp-server` (if installed via package manager)
-> - New: `uv --directory /path/to/supabase-mcp-server run python -m supabase_mcp.main` (if installed from source)
-
 You can run the server in several ways:
 - as a package script (if you installed it using package manager)
 - as a python module (if you installed it from source)
 
-> 💡 **0.2.0 Breaking change**: Installation and execution methods have changed to support package distribution. The server now runs as a proper Python module instead of a direct script.
+> 💡 **0.2.0 Breaking change**: Installation and execution methods have changed to support package distribution. The server now runs as a proper Python module instead of a direct script:
+> - Old: `uv --directory /path/to/supabase-mcp-server run main.py`
+> - New: `uv run supabase-mcp-server` (if installed via package manager)
+> - New: `uv --directory /path/to/supabase-mcp-server run python -m supabase_mcp.main` (if installed from source)
 
 
 ### Running as a package script (if you installed it using package manager)
@@ -154,6 +152,9 @@ pipx run supabase-mcp-server
 ```
 
 #### Setup Cursor
+
+> 💡 **Setting environment variables**: For Cursor....
+
 1. Create a new MCP server
 2. Add the following configuration:
 ```
@@ -165,7 +166,11 @@ command: uv run supabase-mcp-server
 ![Cursor MCP Server Setup](https://github.com/user-attachments/assets/79362170-cbba-4dcd-8d20-640d69708f74)
 
 #### Setup Windsurf
-1. Add / modify mcp_config.json file
+
+> 💡 **Setting environment variables**: For Windsurf, it's recommended to set environment variables directly in the `mcp_config.json` as shown below. This is cleaner than using `.env` files and keeps all Windsurf-specific configuration in one place.
+
+
+1. Add / modify `mcp_config.json` file:
 ```json
 {
     "mcpServers": {
@@ -174,11 +179,16 @@ command: uv run supabase-mcp-server
         "args": [
           "run",
           "supabase-mcp-server"
-        ]
+        ],
+        "env": {
+          "SUPABASE_PROJECT_REF": "your-project-ref",
+          "SUPABASE_DB_PASSWORD": "your-db-password"
+        }
       }
     }
 }
 ```
+
 
 > 💡 **Finding UV executable path**:
 > - On macOS/Linux: Run `which uv` in terminal
@@ -208,7 +218,7 @@ command: uv --directory /Users/username/projects/supabase-mcp-server run python 
 ```
 
 #### Setup Windsurf
-1. Add / modify mcp_config.json file:
+1. Add / modify `mcp_config.json` file:
 ```json
 {
     "mcpServers": {
@@ -221,18 +231,28 @@ command: uv --directory /Users/username/projects/supabase-mcp-server run python 
           "python",
           "-m",
           "supabase_mcp.main"
-        ]
+        ],
+        "env": {
+          "SUPABASE_PROJECT_REF": "your-project-ref",
+          "SUPABASE_DB_PASSWORD": "your-db-password"
+        }
       }
     }
 }
 ```
-> 📝 If you get psycopg2 compilation errors, make sure you've installed PostgreSQL first!
 
-> 💡 **Tip**: Running from source is recommended during development as it allows you to modify the code and see changes immediately.
+### Configuring connection to different Supabase projects
 
-### Connecting to different Supabase projects
+> 💡 **Tip**: Connection to local Supabase project is configured out of the box. You don't need to set environment variables.
 
-> 💡 **Tip**: Connection to local Supabase project is configured out of the box. You don't need to configure anything.
+Connection to different Supabase projects is configured via environment variables:
+- `SUPABASE_PROJECT_REF`
+- `SUPABASE_DB_PASSWORD`
+
+The recommended way to set these variables depends on your IDE:
+- **For Windsurf**: Set them directly in `mcp_config.json` (cleanest approach)
+- **For Cursor**: Set them as environment variables in your shell
+- **For local development**: Use `.env` in the project root (when installed from source)
 
 #### Local Supabase project
 
@@ -244,49 +264,51 @@ This works out of the box with Supabase CLI's local development setup.
 
 #### Remote Supabase project (staging / production)
 
-The server needs configuration to connect to your Supabase project. Configuration handling differs based on your installation method:
+##### When using Windsurf
+Set the environment variables directly in your `mcp_config.json`:
+```json
+{
+    "mcpServers": {
+      "supabase": {
+        "command": "/Users/az/.local/bin/uv",
+        "args": [
+          "run",
+          "supabase-mcp-server"
+        ],
+        "env": {
+          "SUPABASE_PROJECT_REF": "your-project-ref",
+          "SUPABASE_DB_PASSWORD": "your-db-password"
+        }
+      }
+    }
+}
+```
 
-##### When installed via package manager
-
-You have three options to configure the connection (in order of precedence):
-
-1. **Environment variables** (Highest precedence)
-   ```bash
-   # Set directly in your shell
-   export SUPABASE_PROJECT_REF=your-project-ref
-   export SUPABASE_DB_PASSWORD=your-db-password
-   ```
-
-2. **Current directory** (Project-specific)
-   ```bash
-   # Create .env.mcp in your project directory
-   # Using .env.mcp instead of .env to avoid conflicts with your project's own .env
-   echo "SUPABASE_PROJECT_REF=your-project-ref
-   SUPABASE_DB_PASSWORD=your-db-password" > .env.mcp
-   ```
-   When using package script (uv run supabase-mcp-server), looks in Cursor's working directory.
-   This is ideal when using with Cursor/Windsurf as the config will be in your workspace.
-
+##### When using Cursor
+Set the environment variables in your shell:
+```bash
+# Set directly in your shell
+export SUPABASE_PROJECT_REF=your-project-ref
+export SUPABASE_DB_PASSWORD=your-db-password
+```
 3. **Global config** (Lowest precedence)
    ```bash
    # Create in your home config directory for persistent access
    mkdir -p ~/.config/supabase-mcp
    echo "SUPABASE_PROJECT_REF=your-project-ref
-   SUPABASE_DB_PASSWORD=your-db-password" > ~/.config/supabase-mcp/.env.mcp
+   SUPABASE_DB_PASSWORD=your-db-password" > ~/.config/supabase-mcp/.env
    ```
    Perfect for developers who want to set up once and use across multiple projects.
 
-##### When installed from source
 
-Create `.env.mcp` file in the root of the cloned repository:
+##### When developing locally (installed from source)
+Create `.env` file in the root of the cloned repository:
 ```bash
 # In the supabase-mcp-server directory (project root)
 echo "SUPABASE_PROJECT_REF=your-project-ref
-SUPABASE_DB_PASSWORD=your-db-password" > .env.mcp
+SUPABASE_DB_PASSWORD=your-db-password" > .env
 ```
-When running from source, it looks for `.env.mcp` in the project root directory (where you cloned the repository).
-
-> 💡 **Why .env.mcp?**: I use `.env.mcp` instead of `.env` to clearly indicate this is for the MCP server and avoid conflicts with other `.env` files in your environment.
+When running from source, it looks for `.env` in the project root directory (where you cloned the repository).
 
 
 
@@ -294,18 +316,14 @@ When running from source, it looks for `.env.mcp` in the project root directory 
 
 Before connecting to IDEs, verify server functionality using the MCP Inspector:
 ```bash
-mcp dev main.py
-```
-This connects to MCP Inspector which allows you to debug and test the server without a client.
-
-Start the development server to verify functionality:
-```bash
 # Using MCP inspector
 mcp dev supabase_mcp.main
 
 # Or run directly
 uv --directory /path/to/supabase-mcp-server run python -m supabase_mcp.main
 ```
+This connects to MCP Inspector which allows you to debug and test the server without a client.
+
 
 ## Future improvements
 - 🐍 Support methods and objects available in native Python SDK

@@ -18,7 +18,14 @@
   <strong>Let Cursor & Windsurf interact with Supabase</strong>
 </p>
 
-Implementaton of Supabase MCP server that enables Cursor and Windsurf to interact directly with Supabase PostgreSQL database. It provides a set of database management tools that work seamlessly with these IDEs through the MCP protocol.
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
+[![uv package manager](https://img.shields.io/badge/uv-package%20manager-blueviolet)](https://github.com/astral-sh/uv)
+[![smithery badge](https://smithery.ai/badge/@alexander-zuev/supabase-mcp)](https://smithery.ai/server/@alexander-zuev/supabase-mcp)
+[![MCP Server](https://img.shields.io/badge/MCP-Server-orange)](https://modelcontextprotocol.io/introduction)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
+
+Implementation of Supabase MCP server that enables Cursor and Windsurf to interact directly with Supabase PostgreSQL database. It provides a set of database management tools that work seamlessly with these IDEs through the MCP protocol.
 
 ## Key features
 - 💻 Works with both Windsurf and Cursor IDEs

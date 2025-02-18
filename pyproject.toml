@@ -47,7 +47,7 @@ source = "vcs"
 
 [project.scripts]
 supabase-mcp-server = "supabase_mcp.main:run"
-inspector = "supabase_mcp.main:inspector"
+supabase-mcp-inspector = "supabase_mcp.main:inspector"
 
 # Configure PyPI publishing
 [[tool.uv.index]]

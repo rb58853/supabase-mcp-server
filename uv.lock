@@ -666,7 +666,7 @@ wheels = [
 
 [[package]]
 name = "supabase-mcp-server"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "mcp", extra = ["cli"] },
     { name = "psycopg2" },

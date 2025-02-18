@@ -1,7 +1,5 @@
 # Supabase MCP Server
 
-[![smithery badge](https://smithery.ai/badge/@alexander-zuev/supabase-mcp)](https://smithery.ai/server/@alexander-zuev/supabase-mcp)
-
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/4a363bcd-7c15-47fa-a72a-d159916517f7" />

@@ -18,6 +18,7 @@
   <strong>Let Cursor & Windsurf interact with Supabase</strong>
 </p>
 
+[![Star History Chart](https://api.star-history.com/svg?repos=alexander-zuev/supabase-mcp-server&type=Date)](https://star-history.com/#alexander-zuev/supabase-mcp-server&Date)
 
 <p align="center">
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue.svg" alt="Python 3.12+" /></a>
@@ -27,7 +28,6 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
 </p>
 
-[![Star History Chart](https://api.star-history.com/svg?repos=alexander-zuev/supabase-mcp-server&type=Date)](https://star-history.com/#alexander-zuev/supabase-mcp-server&Date)
 
 
 Implementation of Supabase MCP server that enables Cursor and Windsurf to interact directly with Supabase PostgreSQL database. It provides a set of database management tools that work seamlessly with these IDEs through the MCP protocol.
@@ -243,7 +243,7 @@ command: uv --directory /Users/username/projects/supabase-mcp-server run python 
 
 > 💡 **Tip**: Connection to local Supabase project is configured out of the box. You don't need to set environment variables.
 
-Connection to different Supabase projects is configured via environment variables:
+To connect to a different Supabase project, you need to set environment variables:
 - `SUPABASE_PROJECT_REF`
 - `SUPABASE_DB_PASSWORD`
 
@@ -324,7 +324,8 @@ This connects to MCP Inspector which allows you to debug and test the server wit
 
 
 ## Future improvements
+
+- 📦 Simplified installation via package manager - ✅ (0.2.0)
 - 🐍 Support methods and objects available in native Python SDK
 - 🔍 Improve SQL syntax validation
-- 📦 Simplified installation via package manager - ✅ (0.2.0)
 - Support for creating edge functions, managing secrets (similar to Loveble integration)

@@ -4,7 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "supabase-mcp-server"
-dynamic = ["version"]
+# dynamic = ["version"]
+version = "0.2.0.dev0" # development version for testing publishing
 description = "Unofficial MCP server for Supabase providing basic schema, table, and column management."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -42,8 +43,9 @@ packages = ["supabase_mcp"]
 [tool.uv]
 package = true
 
-[tool.hatch.version]
-source = "vcs"
+# Comment out VCS versioning for now
+# [tool.hatch.version]
+# source = "vcs"
 
 [project.scripts]
 supabase-mcp-server = "supabase_mcp.main:run"
@@ -105,5 +107,3 @@ dev = [
     "pytest-asyncio>=0.25.3",
     "pytest-mock>=3.14.0",
 ]
-
-

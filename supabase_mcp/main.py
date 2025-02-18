@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from mcp.server.fastmcp import FastMCP
 
 from supabase_mcp.client import SupabaseClient
@@ -62,8 +64,17 @@ if __name__ == "__main__":
 def inspector():
     """Inspector mode - same as mcp dev"""
     logger.info("Starting Supabase MCP server inspector")
-    """Inspector mode - same as mcp dev"""
+
+    import importlib.util
 
     from mcp.cli.cli import dev  # Import from correct module
 
-    return dev(file_spec="supabase_mcp/main.py")  # Call directly with args
+    # Get the package location
+    spec = importlib.util.find_spec("supabase_mcp")
+    if spec and spec.origin:
+        package_dir = str(Path(spec.origin).parent)
+        file_spec = str(Path(package_dir) / "main.py")
+        logger.info(f"Using file spec: {file_spec}")
+        return dev(file_spec=file_spec)
+    else:
+        raise ImportError("Could not find supabase_mcp package")

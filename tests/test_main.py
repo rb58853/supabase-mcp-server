@@ -1,7 +1,7 @@
 import asyncio
 import subprocess
 import sys
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 
@@ -40,7 +40,7 @@ def test_inspector_mode():
     """Test that inspector mode initializes correctly"""
     with patch("mcp.cli.cli.dev") as mock_dev:
         inspector()
-        mock_dev.assert_called_once_with(file_spec="supabase_mcp/main.py")
+        mock_dev.assert_called_once_with(file_spec=ANY)
 
 
 def test_package_script_runs():

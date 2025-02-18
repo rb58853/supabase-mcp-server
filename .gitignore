@@ -61,13 +61,10 @@ Icon
 *.sublime-project
 
 # Local development
-*.env
+.env.mcp
+.env.mcp2
 *.log
 logs/
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 
 # Ignore local assets

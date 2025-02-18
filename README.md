@@ -1,5 +1,7 @@
 # Supabase MCP Server
 
+[![smithery badge](https://smithery.ai/badge/@alexander-zuev/supabase-mcp)](https://smithery.ai/server/@alexander-zuev/supabase-mcp)
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/4a363bcd-7c15-47fa-a72a-d159916517f7" />
@@ -62,6 +64,14 @@ Implementation of Supabase MCP server that enables Cursor and Windsurf to intera
    ```
 
 ## Installation
+
+### Installing via Smithery
+
+To install Supabase MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@alexander-zuev/supabase-mcp):
+
+```bash
+npx -y @smithery/cli install @alexander-zuev/supabase-mcp --client claude
+```
 
 1. Clone the repository and setup environment
 ```bash

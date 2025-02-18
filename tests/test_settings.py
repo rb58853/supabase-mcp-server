@@ -1,3 +1,5 @@
+import os
+
 from supabase_mcp.settings import Settings
 
 
@@ -30,6 +32,10 @@ def test_settings_from_env_file(monkeypatch):
 
 def test_settings_local_defaults():
     """Test settings defaults to local development values when no config provided"""
+    # Skip in CI where we have real credentials
+    if "CI" in os.environ:
+        return
+
     settings = Settings()
     assert settings.supabase_project_ref == "127.0.0.1:54322"  # Local Supabase default
     assert settings.supabase_db_password == "postgres"  # Default local password

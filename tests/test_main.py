@@ -1,12 +1,9 @@
-# Potentially integration tests
-# Can you test that server runs?
-# Can you test that inspector runs?
-# Can you test that the server replies to connect or list tools?
-
 import asyncio
 import subprocess
 import sys
 from unittest.mock import patch
+
+import pytest
 
 from supabase_mcp.main import inspector, mcp, run
 
@@ -74,7 +71,7 @@ def test_mcp_server_tools():
         assert tool.inputSchema is not None, f"Tool {tool.name} missing input schema"
 
 
-@pytest.mark.integration
+@pytest.mark.asyncio
 async def test_db_tools_execution():
     """Integration test that verifies DB tools actually work
 
@@ -89,7 +86,7 @@ async def test_db_tools_execution():
     assert any(schema for schema in schemas if "public" in str(schema)), "Expected public schema"
 
     # Get tables from public schema
-    tables = await mcp.call_tool("get_tables", {"schema": "public"})
+    tables = await mcp.call_tool("get_tables", {"schema_name": "public"})
     assert isinstance(tables, list), "Expected list of tables"
 
     # Try a simple query

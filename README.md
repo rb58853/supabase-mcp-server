@@ -18,7 +18,6 @@
   <strong>Let Cursor & Windsurf interact with Supabase</strong>
 </p>
 
-[![Star History Chart](https://api.star-history.com/svg?repos=alexander-zuev/supabase-mcp-server&type=Date)](https://star-history.com/#alexander-zuev/supabase-mcp-server&Date)
 
 <p align="center">
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue.svg" alt="Python 3.12+" /></a>
@@ -28,6 +27,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
 </p>
 
+[![Star History Chart](https://api.star-history.com/svg?repos=alexander-zuev/supabase-mcp-server&type=Date)](https://star-history.com/#alexander-zuev/supabase-mcp-server&Date)
 
 
 Implementation of Supabase MCP server that enables Cursor and Windsurf to interact directly with Supabase PostgreSQL database. It provides a set of database management tools that work seamlessly with these IDEs through the MCP protocol.
@@ -162,8 +162,6 @@ name: supabase
 protocol: command
 command: uv run supabase-mcp-server
 ```
-
-![Cursor MCP Server Setup](https://github.com/user-attachments/assets/79362170-cbba-4dcd-8d20-640d69708f74)
 
 #### Setup Windsurf
 

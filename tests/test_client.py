@@ -1,8 +1,14 @@
+import os
+
 from supabase_mcp.client import SupabaseClient
 
 
 def test_connection_string_local_default(integration_settings):
     """Test connection string generation with local development defaults"""
+    # Skip in CI where we have real credentials
+    if "CI" in os.environ:
+        return
+
     client = SupabaseClient()
     assert client.db_url == "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 

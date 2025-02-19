@@ -723,7 +723,6 @@ wheels = [
 
 [[package]]
 name = "supabase-mcp-server"
-version = "0.2.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "mcp", extra = ["cli"] },

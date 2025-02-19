@@ -10,7 +10,9 @@ from supabase_mcp.logger import logger
 def find_config_file() -> str | None:
     """Find the .env file in order of precedence:
     1. Current working directory (where command is run)
-    2. Global config (~/.config/supabase-mcp/.env)
+    2. Global config:
+       - Windows: %APPDATA%/supabase-mcp/.env
+       - macOS/Linux: ~/.config/supabase-mcp/.env
     """
     logger.info("Searching for configuration files...")
 
@@ -22,7 +24,11 @@ def find_config_file() -> str | None:
 
     # 2. Check global config
     home = Path.home()
-    global_config = home / ".config" / "supabase-mcp" / ".env"
+    if os.name == "nt":  # Windows
+        global_config = Path(os.environ.get("APPDATA", "")) / "supabase-mcp" / ".env"
+    else:  # macOS/Linux
+        global_config = home / ".config" / "supabase-mcp" / ".env"
+
     if global_config.exists():
         logger.info(f"Found global config file: {global_config}")
         return str(global_config)

@@ -64,34 +64,34 @@ brew install postgresql@16
 
 > ⚠️  **0.2.0 Breaking change**: Installation and execution methods have changed to support package distribution. The server now runs as a proper Python module instead of a direct script.
 
-You can install Supabase MCP Server either using a package manager (recommended) or from source.
-
-### Migration from 0.1.0 to 0.2.0
-The simplest way to migrate is to do a clean install using package manager:
-```bash
-# Remove old installation
-rm -rf supabase-mcp-server
-
-# Install via UV (recommended)
-uv pip install supabase-mcp-server
-```
-
-However you can still install from source if you prefer.
+You can install Supabase MCP Server either using a package manager (recommended) or from source (just as in v0.1.0).
 
 ### Using Package Managers (Recommended)
 
+Choose the installation method based on your needs:
+
 ```bash
-# Using UV
-uv pip install supabase-mcp-server
-
-# Using pipx
+# Using pipx (recommended for CLI tools)
 pipx install supabase-mcp-server
+# → Run with: supabase-mcp-server
 
+# Using UV (if you prefer your current environment)
+uv pip install supabase-mcp-server
+# → Run with: uv run supabase-mcp-server
 ```
 
 Why these package managers?
-- `pipx`: Installs CLI tools in isolated environments, making them available globally without conflicts
-- `uv`: Fast, reliable Python package installer with dependency resolution, perfect for development
+- `pipx`:
+  - Creates isolated environments for CLI tools
+  - Makes commands globally available as `supabase-mcp-server`
+  - Prevents dependency conflicts
+  - Best for end users who just want to use the tool
+
+- `uv`:
+  - Installs in your current environment
+  - Faster installation and dependency resolution
+  - Requires `uv run` prefix to execute
+  - Better for development or if you're using uv for other packages
 
 ### Installing from Source
 
@@ -118,7 +118,9 @@ source .venv/bin/activate
 uv pip install -e .
 ```
 
-### Installing via Smithery (not tested)
+### Installing via Smithery
+
+Please report any issues with Smithery, as I haven't tested it yet.
 
 To install Supabase MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@alexander-zuev/supabase-mcp):
 
@@ -129,7 +131,7 @@ npx -y @smithery/cli install @alexander-zuev/supabase-mcp --client claude
 
 ## Running Supabase MCP Server
 
-This MCP server was designed to be used with AI IDEs like Cursor and Windsurf and not tested with other clients.
+This MCP server was designed to be used with AI IDEs like Cursor and Windsurf and not tested with other clients. However, it should work with any MCP-compatible IDE as long as it uses stdio protocol.
 
 You can run the server in several ways:
 - as a package script (if you installed it using package manager)
@@ -146,24 +148,47 @@ You can run the server in several ways:
 If you installed it using package manager, you can run the server with this command:
 
 ```bash
+# Pipx
+supabase-mcp-server
+
 # UV
 uv run supabase-mcp-server
-
-# Pipx
-pipx run supabase-mcp-server
 ```
+
 
 #### Setup Cursor
 
-> 💡 **Setting environment variables**: For Cursor....
+> ⚠️ **Important**: Unlike Windsurf's defacto standard JSON configuration, Cursor team had a 'genius' idea to abstract away the underlying configuration into a barebones, poorly documented UI (took me several hours to figure out how to set it up) 😡. So in order to connect to a remote Supabase project, you need to set environment variables globally. I've provided a way to pick up .env file from a global config directory (`~/.config/supabase-mcp/.env` on macOS/Linux or `%APPDATA%\supabase-mcp\.env` on Windows).
 
-1. Create a new MCP server
-2. Add the following configuration:
+1. Set up global config (recommended approach):
+```bash
+# Create config directory
+# On macOS/Linux
+mkdir -p ~/.config/supabase-mcp && cd ~/.config/supabase-mcp
+# On Windows (in PowerShell)
+mkdir -Force "$env:APPDATA\supabase-mcp" ; cd "$env:APPDATA\supabase-mcp"
+
+# Create and open .env file
+# On macOS/Linux
+echo "SUPABASE_PROJECT_REF=your-project-ref
+SUPABASE_DB_PASSWORD=your-db-password" > .env && open .
+# On Windows (in PowerShell)
+echo "SUPABASE_PROJECT_REF=your-project-ref
+SUPABASE_DB_PASSWORD=your-db-password" > .env ; explorer .
+```
+
+2. Create a new MCP server in Cursor:
 ```
 name: supabase
 protocol: command
+# if pipx (recommended)
+command: supabase-mcp-server
+# if uv
 command: uv run supabase-mcp-server
 ```
+
+3. Reload Cursor
+If you encounter connection issues, try closing and reopening Cursor.
 
 #### Setup Windsurf
 
@@ -175,7 +200,7 @@ command: uv run supabase-mcp-server
 {
     "mcpServers": {
       "supabase": {
-        "command": "/Users/az/.local/bin/uv",  # Path to UV executable
+        "command": "/Users/az/.local/bin/uv",
         "args": [
           "run",
           "supabase-mcp-server"
@@ -251,7 +276,7 @@ To connect to a different Supabase project, you need to set environment variable
 
 The recommended way to set these variables depends on your IDE:
 - **For Windsurf**: Set them directly in `mcp_config.json` (cleanest approach)
-- **For Cursor**: Set them as environment variables in your shell
+- **For Cursor**: Set them using global config directory (see [Setup Cursor](#setup-cursor))
 - **For local development**: Use `.env` in the project root (when installed from source)
 
 #### Local Supabase project
@@ -285,12 +310,36 @@ Set the environment variables directly in your `mcp_config.json`:
 ```
 
 ##### When using Cursor
-Set the environment variables in your shell:
+Create a global config file:
 ```bash
-# Set directly in your shell
-export SUPABASE_PROJECT_REF=your-project-ref
-export SUPABASE_DB_PASSWORD=your-db-password
+# Create config directory and navigate to it
+# On macOS/Linux
+mkdir -p ~/.config/supabase-mcp && cd ~/.config/supabase-mcp
+# On Windows (in PowerShell)
+mkdir -Force "$env:APPDATA\supabase-mcp" ; cd "$env:APPDATA\supabase-mcp"
+
+# Create and open .env file
+# On macOS/Linux
+echo "SUPABASE_PROJECT_REF=your-project-ref
+SUPABASE_DB_PASSWORD=your-db-password" > .env && open .
+# On Windows (in PowerShell)
+echo "SUPABASE_PROJECT_REF=your-project-ref
+SUPABASE_DB_PASSWORD=your-db-password" > .env ; explorer .
 ```
+
+Then in Cursor's MCP server configuration:
+```
+name: supabase
+protocol: command
+# if pipx (recommended)
+command: supabase-mcp-server
+# if uv
+command: uv run supabase-mcp-server
+```
+
+> 💡 **Note**: Unlike Windsurf, Cursor requires configuration via global config file or environment variables. The global config approach is recommended for better maintainability.
+
+##### Global config
 3. **Global config** (Lowest precedence)
    ```bash
    # Create in your home config directory for persistent access
@@ -299,6 +348,7 @@ export SUPABASE_DB_PASSWORD=your-db-password
    SUPABASE_DB_PASSWORD=your-db-password" > ~/.config/supabase-mcp/.env
    ```
    Perfect for developers who want to set up once and use across multiple projects.
+
 
 
 ##### When developing locally (installed from source)

@@ -21,18 +21,18 @@
 [![Star History Chart](https://api.star-history.com/svg?repos=alexander-zuev/supabase-mcp-server&type=Date)](https://star-history.com/#alexander-zuev/supabase-mcp-server&Date)
 
 <p align="center">
+  <a href="https://pypi.org/project/supabase-mcp-server/"><img src="https://img.shields.io/pypi/v/supabase-mcp-server.svg" alt="PyPI version" /></a>
+  <a href="https://github.com/alexander-zuev/supabase-mcp-server/actions"><img src="https://github.com/alexander-zuev/supabase-mcp-server/workflows/CI/badge.svg" alt="CI Status" /></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue.svg" alt="Python 3.12+" /></a>
   <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/badge/uv-package%20manager-blueviolet" alt="uv package manager" /></a>
   <a href="https://smithery.ai/server/@alexander-zuev/supabase-mcp"><img src="https://smithery.ai/badge/@alexander-zuev/supabase-mcp" alt="smithery badge" /></a>
   <a href="https://modelcontextprotocol.io/introduction"><img src="https://img.shields.io/badge/MCP-Server-orange" alt="MCP Server" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
-  <a href="https://pypi.org/project/supabase-mcp-server/"><img src="https://img.shields.io/pypi/v/supabase-mcp-server.svg" alt="PyPI version" /></a>
-  <a href="https://github.com/alexander-zuev/supabase-mcp-server/actions"><img src="https://github.com/alexander-zuev/supabase-mcp-server/workflows/CI/badge.svg" alt="CI Status" /></a>
 </p>
 
 
 
-Implementation of Supabase MCP server that enables Cursor and Windsurf to interact directly with Supabase PostgreSQL database. It provides a set of database management tools that work seamlessly with these IDEs through the MCP protocol.
+Unofficial Supabase MCP server that enables Cursor and Windsurf to interact directly with Supabase PostgreSQL database. Pre-configured to work with local and production instances.
 
 ## ✨ Key features
 - 💻 Designed to work with Windsurf, Cursor, Cline and other MCP-compatible IDEs
@@ -47,7 +47,6 @@ Implementation of Supabase MCP server that enables Cursor and Windsurf to intera
 - PostgreSQL 16+
 - uv package manager
 
-#todo delete
 ### PostgreSQL Installation
 > ⚠️ **Important**: PostgreSQL must be installed BEFORE installing project dependencies, as psycopg2 requires PostgreSQL development libraries during compilation.
 

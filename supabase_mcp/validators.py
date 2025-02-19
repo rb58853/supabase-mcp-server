@@ -1,4 +1,4 @@
-from src.exceptions import ValidationError
+from supabase_mcp.exceptions import ValidationError
 
 
 def validate_schema_name(schema_name: str) -> str:

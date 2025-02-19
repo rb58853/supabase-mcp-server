@@ -1,10 +1,12 @@
+from pathlib import Path
+
 from mcp.server.fastmcp import FastMCP
 
-from src.client import SupabaseClient
-from src.logger import logger
-from src.queries import PreBuiltQueries
-from src.settings import settings
-from src.validators import validate_schema_name, validate_sql_query, validate_table_name
+from supabase_mcp.client import SupabaseClient
+from supabase_mcp.logger import logger
+from supabase_mcp.queries import PreBuiltQueries
+from supabase_mcp.settings import settings
+from supabase_mcp.validators import validate_schema_name, validate_sql_query, validate_table_name
 
 try:
     mcp = FastMCP("supabase")
@@ -22,9 +24,7 @@ async def get_db_schemas():
     return result
 
 
-@mcp.tool(
-    description="List all tables in a schema with their sizes, row counts, and metadata."
-)
+@mcp.tool(description="List all tables in a schema with their sizes, row counts, and metadata.")
 async def get_tables(schema_name: str):
     """Get all tables from a schema with size, row count, column count, and index information."""
     schema_name = validate_schema_name(schema_name)
@@ -32,9 +32,7 @@ async def get_tables(schema_name: str):
     return supabase.readonly_query(query)
 
 
-@mcp.tool(
-    description="Get detailed table structure including columns, keys, and relationships."
-)
+@mcp.tool(description="Get detailed table structure including columns, keys, and relationships.")
 async def get_table_schema(schema_name: str, table: str):
     """Get table schema including column definitions, primary keys, and foreign key relationships."""
     schema_name = validate_schema_name(schema_name)
@@ -50,9 +48,33 @@ async def query_db(query: str):
     return supabase.readonly_query(query)
 
 
-if __name__ == "__main__":
+def run():
+    """Run the Supabase MCP server."""
     logger.info(
         "Starting Supabase MCP server to connect to project ref: %s",
         settings.supabase_project_ref,
     )
     mcp.run()
+
+
+if __name__ == "__main__":
+    run()
+
+
+def inspector():
+    """Inspector mode - same as mcp dev"""
+    logger.info("Starting Supabase MCP server inspector")
+
+    import importlib.util
+
+    from mcp.cli.cli import dev  # Import from correct module
+
+    # Get the package location
+    spec = importlib.util.find_spec("supabase_mcp")
+    if spec and spec.origin:
+        package_dir = str(Path(spec.origin).parent)
+        file_spec = str(Path(package_dir) / "main.py")
+        logger.info(f"Using file spec: {file_spec}")
+        return dev(file_spec=file_spec)
+    else:
+        raise ImportError("Could not find supabase_mcp package")

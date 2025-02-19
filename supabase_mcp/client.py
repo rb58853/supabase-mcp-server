@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, List
+from typing import Any
 
 import psycopg2
 from psycopg2 import errors as psycopg2_errors
@@ -7,16 +7,16 @@ from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from src.exceptions import ConnectionError, PermissionError, QueryError
-from src.logger import logger
-from src.settings import settings
+from supabase_mcp.exceptions import ConnectionError, PermissionError, QueryError
+from supabase_mcp.logger import logger
+from supabase_mcp.settings import Settings, settings
 
 
 @dataclass
 class QueryResult:
     """Represents a query result with metadata."""
 
-    rows: List[dict[str, Any]]
+    rows: list[dict[str, Any]]
     count: int
     status: str
 
@@ -26,20 +26,34 @@ class SupabaseClient:
 
     _instance = None  # Singleton instance
 
-    def __init__(self):
-        """Initialize the PostgreSQL connection pool."""
+    def __init__(
+        self,
+        project_ref: str | None = None,
+        db_password: str | None = None,
+        settings_instance: Settings | None = None,
+    ):
+        """Initialize the PostgreSQL connection pool.
+
+        Args:
+            project_ref: Optional Supabase project reference. If not provided, will be taken from settings.
+            db_password: Optional database password. If not provided, will be taken from settings.
+            settings_instance: Optional Settings instance. If not provided, will use global settings.
+        """
         self._pool = None
+        self._settings = settings_instance or settings
+        self.project_ref = project_ref or self._settings.supabase_project_ref
+        self.db_password = db_password or self._settings.supabase_db_password
         self.db_url = self._get_db_url_from_supabase()
 
     def _get_db_url_from_supabase(self) -> str:
         """Create PostgreSQL connection string from settings."""
-        if settings.supabase_project_ref.startswith("127.0.0.1"):
+        if self.project_ref.startswith("127.0.0.1"):
             # Local development
-            return f"postgresql://postgres:{settings.supabase_db_password}@{settings.supabase_project_ref}/postgres"
+            return f"postgresql://postgres:{self.db_password}@{self.project_ref}/postgres"
 
         # Production Supabase
         return (
-            f"postgresql://postgres.{settings.supabase_project_ref}:{settings.supabase_db_password}"
+            f"postgresql://postgres.{self.project_ref}:{self.db_password}"
             f"@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
         )
 
@@ -51,9 +65,7 @@ class SupabaseClient:
         """Get or create PostgreSQL connection pool with better error handling."""
         if self._pool is None:
             try:
-                logger.debug(
-                    f"Creating connection pool for: {self.db_url.split('@')[1]}"
-                )
+                logger.debug(f"Creating connection pool for: {self.db_url.split('@')[1]}")
                 self._pool = SimpleConnectionPool(
                     minconn=1,
                     maxconn=10,
@@ -66,17 +78,32 @@ class SupabaseClient:
                 logger.info("✓ Created PostgreSQL connection pool")
             except psycopg2.OperationalError as e:
                 logger.error(f"Failed to connect to database: {e}")
-                raise ConnectionError(f"Could not connect to database: {e}")
+                raise ConnectionError(f"Could not connect to database: {e}") from e
             except Exception as e:
                 logger.exception("Unexpected error creating connection pool")
-                raise ConnectionError(f"Unexpected connection error: {e}")
+                raise ConnectionError(f"Unexpected connection error: {e}") from e
         return self._pool
 
     @classmethod
-    def create(cls) -> "SupabaseClient":
-        """Create and return a configured SupabaseClient instance."""
+    def create(
+        cls,
+        project_ref: str | None = None,
+        db_password: str | None = None,
+        settings_instance: Settings | None = None,
+    ) -> "SupabaseClient":
+        """Create and return a configured SupabaseClient instance.
+
+        Args:
+            project_ref: Optional Supabase project reference
+            db_password: Optional database password
+            settings_instance: Optional Settings instance
+        """
         if cls._instance is None:
-            cls._instance = cls()
+            cls._instance = cls(
+                project_ref=project_ref,
+                db_password=db_password,
+                settings_instance=settings_instance,
+            )
         return cls._instance
 
     def close(self):
@@ -122,16 +149,16 @@ class SupabaseClient:
                     return QueryResult(rows=rows, count=len(rows), status=status)
                 except psycopg2_errors.InsufficientPrivilege as e:
                     logger.error(f"Permission denied: {e}")
-                    raise PermissionError(f"Access denied: {str(e)}")
+                    raise PermissionError(f"Access denied: {str(e)}") from e
                 except (
                     psycopg2_errors.UndefinedTable,
                     psycopg2_errors.UndefinedColumn,
                 ) as e:
                     logger.error(f"Schema error: {e}")
-                    raise QueryError(str(e))
+                    raise QueryError(str(e)) from e
                 except psycopg2.Error as e:
                     logger.error(f"Database error: {e.pgerror}")
-                    raise QueryError(f"Query failed: {str(e)}")
+                    raise QueryError(f"Query failed: {str(e)}") from e
                 finally:
                     conn.rollback()  # Always rollback READ ONLY transaction
         finally:

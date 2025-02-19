@@ -1,6 +1,5 @@
 import asyncio
 import subprocess
-import sys
 from unittest.mock import ANY, patch
 
 import pytest
@@ -43,15 +42,15 @@ def test_inspector_mode():
         mock_dev.assert_called_once_with(file_spec=ANY)
 
 
-def test_package_script_runs():
-    """Test that the package can be run as a module"""
+def test_server_command_starts():
+    """Test that the server command executes without errors"""
     result = subprocess.run(
-        [sys.executable, "-m", "supabase_mcp.main"],
+        ["supabase-mcp-server"],
         capture_output=True,
         text=True,
         timeout=2,  # Kill after 2 seconds since it's a server
     )
-    assert "Starting Supabase MCP server" in result.stdout
+    assert result.returncode == 0, f"Server command failed: {result.stderr}"
 
 
 def test_mcp_server_tools():

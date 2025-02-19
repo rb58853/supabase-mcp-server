@@ -9,7 +9,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from supabase_mcp.exceptions import ConnectionError, PermissionError, QueryError
 from supabase_mcp.logger import logger
-from supabase_mcp.settings import settings
+from supabase_mcp.settings import Settings, settings
 
 
 @dataclass
@@ -26,20 +26,34 @@ class SupabaseClient:
 
     _instance = None  # Singleton instance
 
-    def __init__(self):
-        """Initialize the PostgreSQL connection pool."""
+    def __init__(
+        self,
+        project_ref: str | None = None,
+        db_password: str | None = None,
+        settings_instance: Settings | None = None,
+    ):
+        """Initialize the PostgreSQL connection pool.
+
+        Args:
+            project_ref: Optional Supabase project reference. If not provided, will be taken from settings.
+            db_password: Optional database password. If not provided, will be taken from settings.
+            settings_instance: Optional Settings instance. If not provided, will use global settings.
+        """
         self._pool = None
+        self._settings = settings_instance or settings
+        self.project_ref = project_ref or self._settings.supabase_project_ref
+        self.db_password = db_password or self._settings.supabase_db_password
         self.db_url = self._get_db_url_from_supabase()
 
     def _get_db_url_from_supabase(self) -> str:
         """Create PostgreSQL connection string from settings."""
-        if settings.supabase_project_ref.startswith("127.0.0.1"):
+        if self.project_ref.startswith("127.0.0.1"):
             # Local development
-            return f"postgresql://postgres:{settings.supabase_db_password}@{settings.supabase_project_ref}/postgres"
+            return f"postgresql://postgres:{self.db_password}@{self.project_ref}/postgres"
 
         # Production Supabase
         return (
-            f"postgresql://postgres.{settings.supabase_project_ref}:{settings.supabase_db_password}"
+            f"postgresql://postgres.{self.project_ref}:{self.db_password}"
             f"@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
         )
 
@@ -71,10 +85,25 @@ class SupabaseClient:
         return self._pool
 
     @classmethod
-    def create(cls) -> "SupabaseClient":
-        """Create and return a configured SupabaseClient instance."""
+    def create(
+        cls,
+        project_ref: str | None = None,
+        db_password: str | None = None,
+        settings_instance: Settings | None = None,
+    ) -> "SupabaseClient":
+        """Create and return a configured SupabaseClient instance.
+
+        Args:
+            project_ref: Optional Supabase project reference
+            db_password: Optional database password
+            settings_instance: Optional Settings instance
+        """
         if cls._instance is None:
-            cls._instance = cls()
+            cls._instance = cls(
+                project_ref=project_ref,
+                db_password=db_password,
+                settings_instance=settings_instance,
+            )
         return cls._instance
 
     def close(self):

@@ -45,17 +45,19 @@ class Settings(BaseSettings):
         description="Supabase db password",
     )
 
-    model_config = SettingsConfigDict(
-        env_file=find_config_file(),
-        env_file_encoding="utf-8",
-        # Environment variables take precedence over .env file
-        env_nested_delimiter="__",
-        extra="ignore",
-    )
+    @classmethod
+    def with_config(cls, config_file: str | None = None) -> "Settings":
+        """Create Settings with specific config file.
 
-    def __init__(self, **kwargs):
-        config_file = find_config_file()
-        super().__init__(**kwargs)
+        Args:
+            config_file: Path to .env file to use, or None for no config file
+        """
+
+        # Create a new Settings class with the specific config
+        class SettingsWithConfig(cls):
+            model_config = SettingsConfigDict(env_file=config_file, env_file_encoding="utf-8")
+
+        instance = SettingsWithConfig()
 
         # Log configuration source and precedence
         env_vars_present = any(var in os.environ for var in ["SUPABASE_PROJECT_REF", "SUPABASE_DB_PASSWORD"])
@@ -74,8 +76,11 @@ class Settings(BaseSettings):
 
         # Log final configuration
         logger.info("Final configuration:")
-        logger.info(f"  Project ref: {self.supabase_project_ref}")
-        logger.info(f"  Password: {'*' * len(self.supabase_db_password)}")
+        logger.info(f"  Project ref: {instance.supabase_project_ref}")
+        logger.info(f"  Password: {'*' * len(instance.supabase_db_password)}")
+
+        return instance
 
 
-settings = Settings()
+# Module-level singleton - maintains existing interface
+settings = Settings.with_config(find_config_file())

@@ -76,3 +76,19 @@ repos:
       - id: ruff-format
         name: Run Ruff formatter
         types_or: [python, pyi, jupyter]
+
+  # === Testing ===
+  - repo: local
+    hooks:
+      - id: pytest
+        name: Run pytest
+        entry: pytest
+        language: system
+        types: [python]
+        pass_filenames: false
+        args: [
+          "--quiet",
+          "--no-header",
+          "-v",
+        ]
+        stages: [pre-commit, pre-push]

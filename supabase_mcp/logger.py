@@ -1,24 +1,33 @@
 import logging
-import sys
+from pathlib import Path
 
 
 def setup_logger():
     """Configure logging for the MCP server."""
     logger = logging.getLogger("supabase-mcp")
 
-    # Only add handler if none exist (prevent duplicate handlers)
-    if not logger.handlers:
-        # Create console handler
-        handler = logging.StreamHandler(sys.stdout)
+    # Remove existing handlers to avoid duplicate logs
+    if logger.hasHandlers():
+        logger.handlers.clear()
 
-        # Create formatter
-        formatter = logging.Formatter("[%(asctime)s] %(levelname)-8s %(message)s", datefmt="%y/%m/%d %H:%M:%S")
+    # Define a consistent log directory in the user's home folder
+    log_dir = Path.home() / ".local" / "share" / "supabase-mcp"
+    log_dir.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
 
-        # Add formatter to handler
-        handler.setFormatter(formatter)
+    # Define the log file path
+    log_file = log_dir / "mcp_server.log"
 
-        # Add handler to logger
-        logger.addHandler(handler)
+    # Create a file handler (only logs to file, no stdout)
+    file_handler = logging.FileHandler(log_file)
+
+    # Create formatter
+    formatter = logging.Formatter("[%(asctime)s] %(levelname)-8s %(message)s", datefmt="%y/%m/%d %H:%M:%S")
+
+    # Add formatter to file handler
+    file_handler.setFormatter(formatter)
+
+    # Add handler to logger
+    logger.addHandler(file_handler)
 
     # Set level
     logger.setLevel(logging.INFO)

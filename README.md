@@ -45,7 +45,7 @@ Implementation of Supabase MCP server that enables Cursor and Windsurf to intera
 - PostgreSQL 16+
 - uv package manager
 
-
+#todo delete
 ### PostgreSQL Installation
 > ⚠️ **Important**: PostgreSQL must be installed BEFORE installing project dependencies, as psycopg2 requires PostgreSQL development libraries during compilation.
 
@@ -165,7 +165,7 @@ command: uv run supabase-mcp-server
 
 #### Setup Windsurf
 
-> 💡 **Setting environment variables**: For Windsurf, it's recommended to set environment variables directly in the `mcp_config.json` as shown below. This is cleaner than using `.env` files and keeps all Windsurf-specific configuration in one place.
+> 💡 **Setting environment variables**: For Windsurf, it's recommended to set environment variables directly in the `mcp_config.json` as shown below.
 
 
 1. Add / modify `mcp_config.json` file:
@@ -221,7 +221,7 @@ command: uv --directory /Users/username/projects/supabase-mcp-server run python 
 {
     "mcpServers": {
       "supabase": {
-        "command": "/Users/az/.local/bin/uv",  # Path to UV executable
+        "command": "/Users/az/.local/bin/uv",
         "args": [
           "--directory",
           "/path/to/supabase-mcp-server",

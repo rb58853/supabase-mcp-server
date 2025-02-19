@@ -71,3 +71,6 @@ logs/
 assets/
 *.gif
 *.mp4
+
+# Generated version file
+supabase_mcp/_version.py

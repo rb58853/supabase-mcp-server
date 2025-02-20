@@ -1,10 +1,30 @@
 import os
 from pathlib import Path
+from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from supabase_mcp.logger import logger
+
+SUPPORTED_REGIONS = Literal[
+    "us-west-1",  # West US (North California)
+    "us-east-1",  # East US (North Virginia)
+    "us-east-2",  # East US (Ohio)
+    "ca-central-1",  # Canada (Central)
+    "eu-west-1",  # West EU (Ireland)
+    "eu-west-2",  # West Europe (London)
+    "eu-west-3",  # West EU (Paris)
+    "eu-central-1",  # Central EU (Frankfurt)
+    "eu-central-2",  # Central Europe (Zurich)
+    "eu-north-1",  # North EU (Stockholm)
+    "ap-south-1",  # South Asia (Mumbai)
+    "ap-southeast-1",  # Southeast Asia (Singapore)
+    "ap-northeast-1",  # Northeast Asia (Tokyo)
+    "ap-northeast-2",  # Northeast Asia (Seoul)
+    "ap-southeast-2",  # Oceania (Sydney)
+    "sa-east-1",  # South America (São Paulo)
+]
 
 
 def find_config_file() -> str | None:
@@ -50,6 +70,20 @@ class Settings(BaseSettings):
         env="SUPABASE_DB_PASSWORD",
         description="Supabase db password",
     )
+    supabase_region: str = Field(
+        default="us-east-1",  # East US (North Virginia) - Supabase's default region
+        env="SUPABASE_REGION",
+        description="Supabase region for connection",
+    )
+
+    @field_validator("supabase_region")
+    @classmethod
+    def validate_region(cls, v: str) -> str:
+        """Validate that the region is supported by Supabase."""
+        if v not in SUPPORTED_REGIONS.__args__:
+            supported = "\n  - ".join([""] + list(SUPPORTED_REGIONS.__args__))
+            raise ValueError(f"Region '{v}' is not supported. Supported regions are:{supported}")
+        return v
 
     @classmethod
     def with_config(cls, config_file: str | None = None) -> "Settings":

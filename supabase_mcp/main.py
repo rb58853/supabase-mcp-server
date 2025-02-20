@@ -50,10 +50,17 @@ async def query_db(query: str):
 
 def run():
     """Run the Supabase MCP server."""
-    logger.info(
-        "Starting Supabase MCP server to connect to project ref: %s",
-        settings.supabase_project_ref,
-    )
+    if settings.supabase_project_ref.startswith("127.0.0.1"):
+        logger.info(
+            "Starting Supabase MCP server to connect to local project: %s",
+            settings.supabase_project_ref,
+        )
+    else:
+        logger.info(
+            "Starting Supabase MCP server to connect to project ref: %s (region: %s)",
+            settings.supabase_project_ref,
+            settings.supabase_region,
+        )
     mcp.run()
 
 

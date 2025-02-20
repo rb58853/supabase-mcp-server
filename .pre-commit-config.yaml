@@ -92,3 +92,21 @@ repos:
           "-v",
         ]
         stages: [pre-commit, pre-push]
+
+  # === Build Check ===
+  - repo: local
+    hooks:
+      - id: build-check
+        name: Check build
+        entry: uv build
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]
+      - id: version-check
+        name: Check package version
+        # Print version from the built package
+        entry: python -c "from supabase_mcp import __version__; print('📦 Package version:', __version__)"
+        language: system
+        verbose: true
+        pass_filenames: false
+        stages: [pre-commit, pre-push]

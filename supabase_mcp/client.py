@@ -54,7 +54,7 @@ class SupabaseClient:
         # Production Supabase
         return (
             f"postgresql://postgres.{self.project_ref}:{self.db_password}"
-            f"@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+            f"@aws-0-{self._settings.supabase_region}.pooler.supabase.com:6543/postgres"
         )
 
     @retry(

@@ -170,10 +170,12 @@ mkdir -Force "$env:APPDATA\supabase-mcp" ; cd "$env:APPDATA\supabase-mcp"
 # Create and open .env file
 # On macOS/Linux
 echo "SUPABASE_PROJECT_REF=your-project-ref
-SUPABASE_DB_PASSWORD=your-db-password" > .env && open .
+SUPABASE_DB_PASSWORD=your-db-password
+SUPABASE_REGION=us-east-1  # optional, defaults to us-east-1" > .env && open .
 # On Windows (in PowerShell)
 echo "SUPABASE_PROJECT_REF=your-project-ref
-SUPABASE_DB_PASSWORD=your-db-password" > .env ; explorer .
+SUPABASE_DB_PASSWORD=your-db-password
+SUPABASE_REGION=us-east-1  # optional, defaults to us-east-1" > .env ; explorer .
 ```
 
 2. Create a new MCP server in Cursor:
@@ -202,7 +204,8 @@ If you encounter connection issues, try closing and reopening Cursor.
         "command": "/Users/your-username/.local/bin/supabase-mcp-server",
         "env": {
           "SUPABASE_PROJECT_REF": "your-project-ref",
-          "SUPABASE_DB_PASSWORD": "your-db-password"
+          "SUPABASE_DB_PASSWORD": "your-db-password",
+          "SUPABASE_REGION": "us-east-1"  // optional, defaults to us-east-1
         }
       }
     }
@@ -255,7 +258,8 @@ command: uv --directory /Users/username/projects/supabase-mcp-server run python 
         ],
         "env": {
           "SUPABASE_PROJECT_REF": "your-project-ref",
-          "SUPABASE_DB_PASSWORD": "your-db-password"
+          "SUPABASE_DB_PASSWORD": "your-db-password",
+          "SUPABASE_REGION": "us-east-1"  // optional, defaults to us-east-1
         }
       }
     }
@@ -269,6 +273,25 @@ command: uv --directory /Users/username/projects/supabase-mcp-server run python 
 To connect to a different Supabase project, you need to set environment variables:
 - `SUPABASE_PROJECT_REF`
 - `SUPABASE_DB_PASSWORD`
+- `SUPABASE_REGION` (optional, defaults to `us-east-1`)
+
+The server supports all Supabase regions:
+- `us-west-1` - West US (North California)
+- `us-east-1` - East US (North Virginia) - default
+- `us-east-2` - East US (Ohio)
+- `ca-central-1` - Canada (Central)
+- `eu-west-1` - West EU (Ireland)
+- `eu-west-2` - West Europe (London)
+- `eu-west-3` - West EU (Paris)
+- `eu-central-1` - Central EU (Frankfurt)
+- `eu-central-2` - Central Europe (Zurich)
+- `eu-north-1` - North EU (Stockholm)
+- `ap-south-1` - South Asia (Mumbai)
+- `ap-southeast-1` - Southeast Asia (Singapore)
+- `ap-northeast-1` - Northeast Asia (Tokyo)
+- `ap-northeast-2` - Northeast Asia (Seoul)
+- `ap-southeast-2` - Oceania (Sydney)
+- `sa-east-1` - South America (São Paulo)
 
 The recommended way to set these variables depends on your IDE:
 - **For Windsurf**: Set them directly in `mcp_config.json` (cleanest approach)
@@ -294,7 +317,8 @@ Set the environment variables directly in your `mcp_config.json`:
         "command": "/Users/your-username/.local/bin/supabase-mcp-server",
         "env": {
           "SUPABASE_PROJECT_REF": "your-project-ref",
-          "SUPABASE_DB_PASSWORD": "your-db-password"
+          "SUPABASE_DB_PASSWORD": "your-db-password",
+          "SUPABASE_REGION": "us-east-1"  // optional, defaults to us-east-1
         }
       }
     }
@@ -319,10 +343,12 @@ mkdir -Force "$env:APPDATA\supabase-mcp" ; cd "$env:APPDATA\supabase-mcp"
 # Create and open .env file
 # On macOS/Linux
 echo "SUPABASE_PROJECT_REF=your-project-ref
-SUPABASE_DB_PASSWORD=your-db-password" > .env && open .
+SUPABASE_DB_PASSWORD=your-db-password
+SUPABASE_REGION=us-east-1  # optional, defaults to us-east-1" > .env && open .
 # On Windows (in PowerShell)
 echo "SUPABASE_PROJECT_REF=your-project-ref
-SUPABASE_DB_PASSWORD=your-db-password" > .env ; explorer .
+SUPABASE_DB_PASSWORD=your-db-password
+SUPABASE_REGION=us-east-1  # optional, defaults to us-east-1" > .env ; explorer .
 ```
 
 Then in Cursor's MCP server configuration:
@@ -343,7 +369,8 @@ command: uv run supabase-mcp-server
    # Create in your home config directory for persistent access
    mkdir -p ~/.config/supabase-mcp
    echo "SUPABASE_PROJECT_REF=your-project-ref
-   SUPABASE_DB_PASSWORD=your-db-password" > ~/.config/supabase-mcp/.env
+   SUPABASE_DB_PASSWORD=your-db-password
+   SUPABASE_REGION=us-east-1  # optional, defaults to us-east-1" > ~/.config/supabase-mcp/.env
    ```
    Perfect for developers who want to set up once and use across multiple projects.
 
@@ -354,7 +381,8 @@ Create `.env` file in the root of the cloned repository:
 ```bash
 # In the supabase-mcp-server directory (project root)
 echo "SUPABASE_PROJECT_REF=your-project-ref
-SUPABASE_DB_PASSWORD=your-db-password" > .env
+SUPABASE_DB_PASSWORD=your-db-password
+SUPABASE_REGION=us-east-1  # optional, defaults to us-east-1" > .env
 ```
 When running from source, it looks for `.env` in the project root directory (where you cloned the repository).
 
@@ -365,12 +393,13 @@ When running from source, it looks for `.env` in the project root directory (whe
 Here are some tips & tricks that might help you:
 - **Debug installation** - run `supabase-mcp-server` directly from the terminal to see if it works. If it doesn't, there might be an issue with the installation.
 - **MCP Server configuration** - if the above step works, it means the server is installed and configured correctly. As long as you provided the right command IDE should be able to connect. Make sure to provide the right path to the server executable.
-- **Environment variables** - to connect to the right database, make sure you either set env variables in `mcp_config.json` or in `.env` file placed in a global config directory (`~/.config/supabase-mcp/.env` on macOS/Linux or `%APPDATA%\supabase-mcp\.env` on Windows).
+- **Environment variables** - to connect to the right database, make sure you either set env variables in `mcp_config.json` or in `.env` file placed in a global config directory (`~/.config/supabase-mcp/.env` on macOS/Linux or `%APPDATA%\supabase-mcp\.env` on Windows). The required variables are `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD`, with optional `SUPABASE_REGION` (defaults to `us-east-1`).
 
 
 ## Future improvements
 
 - 📦 Simplified installation via package manager - ✅ (0.2.0)
+- 🌎 Support for different Supabase regions - ✅ (0.2.2)
 - 🐍 Support methods and objects available in native Python SDK
 - 🎮 Programmatic access to Supabase management API (Support for creating edge functions, managing secrets (similar to Loveble integration)
 - 🔍 Strong SQL query validation

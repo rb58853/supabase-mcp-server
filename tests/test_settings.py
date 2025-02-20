@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
 import pytest
+from pydantic import ValidationError
 
-from supabase_mcp.settings import Settings
+from supabase_mcp.settings import SUPPORTED_REGIONS, Settings
 
 
 @pytest.fixture(autouse=True)
@@ -38,3 +39,32 @@ def test_settings_from_env_vars(clean_environment):
         settings = Settings.with_config(".env.test")  # Even with config file
         assert settings.supabase_project_ref == "from-env"
         assert settings.supabase_db_password == "env-password"
+
+
+def test_settings_region_validation():
+    """Test region validation."""
+    # Test default region
+    settings = Settings()
+    assert settings.supabase_region == "us-east-1"
+
+    # Test valid region from environment
+    env_values = {"SUPABASE_REGION": "ap-southeast-1"}
+    with patch.dict("os.environ", env_values, clear=True):
+        settings = Settings()
+        assert settings.supabase_region == "ap-southeast-1"
+
+    # Test invalid region
+    with pytest.raises(ValidationError) as exc_info:
+        env_values = {"SUPABASE_REGION": "invalid-region"}
+        with patch.dict("os.environ", env_values, clear=True):
+            Settings()
+    assert "Region 'invalid-region' is not supported" in str(exc_info.value)
+
+
+def test_supported_regions():
+    """Test that all supported regions are valid."""
+    for region in SUPPORTED_REGIONS.__args__:
+        env_values = {"SUPABASE_REGION": region}
+        with patch.dict("os.environ", env_values, clear=True):
+            settings = Settings()
+            assert settings.supabase_region == region

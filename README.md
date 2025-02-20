@@ -32,7 +32,7 @@
 
 
 
-Unofficial Supabase MCP server that enables Cursor and Windsurf to interact directly with Supabase PostgreSQL database. Pre-configured to work with local and production instances.
+Unofficial feature-rich Supabase MCP server that enables Cursor and Windsurf to manage your database, execute SQL queries, and use every method and object in Python SDK.
 
 ## ✨ Key features
 - 💻 Designed to work with Windsurf, Cursor, Cline and other MCP-compatible IDEs
@@ -199,11 +199,7 @@ If you encounter connection issues, try closing and reopening Cursor.
 {
     "mcpServers": {
       "supabase": {
-        "command": "/Users/az/.local/bin/uv",
-        "args": [
-          "run",
-          "supabase-mcp-server"
-        ],
+        "command": "/Users/your-username/.local/bin/supabase-mcp-server",
         "env": {
           "SUPABASE_PROJECT_REF": "your-project-ref",
           "SUPABASE_DB_PASSWORD": "your-db-password"
@@ -212,11 +208,12 @@ If you encounter connection issues, try closing and reopening Cursor.
     }
 }
 ```
+Don't forget to replace `your-username` with your actual username. You can find where it's located by running `which supabase-mcp-server` in terminal.
 
 
-> 💡 **Finding UV executable path**:
-> - On macOS/Linux: Run `which uv` in terminal
-> - On Windows: Run `where uv` in command prompt
+> 💡 **Finding Supabase MCP Server executable path**:
+> - On macOS/Linux: Run `which supabase-mcp-server` in terminal
+> - On Windows: Run `where supabase-mcp-server` in command prompt
 > The output will show the full path to use in your configuration.
 
 ### Running as a python module (if you installed it from source)
@@ -294,11 +291,7 @@ Set the environment variables directly in your `mcp_config.json`:
 {
     "mcpServers": {
       "supabase": {
-        "command": "/Users/az/.local/bin/uv",
-        "args": [
-          "run",
-          "supabase-mcp-server"
-        ],
+        "command": "/Users/your-username/.local/bin/supabase-mcp-server",
         "env": {
           "SUPABASE_PROJECT_REF": "your-project-ref",
           "SUPABASE_DB_PASSWORD": "your-db-password"
@@ -307,6 +300,12 @@ Set the environment variables directly in your `mcp_config.json`:
     }
 }
 ```
+
+> 💡 **Finding Supabase MCP Server executable path**:
+> - On macOS/Linux: Run `which supabase-mcp-server` in terminal
+> - On Windows: Run `where supabase-mcp-server` in command prompt
+> The output will show the full path to use in your configuration.
+
 
 ##### When using Cursor
 Create a global config file:
@@ -361,22 +360,17 @@ When running from source, it looks for `.env` in the project root directory (whe
 
 
 
-## Troubleshooting
+## How to troubleshoot common issues?
 
-Before connecting to IDEs, verify server functionality using the MCP Inspector:
-```bash
-# Using MCP inspector
-mcp dev supabase_mcp.main
-
-# Or run directly
-uv --directory /path/to/supabase-mcp-server run python -m supabase_mcp.main
-```
-This connects to MCP Inspector which allows you to debug and test the server without a client.
+Here are some tips & tricks that might help you:
+- **Debug installation** - run `supabase-mcp-server` directly from the terminal to see if it works. If it doesn't, there might be an issue with the installation.
+- **MCP Server configuration** - if the above step works, it means the server is installed and configured correctly. As long as you provided the right command IDE should be able to connect. Make sure to provide the right path to the server executable.
+- **Environment variables** - to connect to the right database, make sure you either set env variables in `mcp_config.json` or in `.env` file placed in a global config directory (`~/.config/supabase-mcp/.env` on macOS/Linux or `%APPDATA%\supabase-mcp\.env` on Windows).
 
 
 ## Future improvements
 
 - 📦 Simplified installation via package manager - ✅ (0.2.0)
 - 🐍 Support methods and objects available in native Python SDK
-- 🔍 Improve SQL syntax validation
-- Support for creating edge functions, managing secrets (similar to Loveble integration)
+- 🎮 Programmatic access to Supabase management API (Support for creating edge functions, managing secrets (similar to Loveble integration)
+- 🔍 Strong SQL query validation

@@ -1,4 +1,3 @@
-import asyncio
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,8 +31,25 @@ class SpecManager:
     def __init__(self):
         self.safety_config = SafetyConfig()
         self.spec: dict | None = None
-        # Run startup immediately in init
-        asyncio.run(self.on_startup())
+
+    @classmethod
+    async def create(cls) -> "SpecManager":
+        """Async factory method to create and initialize a SpecManager"""
+        manager = cls()
+        await manager.on_startup()
+        return manager
+
+    async def on_startup(self) -> None:
+        """Load and enrich spec on startup"""
+        # Try to fetch latest spec
+        raw_spec = await self._fetch_remote_spec()
+
+        if not raw_spec:
+            # If remote fetch fails, use our fallback spec
+            logger.info("Using fallback API spec")
+            raw_spec = self._load_local_spec()
+
+        self.spec = raw_spec
 
     async def _fetch_remote_spec(self) -> dict | None:
         """
@@ -65,17 +81,6 @@ class SpecManager:
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in local spec: {e}")
             raise
-
-    async def on_startup(self) -> None:
-        """Load and enrich spec on startup"""
-        # Try to fetch latest spec
-        raw_spec = await self._fetch_remote_spec()
-
-        if not raw_spec:
-            # If remote fetch fails, use our fallback spec
-            logger.info("Using fallback API spec")
-            raw_spec = self._load_local_spec()
-        self.spec = raw_spec
 
     def get_spec(self) -> dict:
         """Retrieve the enriched spec."""

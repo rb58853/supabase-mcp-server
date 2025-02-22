@@ -1,11 +1,24 @@
+import asyncio
+
 import pytest
 
+from supabase_mcp.api_manager.api_manager import SupabaseApiManager
 from supabase_mcp.api_manager.safety_config import SafetyConfig, SafetyLevel
 
 
 @pytest.fixture
 def safety_config():
     return SafetyConfig()
+
+
+@pytest.fixture
+async def api_manager():
+    """Fixture that provides an API manager instance"""
+    manager = SupabaseApiManager.create()  # Properly await the async function
+    try:
+        yield manager
+    finally:
+        asyncio.run(manager.close())  # Cleanup after tests
 
 
 class TestPathMatching:

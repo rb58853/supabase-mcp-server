@@ -17,7 +17,6 @@ from supabase_mcp.validators import (
 try:
     mcp = FastMCP("supabase")
     supabase = SupabaseClient.create()
-    api_manager = SupabaseApiManager()
 except Exception as e:
     logger.error(f"Failed to create Supabase client: {e}")
     raise e
@@ -61,18 +60,31 @@ async def query_db(query: str):
 Execute a Supabase Management API request. Use paths exactly as defined in the API spec -
 the {ref} parameter will be automatically injected from settings.
 
-For POST, PUT, and PATCH requests that require data:
-- request_params: Must be a valid JSON object for query parameters (e.g. {"key": "value"})
-- request_body: Must be a valid JSON object (e.g. {"name": "test"})
+Parameters:
+- method: HTTP method (GET, POST, PUT, PATCH, DELETE)
+- path: API path (e.g. /v1/projects/{ref}/functions)
+- request_params: Query parameters as dict (e.g. {"key": "value"}) - use empty dict {} if not needed
+- request_body: Request body as dict (e.g. {"name": "test"}) - use empty dict {} if not needed
 
-Example: for /v1/projects/{ref}/functions/{function_slug}, only function_slug needs to be provided.
+Examples:
+1. GET request with params:
+   method: "GET"
+   path: "/v1/projects/{ref}/functions"
+   request_params: {"name": "test"}
+   request_body: {}
+
+2. POST request with body:
+   method: "POST"
+   path: "/v1/projects/{ref}/functions"
+   request_params: {}
+   request_body: {"name": "test-function", "slug": "test-function"}
 """
 )
-async def management_api_request(
+async def send_management_api_request(
     method: str,
     path: str,  # URL path
-    request_params: str | dict | None = None,  # Query parameters as dict
-    request_body: str | dict | None = None,  # Request body as dict
+    request_params: dict,  # Query parameters as dict
+    request_body: dict,  # Request body as dict
 ) -> dict:
     """
     Execute a Management API request.
@@ -88,34 +100,8 @@ async def management_api_request(
         path="/v1/projects/{ref}/functions/{function_slug}"
         The {ref} will be auto-injected, only function_slug needs to be provided
     """
-
-    # Handle request_params
-    params_dict = None
-    if isinstance(request_params, str):
-        import json
-
-        try:
-            params_dict = json.loads(request_params)
-        except json.JSONDecodeError:
-            # If it's not JSON, try parsing as query string
-            from urllib.parse import parse_qs
-
-            params_dict = {k: v[0] for k, v in parse_qs(request_params).items()}
-    elif isinstance(request_params, dict):
-        params_dict = request_params
-
-    # Handle request_body
-    body_dict = None
-    if isinstance(request_body, str):
-        import json
-
-        try:
-            body_dict = json.loads(request_body)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in request_body: {e}")
-    elif isinstance(request_body, dict):
-        body_dict = request_body
-    return await api_manager.execute_request(method, path, params_dict, body_dict)
+    api_manager = await SupabaseApiManager.get_manager()
+    return await api_manager.execute_request(method, path, request_params, request_body)
 
 
 @mcp.tool(
@@ -135,6 +121,7 @@ async def live_dangerously(enable: bool = False) -> dict:
     Returns:
         dict: Current mode status and available operations
     """
+    api_manager = await SupabaseApiManager.get_manager()
     api_manager.switch_mode(SafetyLevel.UNSAFE if enable else SafetyLevel.SAFE)
     return {"mode": api_manager.mode}
 
@@ -153,12 +140,14 @@ async def get_management_api_spec() -> dict:
     Returns:
         dict: OpenAPI spec with added safety metadata per operation
     """
+    api_manager = await SupabaseApiManager.get_manager()
     return api_manager.get_spec()
 
 
 @mcp.tool(description="Get all safety rules for the Supabase Management API")
 async def get_management_api_safety_rules() -> dict:
     """Returns all safety rules including blocked and unsafe operations with human-readable explanations"""
+    api_manager = await SupabaseApiManager.get_manager()
     return api_manager.get_safety_rules()
 
 

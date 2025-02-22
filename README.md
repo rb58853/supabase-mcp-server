@@ -35,12 +35,11 @@
 Unofficial feature-rich Supabase MCP server that enables Cursor and Windsurf to manage your database, execute SQL queries, and use every method and object in Python SDK.
 
 ## ✨ Key features
-- 💻 Designed to work with Windsurf, Cursor, Cline and other MCP-compatible IDEs
-- ✅ Pre-configured to work with both free and paid Supabase projects (direct and transaction pooling connection)
-- 🔨 Pre-built database exploration tools with schema insights greatly improve LLM 'onboarding experience' into your db
-- 🔐 Enforces read-only mode when executing SQL queries
-- 🔍 Basic QoL features like query validation, retry logic for connection errors
-- 📦 Installation via package manager (uv, pipx, etc.) or from source
+- 💻 Compatible with Cursor, Windsurf, Cline and other MCP clients supporting `stdio` protocol
+- 🔐 Control read-only and read-write modes of SQL query execution
+- 💻 Manage your Supabase projects with Supabase Management API
+- 🔨 Pre-built tools to help Cursor & Windsurf work with MCP more effectively
+- 📦 Dead-simple install & setup via package manager (uv, pipx, etc.)
 
 ## Prerequisites
 - Python 3.12+
@@ -394,6 +393,51 @@ Here are some tips & tricks that might help you:
 - **Debug installation** - run `supabase-mcp-server` directly from the terminal to see if it works. If it doesn't, there might be an issue with the installation.
 - **MCP Server configuration** - if the above step works, it means the server is installed and configured correctly. As long as you provided the right command IDE should be able to connect. Make sure to provide the right path to the server executable.
 - **Environment variables** - to connect to the right database, make sure you either set env variables in `mcp_config.json` or in `.env` file placed in a global config directory (`~/.config/supabase-mcp/.env` on macOS/Linux or `%APPDATA%\supabase-mcp\.env` on Windows). The required variables are `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD`, with optional `SUPABASE_REGION` (defaults to `us-east-1`).
+
+## Feature overview
+
+### Supabase Connection Configuration
+
+Configuration of the connection to the Supabase project is done via environment variables.
+  - Supports all 16 Supabase regions
+  - Can be set in `mcp_config.json`, `.env` file or globally in `~/.config/supabase-mcp/.env`
+  - For local development, the server defaults to local Supabase settings:
+    - Host: `127.0.0.1:54322`
+    - Password: `postgres`
+  - For remote development, you need to set the environment variables directly in `mcp_config.json` or in `.env` file.
+    - `SUPABASE_PROJECT_REF` - your project ref (e.g. `project-ref`)
+    - `SUPABASE_DB_PASSWORD` - your database password
+    - `SUPABASE_REGION` - optional, defaults to `us-east-1`
+
+### SQL query execution
+
+As of v0.2.2, the server supports only read-only SQL queries. This is enforced by the client connection pool configuration. Write mode will be supported in future versions.
+
+  - Supported modes:
+    - `read-only` - only read-only queries are allowed [✅]
+    - `read-write` - read-only and read-write queries are allowed [TODO]
+  - SQL query validation [TODO]
+
+### Supabase Management API
+
+Introduced in v0.2.3, the server supports sending arbitrary requests to Supabase Management API with auto-injection of project ref and safety mode control:
+  - Includes the following tools:
+    - `send_management_api_request` to send arbitrary requests to Supabase Management API, with auto-injection of project ref and safety mode control.
+    - `get_management_api_spec` to get the enriched API specification with safety information
+    - `get_management_api_safety_rules` to get all safety rules including blocked and unsafe operations with human-readable explanations
+    - `live_dangerously` to switch to yolo mode
+  - Safety features:
+    - Divides API methods into `safe`, `unsafe` and `blocked` categories based on the risk of the operation
+    - Allows to switch between safe and yolo modes dynamically
+    - Blocked operations (delete project, delete database) are not allowed regardless of the mode
+
+## Support of Python SDK methods
+
+Future versions will include support for the following Python SDK methods
+
+## Connect to Supabase logs
+
+Future versions will include a tool to connect to Supabase logs to help debug errors.
 
 
 ## Future improvements

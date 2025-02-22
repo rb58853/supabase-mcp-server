@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+
+## [0.2.3] - 2025-02-22
+### Added
+- Support for Supabase Management API
+  - Introduces supabase management API integration with safe (enabled by default) and yolo modes
+  - Includes the following tools:
+    - `send_management_api_request` to send arbitrary requests to Supabase Management API, with auto-injection of project ref and safety mode control.
+    - `get_management_api_spec` to get the enriched API specification with safety information
+    - `get_management_api_safety_rules` to get all safety rules including blocked and unsafe operations with human-readable explanations
+    - `live_dangerously` to switch to yolo mode
+  - Safety features:
+    - Divides API methods into `safe`, `unsafe` and `blocked` categories based on the risk of the operation
+    - Allows to switch between safe and yolo modes dynamically
+    - Blocked operations (delete project, delete database) are not allowed regardless of the mode
+
+
 ## [0.2.2] - 2025-02-20
 ### Added
 - Support for different Supabase regions:

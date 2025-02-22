@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from json import JSONDecodeError
 from typing import Literal
@@ -32,11 +34,27 @@ class SupabaseApiManager:
     Manages the Supabase Management API.
     """
 
+    _instance: SupabaseApiManager | None = None
+
     def __init__(self):
         self._mode: Literal[SafetyLevel.SAFE, SafetyLevel.UNSAFE] = SafetyLevel.SAFE  # Start in safe mode
         self.safety_config = SafetyConfig()
-        self.spec_manager = SpecManager()
+        self.spec_manager = None
         self.client = self.create_httpx_client()
+
+    @classmethod
+    async def create(cls) -> SupabaseApiManager:
+        """Factory method to create and initialize an API manager"""
+        manager = cls()
+        manager.spec_manager = await SpecManager.create()  # Use the running event loop
+        return manager
+
+    @classmethod
+    async def get_manager(cls) -> SupabaseApiManager:
+        """Get the singleton instance"""
+        if cls._instance is None:
+            cls._instance = await cls.create()
+        return cls._instance
 
     def create_httpx_client(self) -> httpx.AsyncClient:
         """Creates a new httpx client"""
@@ -127,11 +145,13 @@ class SupabaseApiManager:
         allowed, reason, level = self.safety_config.is_operation_allowed(method, path)
 
         if level == SafetyLevel.BLOCKED:
+            logger.warning(f"Blocked operation attempted: {method} {path}")
             raise SafetyError(
                 f"Operation blocked: {reason}, check all safety rules here: {self.safety_config.list_all_rules()}"
             )
 
-        if level == SafetyLevel.UNSAFE and self.mode == "safe":
+        if level == SafetyLevel.UNSAFE and self.mode == SafetyLevel.SAFE:
+            logger.warning(f"Unsafe operation attempted in safe mode: {method} {path}")
             raise SafetyError(
                 f"Operation requires YOLO mode: {reason}. Use live_dangerously() to enable YOLO mode. Check all safety rules here: {self.safety_config.list_all_rules()}"
             )
@@ -181,12 +201,12 @@ class SupabaseApiManager:
                 ) from e
 
         except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
-            raise APIConnectionError(message=f"Connection error: {str(e)}")
+            raise APIConnectionError(message=f"Connection error: {str(e)}") from e
         except Exception as e:
             if isinstance(e, (APIError, SafetyError)):
                 raise
             logger.exception("Unexpected error during API request")
-            raise UnexpectedError(message=f"Unexpected error during API request: {str(e)}")
+            raise UnexpectedError(message=f"Unexpected error during API request: {str(e)}") from e
 
     async def close(self):
         """Close HTTP client"""

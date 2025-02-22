@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 import httpx
 import pytest
+import pytest_asyncio
 
 from supabase_mcp.api_manager.spec_manager import SpecManager
 
@@ -10,12 +11,10 @@ from supabase_mcp.api_manager.spec_manager import SpecManager
 SAMPLE_SPEC = {"openapi": "3.0.0", "paths": {"/v1/test": {"get": {"operationId": "test"}}}}
 
 
-@pytest.fixture
-def spec_manager():
-    with patch("supabase_mcp.api_manager.spec_manager.asyncio.run"):  # Prevent auto-startup
-        manager = SpecManager()
-        manager.spec = None  # Reset spec to test loading
-        return manager
+@pytest_asyncio.fixture
+async def spec_manager():
+    manager = await SpecManager.create()
+    yield manager
 
 
 # Local Spec Tests

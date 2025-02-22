@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from dotenv import load_dotenv
 
-from supabase_mcp.client import SupabaseClient
+from supabase_mcp.db_client.db_client import SupabaseClient
 from supabase_mcp.logger import logger
 from supabase_mcp.settings import Settings
 
@@ -82,3 +82,11 @@ def integration_settings() -> Generator[Settings, None, None]:
     # Restore original environment
     os.environ.clear()
     os.environ.update(original_env)
+
+
+@pytest.fixture
+def integration_client(integration_settings):
+    """Fixture providing a client connected to test database"""
+    client = SupabaseClient(settings_instance=integration_settings)
+    yield client
+    client.close()  # Ensure connection is closed after test

@@ -9,7 +9,7 @@
 7. Tag and release on GitHub
 8. Release is published to PyPI
 
-## v0.3.0 - 2025-02-22
+## v0.2.3 - 2025-02-22
 
 1. Tests pass - [X]
 2. CI passes

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import httpx
 
-from supabase_mcp.api_manager.safety_config import SafetyConfig
+from supabase_mcp.api_manager.api_safety_config import SafetyConfig
 from supabase_mcp.logger import logger
 
 # Constants

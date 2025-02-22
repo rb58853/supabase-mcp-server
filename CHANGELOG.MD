@@ -5,8 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
-## [0.2.3] - 2025-02-22
+## [0.3.0] - 2025-02-23
 ### Added
+- Full support for read-write SQL operations:
+  - Implemented safety mode system with read-only (default) and read-write modes
+  - Added mode switching with automatic reset to read-only
+  - Enhanced transaction support for testing write operations
+  - Improved error handling for read-only violations
 - Support for Supabase Management API
   - Introduces supabase management API integration with safe (enabled by default) and yolo modes
   - Includes the following tools:
@@ -53,6 +58,7 @@ Intermediary release for package distribution support
 - Supabase database connection support
 - Integration with Cursor and Windsurf IDEs
 
+[0.3.0]: https://github.com/alexander-zuev/supabase-mcp-server/releases/tag/v0.3.0
 [0.2.2]: https://github.com/alexander-zuev/supabase-mcp-server/releases/tag/v0.2.2
 [0.2.1]: https://github.com/alexander-zuev/supabase-mcp-server/releases/tag/v0.2.1
 [0.2.0]: https://github.com/alexander-zuev/supabase-mcp-server/releases/tag/v0.2.0-dev0

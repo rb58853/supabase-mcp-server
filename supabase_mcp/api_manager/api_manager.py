@@ -15,7 +15,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from supabase_mcp.api_manager.safety_config import SafetyConfig, SafetyLevel
+from supabase_mcp.api_manager.api_safety_config import SafetyConfig, SafetyLevel
 from supabase_mcp.api_manager.spec_manager import SpecManager
 from supabase_mcp.exceptions import (
     APIClientError,
@@ -73,7 +73,7 @@ class SupabaseApiManager:
     def switch_mode(self, mode: Literal[SafetyLevel.SAFE, SafetyLevel.UNSAFE]) -> None:
         """Switch between safe and unsafe operation modes"""
         self._mode = mode
-        logger.info(f"Switched to {mode.value} mode")
+        logger.info(f"Switched to {self._mode.value} mode")
 
     def get_spec(self) -> dict:
         """Retrieves enriched spec from spec manager"""

@@ -411,11 +411,16 @@ Configuration of the connection to the Supabase project is done via environment 
 
 ### SQL query execution
 
-As of v0.2.2, the server supports only read-only SQL queries. This is enforced by the client connection pool configuration. Write mode will be supported in future versions.
+As of v0.3, the server supports both read-only and read-write SQL queries.
 
   - Supported modes:
-    - `read-only` - only read-only queries are allowed [✅]
-    - `read-write` - read-only and read-write queries are allowed [TODO]
+    - `read-only` - only read-only queries are allowed (default mode)
+    - `read-write` - all SQL operations are allowed when explicitly enabled
+  - Safety features:
+    - Starts in read-only mode by default
+    - Requires explicit mode switch for write operations
+    - Automatically resets to read-only mode after write operations
+    - Uses transactions to ensure clean state in tests
   - SQL query validation [TODO]
 
 ### Supabase Management API

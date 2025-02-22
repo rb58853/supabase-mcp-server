@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 import psycopg2
 from psycopg2 import errors as psycopg2_errors
@@ -7,6 +7,7 @@ from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from supabase_mcp.db_client.db_safety_config import DbSafetyLevel
 from supabase_mcp.exceptions import ConnectionError, PermissionError, QueryError
 from supabase_mcp.logger import logger
 from supabase_mcp.settings import Settings, settings
@@ -31,6 +32,7 @@ class SupabaseClient:
         project_ref: str | None = None,
         db_password: str | None = None,
         settings_instance: Settings | None = None,
+        _mode: Literal[DbSafetyLevel.RO, DbSafetyLevel.RW] = DbSafetyLevel.RO,  # Start
     ):
         """Initialize the PostgreSQL connection pool.
 
@@ -44,6 +46,7 @@ class SupabaseClient:
         self.project_ref = project_ref or self._settings.supabase_project_ref
         self.db_password = db_password or self._settings.supabase_db_password
         self.db_url = self._get_db_url_from_supabase()
+        self._mode = _mode
 
     def _get_db_url_from_supabase(self) -> str:
         """Create PostgreSQL connection string from settings."""
@@ -116,7 +119,17 @@ class SupabaseClient:
             except Exception as e:
                 logger.error(f"Error closing connection pool: {e}")
 
-    def readonly_query(self, query: str, params: tuple = None) -> QueryResult:
+    @property
+    def mode(self) -> DbSafetyLevel:
+        """Current operation mode"""
+        return self._mode
+
+    def switch_mode(self, mode: Literal[DbSafetyLevel.RO, DbSafetyLevel.RW]) -> None:
+        """Switch the database connection mode."""
+        self._mode = mode
+        logger.info(f"Switched to {self.mode.value} mode")
+
+    def execute_query(self, query: str, params: tuple = None) -> QueryResult:
         """Execute a SQL query and return structured results.
 
         Args:
@@ -138,18 +151,27 @@ class SupabaseClient:
         pool = self._get_pool()
         conn = pool.getconn()
         try:
-            conn.set_session(readonly=True)
+            # Control session
+            readonly = self.mode == DbSafetyLevel.RO
+            conn.set_session(readonly=readonly)
+
             with conn.cursor() as cur:
                 try:
-                    cur.execute("BEGIN TRANSACTION READ ONLY")
                     cur.execute(query, params)
-                    rows = cur.fetchall() or []
+
+                    # Fetch results if available
+                    rows = []
+                    if cur.description:  # If query returns data
+                        rows = cur.fetchall() or []
+
                     status = cur.statusmessage
-                    conn.commit()
                     return QueryResult(rows=rows, count=len(rows), status=status)
+
                 except psycopg2_errors.InsufficientPrivilege as e:
                     logger.error(f"Permission denied: {e}")
-                    raise PermissionError(f"Access denied: {str(e)}") from e
+                    raise PermissionError(
+                        f"Access denied: {str(e)}. Use live_dangerously('database', True) for write operations."
+                    ) from e
                 except (
                     psycopg2_errors.UndefinedTable,
                     psycopg2_errors.UndefinedColumn,
@@ -159,8 +181,6 @@ class SupabaseClient:
                 except psycopg2.Error as e:
                     logger.error(f"Database error: {e.pgerror}")
                     raise QueryError(f"Query failed: {str(e)}") from e
-                finally:
-                    conn.rollback()  # Always rollback READ ONLY transaction
         finally:
             if pool and conn:
                 pool.putconn(conn)

@@ -74,3 +74,6 @@ assets/
 
 # Generated version file
 supabase_mcp/_version.py
+
+# Docs
+.llms-full.txt

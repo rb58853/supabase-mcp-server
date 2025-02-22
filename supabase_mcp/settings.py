@@ -75,6 +75,11 @@ class Settings(BaseSettings):
         env="SUPABASE_REGION",
         description="Supabase region for connection",
     )
+    supabase_access_token: str | None = Field(
+        default=None,
+        env="SUPABASE_ACCESS_TOKEN",
+        description="Optional personal access token for accessing Supabase Management API",
+    )
 
     @field_validator("supabase_region")
     @classmethod

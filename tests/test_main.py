@@ -24,7 +24,7 @@ def test_mcp_server_initializes():
 
     # Verify our core tools are registered
     tool_names = {tool.name for tool in tools}
-    required_tools = {"get_db_schemas", "get_tables", "get_table_schema", "query_db"}
+    required_tools = {"get_db_schemas", "get_tables", "get_table_schema", "execute_sql_query"}
     assert required_tools.issubset(tool_names), f"Missing required tools. Found: {tool_names}"
 
 
@@ -62,7 +62,7 @@ def test_mcp_server_tools():
     assert "get_db_schemas" in tool_names
     assert "get_tables" in tool_names
     assert "get_table_schema" in tool_names
-    assert "query_db" in tool_names
+    assert "execute_sql_query" in tool_names
 
     # Verify tools have descriptions
     for tool in tools:
@@ -89,5 +89,5 @@ async def test_db_tools_execution():
     assert isinstance(tables, list), "Expected list of tables"
 
     # Try a simple query
-    query_result = await mcp.call_tool("query_db", {"query": "SELECT current_database();"})
+    query_result = await mcp.call_tool("execute_sql_query", {"query": "SELECT current_database();"})
     assert "postgres" in str(query_result), "Expected postgres database"

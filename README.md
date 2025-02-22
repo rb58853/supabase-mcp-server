@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <strong>Let Cursor & Windsurf interact with Supabase</strong>
+  <strong>Let Cursor & Windsurf interact with Supabase autonomously</strong>
 </p>
 
 [![Star History Chart](https://api.star-history.com/svg?repos=alexander-zuev/supabase-mcp-server&type=Date)](https://star-history.com/#alexander-zuev/supabase-mcp-server&Date)
@@ -401,5 +401,7 @@ Here are some tips & tricks that might help you:
 - 📦 Simplified installation via package manager - ✅ (0.2.0)
 - 🌎 Support for different Supabase regions - ✅ (0.2.2)
 - 🐍 Support methods and objects available in native Python SDK
-- 🎮 Programmatic access to Supabase management API (Support for creating edge functions, managing secrets (similar to Loveble integration)
+- 👷‍♂️ Safe running of non read-only SQL queries
+- 🎮 Programmatic access to Supabase management API
 - 🔍 Strong SQL query validation
+- 📝 Connect to db logs to help debug errors

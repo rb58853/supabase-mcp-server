@@ -2,15 +2,22 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
+from supabase_mcp.api_manager.api_manager import SupabaseApiManager
+from supabase_mcp.api_manager.safety_config import SafetyLevel
 from supabase_mcp.client import SupabaseClient
 from supabase_mcp.logger import logger
 from supabase_mcp.queries import PreBuiltQueries
 from supabase_mcp.settings import settings
-from supabase_mcp.validators import validate_schema_name, validate_sql_query, validate_table_name
+from supabase_mcp.validators import (
+    validate_schema_name,
+    validate_sql_query,
+    validate_table_name,
+)
 
 try:
     mcp = FastMCP("supabase")
     supabase = SupabaseClient.create()
+    api_manager = SupabaseApiManager()
 except Exception as e:
     logger.error(f"Failed to create Supabase client: {e}")
     raise e
@@ -48,6 +55,113 @@ async def query_db(query: str):
     return supabase.readonly_query(query)
 
 
+# Core Tools
+@mcp.tool(
+    description="""
+Execute a Supabase Management API request. Use paths exactly as defined in the API spec -
+the {ref} parameter will be automatically injected from settings.
+
+For POST, PUT, and PATCH requests that require data:
+- request_params: Must be a valid JSON object for query parameters (e.g. {"key": "value"})
+- request_body: Must be a valid JSON object (e.g. {"name": "test"})
+
+Example: for /v1/projects/{ref}/functions/{function_slug}, only function_slug needs to be provided.
+"""
+)
+async def management_api_request(
+    method: str,
+    path: str,  # URL path
+    request_params: str | dict | None = None,  # Query parameters as dict
+    request_body: str | dict | None = None,  # Request body as dict
+) -> dict:
+    """
+    Execute a Management API request.
+
+    Args:
+        method: HTTP method (GET, POST, etc)
+        path: API path exactly as in spec, {ref} will be auto-injected
+        request_params: Query parameters as dict if needed (e.g. {"key": "value"})
+        request_body: Request body as dict for POST/PUT/PATCH (e.g. {"name": "test"})
+
+    Example:
+        To get a function details, use:
+        path="/v1/projects/{ref}/functions/{function_slug}"
+        The {ref} will be auto-injected, only function_slug needs to be provided
+    """
+
+    # Handle request_params
+    params_dict = None
+    if isinstance(request_params, str):
+        import json
+
+        try:
+            params_dict = json.loads(request_params)
+        except json.JSONDecodeError:
+            # If it's not JSON, try parsing as query string
+            from urllib.parse import parse_qs
+
+            params_dict = {k: v[0] for k, v in parse_qs(request_params).items()}
+    elif isinstance(request_params, dict):
+        params_dict = request_params
+
+    # Handle request_body
+    body_dict = None
+    if isinstance(request_body, str):
+        import json
+
+        try:
+            body_dict = json.loads(request_body)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in request_body: {e}")
+    elif isinstance(request_body, dict):
+        body_dict = request_body
+    return await api_manager.execute_request(method, path, params_dict, body_dict)
+
+
+@mcp.tool(
+    description="""
+Toggle unsafe mode for Management API operations.
+In safe mode (default), only read operations are allowed.
+In unsafe mode, state-changing operations are permitted except blocked ones.
+"""
+)
+async def live_dangerously(enable: bool = False) -> dict:
+    """
+    Toggle between safe and unsafe operation modes.
+
+    Args:
+        enable: True to enable unsafe mode, False for safe mode
+
+    Returns:
+        dict: Current mode status and available operations
+    """
+    api_manager.switch_mode(SafetyLevel.UNSAFE if enable else SafetyLevel.SAFE)
+    return {"mode": api_manager.mode}
+
+
+@mcp.tool(
+    description="""
+Get the complete Management API specification enriched with safety metadata.
+Each operation includes safety level (safe/unsafe/blocked) and reasoning.
+Use this to understand available operations and their requirements.
+"""
+)
+async def get_management_api_spec() -> dict:
+    """
+    Get enriched API specification with safety information.
+
+    Returns:
+        dict: OpenAPI spec with added safety metadata per operation
+    """
+    return api_manager.get_spec()
+
+
+@mcp.tool(description="Get all safety rules for the Supabase Management API")
+async def get_management_api_safety_rules() -> dict:
+    """Returns all safety rules including blocked and unsafe operations with human-readable explanations"""
+    return api_manager.get_safety_rules()
+
+
 def run():
     """Run the Supabase MCP server."""
     if settings.supabase_project_ref.startswith("127.0.0.1"):
@@ -61,6 +175,8 @@ def run():
             settings.supabase_project_ref,
             settings.supabase_region,
         )
+    if settings.supabase_access_token:
+        logger.info("Personal access token detected - using for Management API")
     mcp.run()
 
 

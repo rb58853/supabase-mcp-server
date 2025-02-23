@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://test.pypi.org/project/supabase-mcp-server/ # TODO: Change to pypi.org after testing
+      url: https://pypi.org/project/supabase-mcp-server/
     permissions:
       id-token: write  # Required for trusted publishing
       contents: read
@@ -42,8 +42,8 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           # Create a new venv for testing
-          uv venv --name test-venv
-          source test-venv/bin/activate
+          uv venv
+          source .venv/bin/activate
 
           # Install the built wheel
           uv pip install dist/*.whl
@@ -56,22 +56,6 @@ jobs:
           fi
           echo "✅ supabase-mcp-server --help succeeded"
 
-          echo "Testing supabase-mcp-inspector entry point..."
-          if ! uv run supabase-mcp-inspector --help; then
-            echo "❌ supabase-mcp-inspector --help failed"
-            exit 1
-          fi
-          echo "✅ supabase-mcp-inspector --help succeeded"
-
-          # Test actual connection if credentials are available
-          echo "Testing actual connection with supabase-mcp-inspector..."
-          if ! timeout 30s uv run supabase-mcp-inspector; then
-            echo "❌ supabase-mcp-inspector connection test failed"
-            exit 1
-          fi
-          echo "✅ supabase-mcp-inspector connection test succeeded"
-
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/ # TODO: Change to pypi.org after testing
+

@@ -2,37 +2,76 @@ name: Publish to PyPI
 
 on:
   release:
-    types: [created]
+    types: [published]
+    branches: [main]  # Only trigger for releases from main
+
+env:
+  UV_VERSION: "0.6.0" # Pin uv version to avoid breaking changes
 
 jobs:
-  publish:
+  build-and-publish:
     runs-on: ubuntu-latest
-    environment: release
+    environment:
+      name: pypi
+      url: https://test.pypi.org/project/supabase-mcp-server/ # TODO: Change to pypi.org after testing
     permissions:
-      id-token: write  # mandatory for trusted publishing
+      id-token: write  # Required for trusted publishing
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for proper version detection
 
-      - name: Set up Python 3.12
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
       - name: Build package
+        run: uv build --no-sources
+
+      - name: Verify package installation and entry points
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
-          uv venv
-          source .venv/bin/activate
-          uv pip install -e .
-          uv build
+          # Create a new venv for testing
+          uv venv --name test-venv
+          source test-venv/bin/activate
+
+          # Install the built wheel
+          uv pip install dist/*.whl
+
+          echo "Testing supabase-mcp-server entry point..."
+          # Run with --help to test basic functionality without needing actual connection
+          if ! uv run supabase-mcp-server --help; then
+            echo "❌ supabase-mcp-server --help failed"
+            exit 1
+          fi
+          echo "✅ supabase-mcp-server --help succeeded"
+
+          echo "Testing supabase-mcp-inspector entry point..."
+          if ! uv run supabase-mcp-inspector --help; then
+            echo "❌ supabase-mcp-inspector --help failed"
+            exit 1
+          fi
+          echo "✅ supabase-mcp-inspector --help succeeded"
+
+          # Test actual connection if credentials are available
+          echo "Testing actual connection with supabase-mcp-inspector..."
+          if ! timeout 30s uv run supabase-mcp-inspector; then
+            echo "❌ supabase-mcp-inspector connection test failed"
+            exit 1
+          fi
+          echo "✅ supabase-mcp-inspector connection test succeeded"
 
       - name: Publish to PyPI
-        run: |
-          source .venv/bin/activate
-          uv pip install --upgrade build twine
-          uv publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/ # TODO: Change to pypi.org after testing

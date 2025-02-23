@@ -139,8 +139,7 @@ async def live_dangerously(service: Literal["api", "database"], enable: bool = F
 
 @mcp.tool(
     description="""
-Get the complete Management API specification enriched with safety metadata.
-Each operation includes safety level (safe/unsafe/blocked) and reasoning.
+Get the latests complete Management API specification.
 Use this to understand available operations and their requirements.
 """
 )

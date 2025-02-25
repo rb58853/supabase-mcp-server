@@ -22,6 +22,12 @@ class QueryError(DatabaseError):
     pass
 
 
+class TimeoutError(DatabaseError):
+    """Raised when a query execution exceeds the specified timeout."""
+
+    pass
+
+
 class ValidationError(Exception):
     """Raised when input validation fails."""
 

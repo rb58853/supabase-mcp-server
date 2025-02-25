@@ -11,6 +11,7 @@ from supabase_mcp.db_client.db_safety_config import DbSafetyLevel
 from supabase_mcp.exceptions import ConnectionError, PermissionError, QueryError
 from supabase_mcp.logger import logger
 from supabase_mcp.settings import Settings, settings
+from supabase_mcp.validators import validate_transaction_control
 
 
 @dataclass
@@ -145,15 +146,22 @@ class SupabaseClient:
             PermissionError: When user lacks required privileges
         """
         if self._pool is None:
-            # Reinitialize pool if it was closed
             self._pool = self._get_pool()
 
         pool = self._get_pool()
         conn = pool.getconn()
         try:
-            # Control session
-            readonly = self.mode == DbSafetyLevel.RO
-            conn.set_session(readonly=readonly)
+            # Check if we are in transaction mode
+            in_transaction = conn.status == psycopg2.extensions.STATUS_IN_TRANSACTION
+            logger.debug(f"Connection state before query: {conn.status}")
+
+            has_transaction_control = validate_transaction_control(query)
+            logger.debug(f"Has transaction control: {has_transaction_control}")
+
+            # Set session only if not in transaction mode
+            if not in_transaction:
+                readonly = self.mode == DbSafetyLevel.RO
+                conn.set_session(readonly=readonly)
 
             with conn.cursor() as cur:
                 try:
@@ -164,7 +172,13 @@ class SupabaseClient:
                     if cur.description:  # If query returns data
                         rows = cur.fetchall() or []
 
+                    # Only auto-commit if not in write mode AND query doesn't contain
+                    readonly = self.mode == DbSafetyLevel.RO
+                    if not readonly and not has_transaction_control:
+                        conn.commit()
+
                     status = cur.statusmessage
+                    logger.debug(f"Query status: {status}")
                     return QueryResult(rows=rows, count=len(rows), status=status)
 
                 except psycopg2_errors.InsufficientPrivilege as e:
@@ -179,6 +193,12 @@ class SupabaseClient:
                     logger.error(f"Schema error: {e}")
                     raise QueryError(str(e)) from e
                 except psycopg2.Error as e:
+                    if not readonly:
+                        try:
+                            conn.rollback()
+                            logger.debug("Transaction rolled back due to error")
+                        except Exception as rollback_error:
+                            logger.warning(f"Failed to rollback transaction: {rollback_error}")
                     logger.error(f"Database error: {e.pgerror}")
                     raise QueryError(f"Query failed: {str(e)}") from e
         finally:

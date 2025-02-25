@@ -35,9 +35,8 @@ A feature-rich MCP server that enables Cursor and Windsurf to safely interact wi
 
 ## Table of contents
 <p align="center">
-  <a href="#-key-features">Key features</a> •
-  <a href="#getting-started-guide">Getting started</a> •
-  <a href="#feature-guides">Feature guides</a> •
+  <a href="#getting-started">Getting started</a> •
+  <a href="#feature-overview">Feature overview</a> •
   <a href="#troubleshooting">Troubleshooting</a> •
   <a href="#roadmap">Roadmap</a>
 </p>
@@ -45,11 +44,12 @@ A feature-rich MCP server that enables Cursor and Windsurf to safely interact wi
 ## ✨ Key features
 - 💻 Compatible with Cursor, Windsurf, Cline and other MCP clients supporting `stdio` protocol
 - 🔐 Control read-only and read-write modes of SQL query execution
+- 🔄 Robust transaction handling for both direct and pooled database connections
 - 💻 Manage your Supabase projects with Supabase Management API
 - 🔨 Pre-built tools to help Cursor & Windsurf work with MCP more effectively
 - 📦 Dead-simple install & setup via package manager (uv, pipx, etc.)
 
-## Getting Started Guide
+## Getting Started
 
 ### Prerequisites
 Installing the server requires the following on your system:
@@ -275,17 +275,54 @@ Here are some tips & tricks that might help you:
 
 If you are stuck or any of the instructions above are incorrect, please raise an issue on GitHub.
 
-## Feature Guides
+## Feature Overview
 
 ### Database query tools
 
-Since v0.3.0 server supports both read-only and read-write SQL queries.
+Since v0.3.0 server supports both read-only and data modification operations:
+
+- **Read operations**: SELECT queries for data retrieval
+- **Data Manipulation Language (DML)**: INSERT, UPDATE, DELETE operations for data changes
+- **Data Definition Language (DDL)**: CREATE, ALTER, DROP operations for schema changes*
+
+*Note: DDL operations require:
+1. Read-write mode enabled via `live_dangerously`
+2. Sufficient permissions for the connected database role
+
+#### Transaction Handling
+
+The server supports two approaches for executing write operations:
+
+1. **Explicit Transaction Control** (Recommended):
+   ```sql
+   BEGIN;
+   CREATE TABLE public.test_table (id SERIAL PRIMARY KEY, name TEXT);
+   COMMIT;
+   ```
+
+2. **Single Statements**:
+   ```sql
+   CREATE TABLE public.test_table (id SERIAL PRIMARY KEY, name TEXT);
+   ```
+
+For DDL operations (CREATE/ALTER/DROP), we strongly recommend using explicit transaction control with BEGIN/COMMIT blocks for better reliability and control.
+
+#### Connection Types
+
+The server works with both:
+- **Direct Database Connections**: Full transaction control, supports all operations
+- **Transaction Pooler Connections**: Used by default in Supabase production/staging environments
+
+When connecting via Supabase's Transaction Pooler, some complex transaction patterns may not work as expected. For schema changes in these environments, use explicit transaction blocks or consider using Supabase migrations or the SQL Editor in the dashboard.
 
 Available database tools:
 - `get_db_schemas` - Lists all database schemas with their sizes and table counts
 - `get_tables` - Lists all tables in a schema with their sizes, row counts, and metadata
 - `get_table_schema` - Gets detailed table structure including columns, keys, and relationships
-- `execute_sql_query` - Executes raw SQL queries with validation
+- `execute_sql_query` - Executes raw SQL queries with comprehensive support for all PostgreSQL operations:
+  - Supports all query types (SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, etc.)
+  - Handles transaction control statements (BEGIN, COMMIT, ROLLBACK)
+
 
 - Supported modes:
   - `read-only` - only read-only queries are allowed (default mode)
@@ -294,7 +331,7 @@ Available database tools:
   - Starts in read-only mode by default
   - Requires explicit mode switch for write operations
   - Automatically resets to read-only mode after write operations
-  - Uses transactions to ensure clean state in tests
+  - Intelligent transaction state detection to prevent errors
   - SQL query validation [TODO]
 
 ### Management API tools
@@ -316,9 +353,13 @@ Since v0.3.0 server supports sending arbitrary requests to Supabase Management A
 - 🌎 Support for different Supabase regions - ✅ (v0.2.2)
 - 🎮 Programmatic access to Supabase management API with safety controls - ✅ (v0.3.0)
 - 👷‍♂️ Read and read-write database SQL queries with safety controls - ✅ (v0.3.0)
+- 🔄 Robust transaction handling for both direct and pooled connections - ✅ (v0.3.2)
+- 👨‍💻 Supabase CLI integration
 - 🐍 Support methods and objects available in native Python SDK
 - 🔍 Strong SQL query validation
 - 📝 Connect to db logs to help debug errors
+- Simplify connection via a string?
+- Pull in edge functions logs (https://supabase.com/dashboard/project/drmzszdytvvfbcytltsw/logs/edge-logs)
 
 ### Support of Python SDK methods
 

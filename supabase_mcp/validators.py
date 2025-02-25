@@ -48,3 +48,13 @@ def validate_sql_query(query: str) -> str:
         raise ValidationError("Query cannot be empty")
 
     return query
+
+
+def validate_transaction_control(query: str) -> bool:
+    """Validate if the query has transaction control.
+
+    Rules:
+    - Must be a string
+    - Cannot be empty
+    """
+    return any(x in query.upper() for x in ["BEGIN", "COMMIT", "ROLLBACK"])

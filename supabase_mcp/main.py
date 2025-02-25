@@ -49,7 +49,34 @@ async def get_table_schema(schema_name: str, table: str):
     return supabase.execute_query(query)
 
 
-@mcp.tool(description="Query the database with a raw SQL query.")
+@mcp.tool(
+    description="""
+Query the database with a raw SQL query.
+
+IMPORTANT USAGE GUIDELINES:
+1. For READ operations (SELECT):
+   - Use simple SELECT statements
+   - Example: SELECT * FROM public.users LIMIT 10;
+
+2. For WRITE operations (INSERT/UPDATE/DELETE/CREATE/ALTER/DROP):
+   - ALWAYS wrap in explicit BEGIN/COMMIT blocks
+   - Example:
+     BEGIN;
+     CREATE TABLE public.test_table (id SERIAL PRIMARY KEY, name TEXT);
+     COMMIT;
+
+3. NEVER mix READ and WRITE operations in the same query
+4. NEVER use single DDL statements without transaction control
+5. Remember to enable unsafe mode first with live_dangerously('database', True)
+
+TRANSACTION HANDLING:
+- The server detects BEGIN/COMMIT/ROLLBACK keywords to respect your transaction control
+- When you use these keywords, the server will not interfere with your transactions
+- For queries without transaction control, the server will auto-commit in write mode
+
+Failure to follow these guidelines will result in errors.
+"""
+)
 async def execute_sql_query(query: str):
     """Execute an SQL query with validation."""
     query = validate_sql_query(query)

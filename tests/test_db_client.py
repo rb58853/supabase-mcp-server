@@ -102,3 +102,117 @@ def test_query_error_handling(integration_client):
     with pytest.raises(QueryError) as exc_info:
         integration_client.execute_query("INVALID SQL")
     assert "syntax error" in str(exc_info.value).lower()
+
+
+@pytest.mark.integration
+def test_transaction_commit_in_write_mode(integration_client):
+    """Test that transactions are properly committed in write mode"""
+    # Switch to write mode
+    integration_client.switch_mode(DbSafetyLevel.RW)
+
+    try:
+        # Use explicit transaction control with a regular table (not temporary)
+        integration_client.execute_query("""
+            BEGIN;
+            CREATE TABLE IF NOT EXISTS public.test_commit (id SERIAL PRIMARY KEY, value TEXT);
+            INSERT INTO public.test_commit (value) VALUES ('test_value');
+            COMMIT;
+        """)
+
+        # Verify data was committed by querying it back
+        result = integration_client.execute_query("SELECT value FROM public.test_commit")
+
+        # Check that we got the expected result
+        assert len(result.rows) == 1
+        assert result.rows[0]["value"] == "test_value"
+
+    finally:
+        # Clean up - drop the table
+        try:
+            integration_client.execute_query("DROP TABLE IF EXISTS public.test_commit")
+        except Exception as e:
+            print(f"Cleanup error: {e}")
+
+        # Switch back to read-only mode
+        integration_client.switch_mode(DbSafetyLevel.RO)
+
+
+@pytest.mark.integration
+def test_explicit_transaction_control(integration_client):
+    """Test explicit transaction control with BEGIN/COMMIT"""
+    # Switch to write mode
+    integration_client.switch_mode(DbSafetyLevel.RW)
+
+    try:
+        # Create a test table
+        integration_client.execute_query("""
+            BEGIN;
+            CREATE TABLE IF NOT EXISTS public.transaction_test (id SERIAL PRIMARY KEY, data TEXT);
+            COMMIT;
+        """)
+
+        # Test transaction that should be committed
+        integration_client.execute_query("""
+            BEGIN;
+            INSERT INTO public.transaction_test (data) VALUES ('committed_data');
+            COMMIT;
+        """)
+
+        # Verify data was committed
+        result = integration_client.execute_query("SELECT data FROM public.transaction_test")
+        assert len(result.rows) == 1
+        assert result.rows[0]["data"] == "committed_data"
+
+    finally:
+        # Clean up
+        try:
+            integration_client.execute_query("DROP TABLE IF EXISTS public.transaction_test")
+        except Exception as e:
+            print(f"Cleanup error: {e}")
+
+        # Switch back to read-only mode
+        integration_client.switch_mode(DbSafetyLevel.RO)
+
+
+@pytest.mark.integration
+def test_savepoint_and_rollback(integration_client):
+    """Test savepoint and rollback functionality within transactions"""
+    # Switch to write mode
+    integration_client.switch_mode(DbSafetyLevel.RW)
+
+    try:
+        # Create a test table
+        integration_client.execute_query("""
+            BEGIN;
+            CREATE TABLE IF NOT EXISTS public.savepoint_test (id SERIAL PRIMARY KEY, data TEXT);
+            COMMIT;
+        """)
+
+        # Test transaction with savepoint and rollback
+        integration_client.execute_query("""
+            BEGIN;
+            INSERT INTO public.savepoint_test (data) VALUES ('data1');
+            SAVEPOINT sp1;
+            INSERT INTO public.savepoint_test (data) VALUES ('data2');
+            ROLLBACK TO sp1;
+            INSERT INTO public.savepoint_test (data) VALUES ('data3');
+            COMMIT;
+        """)
+
+        # Verify only data1 and data3 were committed (data2 was rolled back)
+        result = integration_client.execute_query("""
+            SELECT data FROM public.savepoint_test ORDER BY id
+        """)
+
+        assert len(result.rows) == 2
+        assert result.rows[0]["data"] == "data1"
+        assert result.rows[1]["data"] == "data3"
+
+    finally:
+        # Clean up
+        try:
+            integration_client.execute_query("DROP TABLE IF EXISTS public.savepoint_test")
+        except Exception as e:
+            print(f"Cleanup error: {e}")
+
+        # Switch back to read-only mode

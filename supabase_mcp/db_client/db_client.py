@@ -158,9 +158,11 @@ class SupabaseClient:
             has_transaction_control = validate_transaction_control(query)
             logger.debug(f"Has transaction control: {has_transaction_control}")
 
+            # Define readonly once at the top so it's available throughout the function
+            readonly = self.mode == DbSafetyLevel.RO
+
             # Set session only if not in transaction mode
             if not in_transaction:
-                readonly = self.mode == DbSafetyLevel.RO
                 conn.set_session(readonly=readonly)
 
             with conn.cursor() as cur:
@@ -173,7 +175,6 @@ class SupabaseClient:
                         rows = cur.fetchall() or []
 
                     # Only auto-commit if not in write mode AND query doesn't contain
-                    readonly = self.mode == DbSafetyLevel.RO
                     if not readonly and not has_transaction_control:
                         conn.commit()
 

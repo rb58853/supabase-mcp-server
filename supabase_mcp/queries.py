@@ -32,13 +32,14 @@ class PreBuiltQueries:
                 pg_stat_get_live_tuples(pc.oid) as row_count,
                 (SELECT COUNT(*) FROM information_schema.columns c WHERE c.table_schema = t.table_schema AND c.table_name = t.table_name) as column_count,
                 (SELECT COUNT(*) FROM pg_indexes i WHERE i.schemaname = t.table_schema AND i.tablename = t.table_name) as index_count,
-                pg_total_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name)) as size_bytes  -- Added for ordering
+                pg_total_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name)) as size_bytes,  -- Added for ordering
+                t.table_type  -- Added to distinguish between regular and foreign tables
             FROM information_schema.tables t
             JOIN pg_class pc
                 ON pc.relname = t.table_name
                 AND pc.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = '{schema_name}')
             WHERE t.table_schema = '{schema_name}'
-                AND t.table_type = 'BASE TABLE'
+                AND t.table_type IN ('BASE TABLE', 'FOREIGN TABLE', 'VIEW')
             ORDER BY size_bytes DESC;
         """
 

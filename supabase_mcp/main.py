@@ -32,9 +32,11 @@ async def get_db_schemas():
     return result
 
 
-@mcp.tool(description="List all tables in a schema with their sizes, row counts, and metadata.")
+@mcp.tool(
+    description="List all tables, foreign tables, and views in a schema with their sizes, row counts, and metadata."
+)
 async def get_tables(schema_name: str):
-    """Get all tables from a schema with size, row count, column count, and index information."""
+    """Get all tables, foreign tables, and views from a schema with size, row count, column count, and index information."""
     schema_name = validate_schema_name(schema_name)
     query = PreBuiltQueries.get_tables_in_schema_query(schema_name)
     return supabase.execute_query(query)

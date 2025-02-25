@@ -14,12 +14,12 @@ def test_connection_string_local_default():
     assert client.db_url == "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 
 
-def test_connection_string_integration(integration_settings):
+def test_connection_string_integration(custom_connection_settings):
     """Test connection string generation with integration settings from .env.test"""
-    client = SupabaseClient(settings_instance=integration_settings)
+    client = SupabaseClient(settings_instance=custom_connection_settings)
     expected_url = (
-        f"postgresql://postgres.{integration_settings.supabase_project_ref}:"
-        f"{integration_settings.supabase_db_password}@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+        f"postgresql://postgres.{custom_connection_settings.supabase_project_ref}:"
+        f"{custom_connection_settings.supabase_db_password}@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
     )
     assert client.db_url == expected_url
 
@@ -32,14 +32,24 @@ def test_connection_string_explicit_params():
 
 
 @pytest.mark.skipif(not os.getenv("CI"), reason="Test only runs in CI environment")
-def test_connection_string_ci(integration_settings):
+def test_connection_string_ci():
     """Test connection string generation in CI environment"""
-    client = SupabaseClient(settings_instance=integration_settings)
-    expected_url = (
-        f"postgresql://postgres.{integration_settings.supabase_project_ref}:"
-        f"{integration_settings.supabase_db_password}@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
-    )
-    assert client.db_url == expected_url
+    # Just create the client using singleton method
+    client = SupabaseClient.create()
+
+    # Verify we're using a remote connection, not localhost
+    assert "127.0.0.1" not in client.db_url, "CI should use remote DB, not localhost"
+
+    # Verify we have the expected format without exposing credentials
+    assert "postgresql://postgres." in client.db_url, "Connection string should use Supabase format"
+    assert "pooler.supabase.com" in client.db_url, "Connection string should use Supabase pooler"
+
+    # Verify the client can actually connect (this is a better test than checking the URL)
+    try:
+        result = client.execute_query("SELECT 1 as connection_test")
+        assert result.rows[0]["connection_test"] == 1, "Connection test query failed"
+    except Exception as e:
+        pytest.fail(f"Connection failed: {e}")
 
 
 # Safety mode tests
@@ -216,3 +226,5 @@ def test_savepoint_and_rollback(integration_client):
             print(f"Cleanup error: {e}")
 
         # Switch back to read-only mode
+        integration_client.switch_mode(DbSafetyLevel.RO)
+        assert integration_client.mode == DbSafetyLevel.RO

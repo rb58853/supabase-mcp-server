@@ -53,6 +53,7 @@ version-file = "supabase_mcp/_version.py"
 supabase-mcp-server = "supabase_mcp.main:run"
 supabase-mcp-inspector = "supabase_mcp.main:inspector"
 
+
 # Configure PyPI publishing
 [[tool.uv.index]]
 name = "pypi"
@@ -101,7 +102,13 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v -ra -q"
 asyncio_mode = "strict"
+
+[tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "unit: marks a test as a unit test",
+    "integration: marks a test as an integration test that requires database access"
+]
 
 [dependency-groups]
 dev = [

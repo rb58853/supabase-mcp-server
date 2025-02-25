@@ -32,7 +32,7 @@ repos:
   # === Type Checking ===
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.13.0"
+    rev: "v1.15.0"
     hooks:
       - id: mypy
         name: Run mypy type checker
@@ -60,7 +60,7 @@ repos:
 
   # === Code Quality & Style ===
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.7.2
+    rev: v0.9.7
     hooks:
       - id: ruff
         name: Run Ruff linter
@@ -77,20 +77,26 @@ repos:
         name: Run Ruff formatter
         types_or: [python, pyi, jupyter]
 
+  # === Documentation Checks ===
+  - repo: https://github.com/tcort/markdown-link-check
+    rev: v3.13.6
+    hooks:
+      - id: markdown-link-check
+        name: Check Markdown links
+        description: Extracts links from markdown texts and checks they're all alive
+        stages: [pre-commit, pre-push, manual]
+
   # === Testing ===
   - repo: local
     hooks:
       - id: pytest
-        name: Run pytest
+        name: Run tests
         entry: pytest
         language: system
         types: [python]
         pass_filenames: false
         args: [
-          "--quiet",
-          "--no-header",
-          "-v",
-        ]
+          "--no-header",        ]
         stages: [pre-commit, pre-push]
 
   # === Build Check ===

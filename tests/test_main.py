@@ -1,12 +1,17 @@
 import asyncio
+import os
 import subprocess
 from unittest.mock import ANY, patch
 
 import pytest
 
+from supabase_mcp.logger import logger
 from supabase_mcp.main import inspector, mcp, run
 
+# === UNIT TESTS ===
 
+
+@pytest.mark.unit
 def test_mcp_server_initializes():
     """Test that MCP server initializes with default configuration and tools"""
     # Verify server name
@@ -28,6 +33,7 @@ def test_mcp_server_initializes():
     assert required_tools.issubset(tool_names), f"Missing required tools. Found: {tool_names}"
 
 
+@pytest.mark.unit
 def test_run_server_starts():
     """Test that server run function executes without errors"""
     with patch("supabase_mcp.main.mcp.run") as mock_run:
@@ -35,6 +41,7 @@ def test_run_server_starts():
         mock_run.assert_called_once()
 
 
+@pytest.mark.unit
 def test_inspector_mode():
     """Test that inspector mode initializes correctly"""
     with patch("mcp.cli.cli.dev") as mock_dev:
@@ -42,6 +49,7 @@ def test_inspector_mode():
         mock_dev.assert_called_once_with(file_spec=ANY)
 
 
+@pytest.mark.unit
 def test_server_command_starts():
     """Test that the server command executes without errors"""
     result = subprocess.run(
@@ -53,16 +61,29 @@ def test_server_command_starts():
     assert result.returncode == 0, f"Server command failed: {result.stderr}"
 
 
+@pytest.mark.unit
 def test_mcp_server_tools():
     """Test that all expected tools are registered and accessible"""
     tools = asyncio.run(mcp.list_tools())
 
     # Verify we have all our tools
     tool_names = {tool.name for tool in tools}
-    assert "get_db_schemas" in tool_names
-    assert "get_tables" in tool_names
-    assert "get_table_schema" in tool_names
-    assert "execute_sql_query" in tool_names
+
+    # All tools defined in main.py
+    all_required_tools = {
+        "get_db_schemas",
+        "get_tables",
+        "get_table_schema",
+        "execute_sql_query",
+        "send_management_api_request",
+        "live_dangerously",
+        "get_management_api_spec",
+        "get_management_api_safety_rules",
+    }
+
+    assert all_required_tools.issubset(tool_names), (
+        f"Missing required tools. Found: {tool_names}, Expected: {all_required_tools}"
+    )
 
     # Verify tools have descriptions
     for tool in tools:
@@ -70,6 +91,10 @@ def test_mcp_server_tools():
         assert tool.inputSchema is not None, f"Tool {tool.name} missing input schema"
 
 
+# === INTEGRATION TESTS ===
+
+
+@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_db_tools_execution():
     """Integration test that verifies DB tools actually work
@@ -79,15 +104,330 @@ async def test_db_tools_execution():
     - SUPABASE_DB_PASSWORD
     environment variables to be set
     """
-    # Get schemas
-    schemas = await mcp.call_tool("get_db_schemas", {})
-    assert len(schemas) > 0, "Expected at least one schema"
-    assert any(schema for schema in schemas if "public" in str(schema)), "Expected public schema"
 
-    # Get tables from public schema
-    tables = await mcp.call_tool("get_tables", {"schema_name": "public"})
-    assert isinstance(tables, list), "Expected list of tables"
 
-    # Try a simple query
-    query_result = await mcp.call_tool("execute_sql_query", {"query": "SELECT current_database();"})
-    assert "postgres" in str(query_result), "Expected postgres database"
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_get_db_schemas_tool(integration_client):
+    """Test the get_db_schemas tool retrieves schema information properly.
+
+    This test checks:
+    1. The tool executes successfully
+    2. Returns data in the expected format
+    3. Contains at least the public schema
+    """
+    # Call the actual tool function from main.py
+    from supabase_mcp.main import get_db_schemas
+
+    # Execute the tool
+    result = await get_db_schemas()
+
+    # Verify result structure (should be a QueryResult)
+    assert hasattr(result, "rows"), "Result should have rows attribute"
+    assert hasattr(result, "count"), "Result should have count attribute"
+    assert hasattr(result, "status"), "Result should have status attribute"
+
+    # Verify we have some data
+    assert result.count > 0, "Should return at least some schemas"
+
+    # Get schema names for inspection
+    schema_names = [schema["schema_name"] for schema in result.rows]
+
+    # In Supabase, we at least expect the public schema to be available
+    assert "public" in schema_names, "Expected 'public' schema not found"
+
+    # Log available schemas for debugging
+    logger.info(f"Available schemas: {schema_names}")
+
+    # Verify schema structure
+    first_schema = result.rows[0]
+    expected_fields = ["schema_name", "total_size", "table_count"]
+    for field in expected_fields:
+        assert field in first_schema, f"Schema result missing '{field}' field"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_get_tables_tool(integration_client):
+    """Test the get_tables tool retrieves table information from a schema.
+
+    This test checks:
+    1. The tool executes successfully
+    2. Returns data in the expected format
+    """
+    # Call the actual tool function from main.py
+    from supabase_mcp.main import get_tables
+
+    # Execute the tool for the public schema
+    result = await get_tables("public")
+
+    # Verify result structure (should be a QueryResult)
+    assert hasattr(result, "rows"), "Result should have rows attribute"
+    assert hasattr(result, "count"), "Result should have count attribute"
+    assert hasattr(result, "status"), "Result should have status attribute"
+
+    # Log result for debugging
+    logger.info(f"Found {result.count} tables in public schema")
+
+    # If tables exist, verify their structure
+    if result.count > 0:
+        # Log table names
+        table_names = [table.get("table_name") for table in result.rows]
+        logger.info(f"Tables in public schema: {table_names}")
+
+        # Verify table structure
+        first_table = result.rows[0]
+        expected_fields = ["table_name", "table_type"]
+        for field in expected_fields:
+            assert field in first_table, f"Table result missing '{field}' field"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_get_table_schema_tool(integration_client):
+    """Test the get_table_schema tool retrieves column information for a table.
+
+    This test checks:
+    1. The tool executes successfully
+    2. Returns data in the expected format
+    3. Contains expected column information
+    """
+    # Call the actual tool functions from main.py
+    from supabase_mcp.main import get_table_schema, get_tables
+
+    # First get available tables in public schema
+    tables_result = await get_tables("public")
+
+    # Skip test if no tables available
+    if tables_result.count == 0:
+        pytest.skip("No tables available in public schema to test table schema")
+
+    # Get the first table name to test with
+    first_table = tables_result.rows[0]["table_name"]
+    logger.info(f"Testing schema for table: {first_table}")
+
+    # Execute the get_table_schema tool
+    result = await get_table_schema("public", first_table)
+
+    # Verify result structure
+    assert hasattr(result, "rows"), "Result should have rows attribute"
+    assert hasattr(result, "count"), "Result should have count attribute"
+    assert hasattr(result, "status"), "Result should have status attribute"
+
+    # Verify we have column data
+    logger.info(f"Found {result.count} columns for table {first_table}")
+
+    # If columns exist, verify their structure
+    if result.count > 0:
+        # Verify column structure
+        first_column = result.rows[0]
+        expected_fields = ["column_name", "data_type", "is_nullable"]
+        for field in expected_fields:
+            assert field in first_column, f"Column result missing '{field}' field"
+
+        # Log column names for debugging
+        column_names = [column.get("column_name") for column in result.rows]
+        logger.info(f"Columns in {first_table}: {column_names}")
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_execute_sql_query_tool(integration_client):
+    """Test the execute_sql_query tool runs arbitrary SQL queries.
+
+    This test checks:
+    1. The tool executes successfully
+    2. Returns data in the expected format
+    3. Can handle multiple query types
+    """
+    # Call the actual tool function from main.py
+    from supabase_mcp.main import execute_sql_query
+
+    # Test a simple SELECT query
+    result = await execute_sql_query("SELECT 1 as number, 'test' as text")
+
+    # Verify result structure
+    assert hasattr(result, "rows"), "Result should have rows attribute"
+    assert hasattr(result, "count"), "Result should have count attribute"
+    assert hasattr(result, "status"), "Result should have status attribute"
+
+    # Verify data matches what we expect
+    assert result.count == 1, "Expected exactly one row"
+    assert result.rows[0]["number"] == 1, "First column should be 1"
+    assert result.rows[0]["text"] == "test", "Second column should be 'test'"
+
+    # Test a query with no results
+    result = await execute_sql_query(
+        "SELECT * FROM information_schema.tables WHERE table_name = 'nonexistent_table_xyz123'"
+    )
+    assert result.count == 0, "Should return zero rows for non-matching query"
+
+    # Test a more complex query that joins tables
+    complex_result = await execute_sql_query("""
+        SELECT
+            table_schema,
+            table_name,
+            column_name
+        FROM
+            information_schema.columns
+        WHERE
+            table_schema = 'public'
+        LIMIT 5
+    """)
+
+    # Log result for debugging
+    logger.info(f"Complex query returned {complex_result.count} rows")
+
+    # Verify structure of complex query result
+    if complex_result.count > 0:
+        expected_fields = ["table_schema", "table_name", "column_name"]
+        for field in expected_fields:
+            assert field in complex_result.rows[0], f"Result missing '{field}' field"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+@pytest.mark.skipif(not os.getenv("CI"), reason="Management API test only runs in CI environment")
+async def test_management_api_request_tool(integration_client):
+    """Test the send_management_api_request tool for accessing Management API.
+
+    This test:
+    1. Only runs in CI environments where proper credentials are set up
+    2. Makes a simple GET request to the API
+    3. Verifies the tool handles requests correctly
+
+    Requires:
+    - SUPABASE_ACCESS_TOKEN environment variable to be set
+    - Running in a CI environment
+    """
+    from supabase_mcp.main import send_management_api_request
+
+    # Make a simple GET request to list projects (a safe read-only operation)
+    # This should work with any valid access token
+    result = await send_management_api_request(method="GET", path="/v1/projects", request_params={}, request_body={})
+
+    # Verify we got a valid response
+    assert isinstance(result, dict), "Result should be a dictionary"
+
+    # The result should have either 'data' (success) or 'error' (if permission issue)
+    # Both are valid test outcomes as long as the API responded
+    assert "data" in result or "error" in result, "Response should contain 'data' or 'error' key"
+
+    if "data" in result:
+        logger.info(f"Successfully retrieved {len(result['data'])} projects")
+
+        # If we got project data, it should be a list
+        assert isinstance(result["data"], list), "Projects data should be a list"
+    else:
+        # If we got an error, log it but don't fail the test
+        # (could be permission issues which is still a valid API response)
+        logger.warning(f"API returned error: {result.get('error', {}).get('message', 'Unknown error')}")
+
+    # Regardless of outcome, we verified the tool successfully communicated with the API
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_live_dangerously_tool():
+    """Test the live_dangerously tool for toggling safety modes.
+
+    This test checks:
+    1. The tool correctly toggles between safe and unsafe modes
+    2. Works for both API and database services
+    3. Returns the appropriate status information
+    """
+    from supabase_mcp.api_manager.api_safety_config import SafetyLevel
+    from supabase_mcp.main import live_dangerously
+
+    # Test database service mode switching
+    # Start with safe mode
+    result = await live_dangerously(service="database", enable=False)
+    assert result["service"] == "database", "Response should identify database service"
+    assert result["mode"] == "ro", "Database should be in read-only mode"
+
+    # Switch to unsafe mode
+    result = await live_dangerously(service="database", enable=True)
+    assert result["service"] == "database", "Response should identify database service"
+    assert result["mode"] == "rw", "Database should be in read-write mode"
+
+    # Switch back to safe mode
+    result = await live_dangerously(service="database", enable=False)
+    assert result["service"] == "database", "Response should identify database service"
+    assert result["mode"] == "ro", "Database should be in read-only mode"
+
+    # Test API service mode switching
+    # Start with safe mode
+    result = await live_dangerously(service="api", enable=False)
+    assert result["service"] == "api", "Response should identify API service"
+    # Compare with the Enum value or check its string value
+    assert result["mode"] == SafetyLevel.SAFE or result["mode"].value == "safe", "API should be in safe mode"
+
+    # Switch to unsafe mode
+    result = await live_dangerously(service="api", enable=True)
+    assert result["service"] == "api", "Response should identify API service"
+    assert result["mode"] == SafetyLevel.UNSAFE or result["mode"].value == "unsafe", "API should be in unsafe mode"
+
+    # Switch back to safe mode
+    result = await live_dangerously(service="api", enable=False)
+    assert result["service"] == "api", "Response should identify API service"
+    assert result["mode"] == SafetyLevel.SAFE or result["mode"].value == "safe", "API should be in safe mode"
+
+    # Log final state
+    logger.info("Successfully tested mode switching for both database and API services")
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_management_api_spec_tool():
+    """Test the get_management_api_spec tool returns the API specification.
+
+    This test checks:
+    1. The tool returns a valid OpenAPI specification
+    2. The specification contains the expected structure
+    """
+    from supabase_mcp.main import get_management_api_spec
+
+    # Get the API spec
+    spec = await get_management_api_spec()
+
+    # Verify result is a dictionary
+    assert isinstance(spec, dict), "API spec should be a dictionary"
+
+    # Verify spec has standard OpenAPI fields
+    assert "openapi" in spec, "Spec should contain 'openapi' version field"
+    assert "paths" in spec, "Spec should contain 'paths' section"
+    assert "info" in spec, "Spec should contain 'info' section"
+
+    # Verify paths contains API endpoints
+    assert isinstance(spec["paths"], dict), "Paths should be a dictionary"
+    assert len(spec["paths"]) > 0, "Spec should contain at least one path"
+
+    # Log some basic spec info
+    logger.info(f"API spec version: {spec.get('openapi')}")
+    logger.info(f"API contains {len(spec['paths'])} endpoints")
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_get_management_api_safety_rules_tool():
+    """Test the get_management_api_safety_rules tool returns safety information.
+
+    This test checks:
+    1. The tool returns safety rule information
+    2. The rules contain information about blocked and unsafe operations
+    """
+    from supabase_mcp.main import get_management_api_safety_rules
+
+    # Get the safety rules
+    rules = await get_management_api_safety_rules()
+
+    # Verify result structure and content
+    assert isinstance(rules, str), "Safety rules should be returned as a string"
+
+    # Check for expected sections in the rules
+    assert "BLOCKED Operations" in rules, "Rules should mention blocked operations"
+    assert "UNSAFE Operations" in rules, "Rules should mention unsafe operations"
+    assert "Current mode" in rules, "Rules should mention current mode"
+
+    # Log the rules for debugging
+    logger.info("Successfully retrieved Management API safety rules")

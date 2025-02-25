@@ -62,23 +62,23 @@ class Settings(BaseSettings):
 
     supabase_project_ref: str = Field(
         default="127.0.0.1:54322",  # Local Supabase default
-        env="SUPABASE_PROJECT_REF",
         description="Supabase project ref",
+        alias="SUPABASE_PROJECT_REF",
     )
     supabase_db_password: str = Field(
         default="postgres",  # Local Supabase default
-        env="SUPABASE_DB_PASSWORD",
         description="Supabase db password",
+        alias="SUPABASE_DB_PASSWORD",
     )
     supabase_region: str = Field(
         default="us-east-1",  # East US (North Virginia) - Supabase's default region
-        env="SUPABASE_REGION",
         description="Supabase region for connection",
+        alias="SUPABASE_REGION",
     )
     supabase_access_token: str | None = Field(
         default=None,
-        env="SUPABASE_ACCESS_TOKEN",
         description="Optional personal access token for accessing Supabase Management API",
+        alias="SUPABASE_ACCESS_TOKEN",
     )
 
     @field_validator("supabase_region")

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.3.2] - 2025-02-25
+### Fixed
+- Fixed a bug preventing execution of DDL commands (create, alter tables, etc.)
+
+## [0.3.1] - 2025-02-23
+### Changed
+- Significantly improved docs to make install, configuration, usage instructions super clear
+
+
 ## [0.3.0] - 2025-02-23
 ### Added
 - Full support for read-write SQL operations:

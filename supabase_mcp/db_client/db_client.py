@@ -1,3 +1,4 @@
+import urllib.parse
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -51,13 +52,15 @@ class SupabaseClient:
 
     def _get_db_url_from_supabase(self) -> str:
         """Create PostgreSQL connection string from settings."""
+        encoded_password = urllib.parse.quote_plus(self.db_password)
+
         if self.project_ref.startswith("127.0.0.1"):
             # Local development
-            return f"postgresql://postgres:{self.db_password}@{self.project_ref}/postgres"
+            return f"postgresql://postgres:{encoded_password}@{self.project_ref}/postgres"
 
         # Production Supabase
         return (
-            f"postgresql://postgres.{self.project_ref}:{self.db_password}"
+            f"postgresql://postgres.{self.project_ref}:{encoded_password}"
             f"@aws-0-{self._settings.supabase_region}.pooler.supabase.com:6543/postgres"
         )
 

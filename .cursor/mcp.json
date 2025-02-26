@@ -1,7 +1,0 @@
-{
-    "mcpServers": {
-      "filesystem": {
-        "command": "supabase-mcp-server"
-      }
-    }
-  }

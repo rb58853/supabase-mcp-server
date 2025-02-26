@@ -300,30 +300,39 @@ async def test_management_api_request_tool(integration_client):
     - SUPABASE_ACCESS_TOKEN environment variable to be set
     - Running in a CI environment
     """
+    from supabase_mcp.api_manager.api_manager import SupabaseApiManager
     from supabase_mcp.main import send_management_api_request
 
-    # Make a simple GET request to list projects (a safe read-only operation)
-    # This should work with any valid access token
-    result = await send_management_api_request(method="GET", path="/v1/projects", request_params={}, request_body={})
+    # Create a dedicated API manager for this test
+    api_manager = await SupabaseApiManager.create()
 
-    # Verify we got a valid response
-    assert isinstance(result, dict), "Result should be a dictionary"
+    # Patch the get_manager method to return our dedicated instance
+    with patch("supabase_mcp.api_manager.api_manager.SupabaseApiManager.get_manager", return_value=api_manager):
+        try:
+            # Make a simple GET request to list projects (a safe read-only operation)
+            # This should work with any valid access token
+            result = await send_management_api_request(
+                method="GET", path="/v1/projects", request_params={}, request_body={}
+            )
 
-    # The result should have either 'data' (success) or 'error' (if permission issue)
-    # Both are valid test outcomes as long as the API responded
-    assert "data" in result or "error" in result, "Response should contain 'data' or 'error' key"
+            # Verify we got a valid response - the API returns a list of projects
+            assert isinstance(result, list), "Result should be a list of projects"
 
-    if "data" in result:
-        logger.info(f"Successfully retrieved {len(result['data'])} projects")
+            # If we got project data, verify it has the expected structure
+            if len(result) > 0:
+                # Check the first project has expected fields
+                project = result[0]
+                assert isinstance(project, dict), "Project items should be dictionaries"
+                assert "id" in project, "Project should have an ID"
+                assert "name" in project, "Project should have a name"
+                assert "database" in project, "Project should have database info"
 
-        # If we got project data, it should be a list
-        assert isinstance(result["data"], list), "Projects data should be a list"
-    else:
-        # If we got an error, log it but don't fail the test
-        # (could be permission issues which is still a valid API response)
-        logger.warning(f"API returned error: {result.get('error', {}).get('message', 'Unknown error')}")
-
-    # Regardless of outcome, we verified the tool successfully communicated with the API
+                logger.info(f"Successfully retrieved {len(result)} projects")
+            else:
+                logger.warning("API returned an empty list of projects")
+        finally:
+            # Ensure we close the client even if the test fails
+            await api_manager.close()
 
 
 @pytest.mark.unit

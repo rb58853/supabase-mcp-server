@@ -43,9 +43,6 @@ def clean_environment() -> Generator[None, None, None]:
 @pytest.fixture
 def clean_settings(clean_environment) -> Generator[Settings, None, None]:
     """Fixture to provide a clean Settings instance without any environment variables"""
-    # Clear Settings singleton
-    if hasattr(Settings, "_instance"):
-        delattr(Settings, "_instance")
 
     # Clear SupabaseClient singleton
     if hasattr(SupabaseClient, "_instance"):
@@ -57,15 +54,11 @@ def clean_settings(clean_environment) -> Generator[Settings, None, None]:
 
 
 @pytest.fixture
-def integration_settings() -> Generator[Settings, None, None]:
+def custom_connection_settings() -> Generator[Settings, None, None]:
     """Fixture that provides Settings instance for integration tests using .env.test"""
-    # Clear Settings singleton
-    if hasattr(Settings, "_instance"):
-        delattr(Settings, "_instance")
 
     # Clear SupabaseClient singleton
-    if hasattr(SupabaseClient, "_instance"):
-        delattr(SupabaseClient, "_instance")
+    SupabaseClient.reset()
 
     # Load test environment
     test_env = load_test_env()
@@ -74,8 +67,9 @@ def integration_settings() -> Generator[Settings, None, None]:
     # Set up test environment
     os.environ.update(test_env)
 
+    # Create fresh settings instance
     settings = Settings()
-    logger.info(f"Integration settings initialized: {settings}")
+    logger.info(f"Custom connection settings initialized: {settings}")
 
     yield settings
 
@@ -85,8 +79,35 @@ def integration_settings() -> Generator[Settings, None, None]:
 
 
 @pytest.fixture
-def integration_client(integration_settings):
+def custom_connection_client(custom_connection_settings):
     """Fixture providing a client connected to test database"""
-    client = SupabaseClient(settings_instance=integration_settings)
+    client = SupabaseClient(settings_instance=custom_connection_settings)
     yield client
     client.close()  # Ensure connection is closed after test
+
+
+@pytest.fixture
+def integration_client() -> Generator[SupabaseClient, None, None]:
+    """Fixture providing a client connected to a database for integration tests.
+
+    This fixture uses the default settings for connecting to the database,
+    which makes it work automatically with local Supabase or CI environments.
+    """
+    # Reset the SupabaseClient singleton to ensure we get a fresh instance
+    SupabaseClient.reset()
+
+    # Create client using default settings
+    client = SupabaseClient.create()
+
+    # Log connection details (without credentials)
+    db_url_parts = client.db_url.split("@")
+    if len(db_url_parts) > 1:
+        safe_conn_info = db_url_parts[1]
+    else:
+        safe_conn_info = "unknown"
+    logger.info(f"Integration client connecting to: {safe_conn_info}")
+
+    yield client
+
+    # Clean up
+    client.close()

@@ -3,44 +3,91 @@ class PreBuiltQueries:
     def get_schemas_query() -> str:
         """Returns SQL query to get all accessible schemas"""
         return """
+        SELECT
+            s.schema_name,
+            COALESCE(pg_size_pretty(sum(COALESCE(
+                CASE WHEN t.table_type = 'regular'
+                    THEN pg_total_relation_size(
+                        quote_ident(t.schema_name) || '.' || quote_ident(t.table_name)
+                    )
+                    ELSE 0
+                END, 0)
+            )), '0 B') as total_size,
+            COUNT(t.table_name) as table_count
+        FROM information_schema.schemata s
+        LEFT JOIN (
+            -- Regular tables
             SELECT
-                s.schema_name,
-                COALESCE(pg_size_pretty(sum(pg_total_relation_size(
-                    quote_ident(t.schemaname) || '.' || quote_ident(t.tablename)
-                ))), '0 B') as total_size,
-                COUNT(t.tablename) as table_count
-            FROM information_schema.schemata s
-            LEFT JOIN pg_tables t ON t.schemaname = s.schema_name
-            WHERE s.schema_name NOT IN ('pg_catalog', 'information_schema')
-                AND s.schema_name NOT LIKE 'pg_%'
-                AND s.schema_name NOT LIKE 'pg_toast%'
-            GROUP BY s.schema_name
-            ORDER BY
-                COUNT(t.tablename) DESC,           -- Schemas with most tables first
-                total_size DESC,                   -- Then by size
-                s.schema_name;                     -- Then alphabetically
+                schemaname as schema_name,
+                tablename as table_name,
+                'regular' as table_type
+            FROM pg_tables
+
+            UNION ALL
+
+            -- Foreign tables
+            SELECT
+                foreign_table_schema as schema_name,
+                foreign_table_name as table_name,
+                'foreign' as table_type
+            FROM information_schema.foreign_tables
+        ) t ON t.schema_name = s.schema_name
+        WHERE s.schema_name NOT IN ('pg_catalog', 'information_schema')
+            AND s.schema_name NOT LIKE 'pg_%'
+            AND s.schema_name NOT LIKE 'pg_toast%'
+        GROUP BY s.schema_name
+        ORDER BY
+            COUNT(t.table_name) DESC,           -- Schemas with most tables first
+            total_size DESC,                    -- Then by size
+            s.schema_name;                      -- Then alphabetically
         """
 
     @staticmethod
     def get_tables_in_schema_query(schema_name: str) -> str:
         """Returns SQL query to get all tables in a schema with descriptions"""
         return f"""
-            SELECT DISTINCT
-                t.table_name,
-                obj_description(pc.oid) as description,
-                pg_size_pretty(pg_total_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name))) as total_size,
-                pg_stat_get_live_tuples(pc.oid) as row_count,
-                (SELECT COUNT(*) FROM information_schema.columns c WHERE c.table_schema = t.table_schema AND c.table_name = t.table_name) as column_count,
-                (SELECT COUNT(*) FROM pg_indexes i WHERE i.schemaname = t.table_schema AND i.tablename = t.table_name) as index_count,
-                pg_total_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name)) as size_bytes,  -- Added for ordering
-                t.table_type  -- Added to distinguish between regular and foreign tables
-            FROM information_schema.tables t
-            JOIN pg_class pc
-                ON pc.relname = t.table_name
-                AND pc.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = '{schema_name}')
-            WHERE t.table_schema = '{schema_name}'
-                AND t.table_type IN ('BASE TABLE', 'FOREIGN TABLE', 'VIEW')
-            ORDER BY size_bytes DESC;
+            (
+        -- Regular tables & views: full metadata available
+        SELECT
+            t.table_name,
+            obj_description(pc.oid) AS description,
+            pg_total_relation_size(format('%I.%I', t.table_schema, t.table_name)) AS size_bytes,
+            pg_stat_get_live_tuples(pc.oid) AS row_count,
+            (SELECT COUNT(*) FROM information_schema.columns c
+                WHERE c.table_schema = t.table_schema
+                AND c.table_name = t.table_name) AS column_count,
+            (SELECT COUNT(*) FROM pg_indexes i
+                WHERE i.schemaname = t.table_schema
+                AND i.tablename = t.table_name) AS index_count,
+            t.table_type
+        FROM information_schema.tables t
+        JOIN pg_class pc
+            ON pc.relname = t.table_name
+        AND pc.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = '{schema_name}')
+        WHERE t.table_schema = '{schema_name}'
+            AND t.table_type IN ('BASE TABLE', 'VIEW')
+        )
+        UNION ALL
+        (
+        -- Foreign tables: limited metadata (size & row count functions don't apply)
+        SELECT
+            ft.foreign_table_name AS table_name,
+            (
+                SELECT obj_description(
+                        (quote_ident(ft.foreign_table_schema) || '.' || quote_ident(ft.foreign_table_name))::regclass
+                    )
+            ) AS description,
+            0 AS size_bytes,
+            NULL AS row_count,
+            (SELECT COUNT(*) FROM information_schema.columns c
+                WHERE c.table_schema = ft.foreign_table_schema
+                AND c.table_name = ft.foreign_table_name) AS column_count,
+            0 AS index_count,
+            'FOREIGN TABLE' AS table_type
+        FROM information_schema.foreign_tables ft
+        WHERE ft.foreign_table_schema = '{schema_name}'
+        )
+        ORDER BY size_bytes DESC;
         """
 
     @staticmethod

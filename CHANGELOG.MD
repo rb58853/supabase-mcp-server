@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.3.5] - 2025-02-26
+### Fixed
+- Fixed an issue with `get_tables` so that it reliably returns foreign tables and views
+- Updated docs to describe how to setup mcp.json with project-specific MCPs
+- Expanded and improved test suite to cover each MCP tool
+
+
+## [0.3.4] - 2025-02-25
+### Fixed
+- Improved `get_tables` to return foreign data tables
+
+
+## [0.3.3] - 2025-02-25
+### Fixed
+- Fixed a bug with `readonly` scope being incorrectly managed in db client
+
 ## [0.3.2] - 2025-02-25
 ### Fixed
 - Fixed a bug preventing execution of DDL commands (create, alter tables, etc.)

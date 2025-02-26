@@ -121,6 +121,11 @@ After installing the package, you'll need to configure your database connection 
 >💡 As long as you didn't modify the default settings and you want to connect to the local instance, you don't need to set environment variables.
 
 #### Remote Supabase instance
+
+> ⚠️ **IMPORTANT WARNING**: Session pooling connections are NOT supported yet. Use  transaction pooling and direct connections instead. I'm planning to add / modify connection to support this in v0.4 (soon).
+
+![Session pool connections are not supported yet](https://github.com/user-attachments/assets/c01e0e06-8fdc-4632-bde5-922c7a527897)
+
 For remote Supabase projects, you need to configure:
 - `SUPABASE_PROJECT_REF` - Your project reference (found in project URL)
 - `SUPABASE_DB_PASSWORD` - Your database password
@@ -151,9 +156,28 @@ The server supports all Supabase regions:
 Method of MCP configuration differs between Cursor and Windsurf. Read the relevant section to understand how to configure connection.
 
 ##### Cursor
-Cursor does not currently support environment variable configuration via the MCP server UI. As a workaround, this server picks up a global .env file automatically. Cursor is expected to introduce .json config in v0.46, and this guide will be updated accordingly.
+Since v0.46 there are two ways to configure MCP servers in Cursor:
+- per project basis -> create `mcp.json` in your project / repo folder and `.env` to configure connection
+- globally -> create an MCP server in Settings and configure using `.env` which is supported by this MCP server only
 
-For now, create an `.env` file in a global config folder by running the following commands:
+
+You can create project-specific MCP by:
+- creating .cursor folder in your repo, if doesn't exist
+- creating or updating `mcp.json` file with the following settings
+
+> ⚠ **Environment variables**: If you are configuring MCP server on a per-project basis you still need to create .env file for connection settings to be picked up. I wasn't able to configure mcp.json to pick up my env vars 😔
+
+```json
+{
+	"mcpServers": {
+	  "filesystem": {
+		"command": "supabase-mcp-server",
+	  }
+	}
+  }
+```
+
+Alternatively, if you want to configure MCP servers globally (i.e. not for each project), you can use configure connection settings by updating an `.env` file in a global config folder by running the following commands:
 ```bash
 # Create config directory and navigate to it
 # On macOS/Linux
@@ -195,6 +219,7 @@ Get-Content "$env:APPDATA\supabase-mcp\.env"
 You can find global config file:
    - Windows: `%APPDATA%/supabase-mcp/.env`
    - macOS/Linux: `~/.config/supabase-mcp/.env`
+
 
 ##### Windsurf
 Windsurf supports de facto standard .json format for MCP Servers configuration. You can configure the server in mcp_config.json file:
@@ -272,8 +297,24 @@ Here are some tips & tricks that might help you:
 - **Debug installation** - run `supabase-mcp-server` directly from the terminal to see if it works. If it doesn't, there might be an issue with the installation.
 - **MCP Server configuration** - if the above step works, it means the server is installed and configured correctly. As long as you provided the right command, IDE should be able to connect. Make sure to provide the right path to the server executable.
 - **Environment variables** - to connect to the right database, make sure you either set env variables in `mcp_config.json` or in `.env` file placed in a global config directory (`~/.config/supabase-mcp/.env` on macOS/Linux or `%APPDATA%\supabase-mcp\.env` on Windows).
+- **Accessing logs** - The MCP server writes detailed logs to a file:
+  - Log file location:
+    - macOS/Linux: `~/.local/share/supabase-mcp/mcp_server.log`
+    - Windows: `%USERPROFILE%\.local\share\supabase-mcp\mcp_server.log`
+  - Logs include connection status, configuration details, and operation results
+  - View logs using any text editor or terminal commands:
+    ```bash
+    # On macOS/Linux
+    cat ~/.local/share/supabase-mcp/mcp_server.log
+
+    # On Windows (PowerShell)
+    Get-Content "$env:USERPROFILE\.local\share\supabase-mcp\mcp_server.log"
+    ```
 
 If you are stuck or any of the instructions above are incorrect, please raise an issue on GitHub.
+
+### MCP Inspector
+A super useful to
 
 ## Feature Overview
 
@@ -312,6 +353,8 @@ For DDL operations (CREATE/ALTER/DROP), we strongly recommend using explicit tra
 The server works with both:
 - **Direct Database Connections**: Full transaction control, supports all operations
 - **Transaction Pooler Connections**: Used by default in Supabase production/staging environments
+
+> ⚠️ **IMPORTANT WARNING**: Session pooling connections are NOT SUPPORTED. Use  transaction pooling and direct connections instead. I'm planning to add / modify connection to support this in v0.4 (soon).
 
 When connecting via Supabase's Transaction Pooler, some complex transaction patterns may not work as expected. For schema changes in these environments, use explicit transaction blocks or consider using Supabase migrations or the SQL Editor in the dashboard.
 
@@ -354,12 +397,11 @@ Since v0.3.0 server supports sending arbitrary requests to Supabase Management A
 - 🎮 Programmatic access to Supabase management API with safety controls - ✅ (v0.3.0)
 - 👷‍♂️ Read and read-write database SQL queries with safety controls - ✅ (v0.3.0)
 - 🔄 Robust transaction handling for both direct and pooled connections - ✅ (v0.3.2)
-- 👨‍💻 Supabase CLI integration
+- 👨‍💻 Supabase CLI integration? (if necessary)
 - 🐍 Support methods and objects available in native Python SDK
 - 🔍 Strong SQL query validation
-- 📝 Connect to db logs to help debug errors
-- Simplify connection via a string?
-- Pull in edge functions logs (https://supabase.com/dashboard/project/drmzszdytvvfbcytltsw/logs/edge-logs)
+- 📝 Connect to db logs to help debug errors (Pull in [edge functions logs](https://supabase.com/dashboard/project/drmzszdytvvfbcytltsw/logs/edge-logs))
+- ⚓️ Simplify connection via a string?
 
 ### Support of Python SDK methods
 

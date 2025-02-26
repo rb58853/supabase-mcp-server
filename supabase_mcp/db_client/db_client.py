@@ -110,6 +110,16 @@ class SupabaseClient:
             )
         return cls._instance
 
+    @classmethod
+    def reset(cls):
+        """Reset the singleton instance cleanly"""
+        if hasattr(cls, "_instance") and cls._instance is not None:
+            # Close any connections if needed
+            if hasattr(cls._instance, "close"):
+                cls._instance.close()
+            # Reset to None
+            cls._instance = None
+
     def close(self):
         """Explicitly close the connection pool."""
         if self._pool is not None:

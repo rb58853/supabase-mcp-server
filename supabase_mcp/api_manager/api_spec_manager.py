@@ -22,7 +22,7 @@ class ValidationResult:
     operation_info: dict | None = None
 
 
-class SpecManager:
+class ApiSpecManager:
     """
     Manages the OpenAPI specification for the Supabase Management API.
     Handles spec loading, caching, and validation.
@@ -33,8 +33,8 @@ class SpecManager:
         self.spec: dict | None = None
 
     @classmethod
-    async def create(cls) -> "SpecManager":
-        """Async factory method to create and initialize a SpecManager"""
+    async def create(cls) -> "ApiSpecManager":
+        """Async factory method to create and initialize a ApiSpecManager"""
         manager = cls()
         await manager.on_startup()
         return manager

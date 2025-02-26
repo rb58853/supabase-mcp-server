@@ -9,6 +9,7 @@ from supabase_mcp.db_client.db_client import SupabaseClient
 from supabase_mcp.db_client.db_safety_config import DbSafetyLevel
 from supabase_mcp.logger import logger
 from supabase_mcp.queries import PreBuiltQueries
+from supabase_mcp.sdk_client.python_client import SupabaseSDKClient
 from supabase_mcp.settings import settings
 from supabase_mcp.validators import (
     validate_schema_name,
@@ -190,6 +191,73 @@ async def get_management_api_safety_rules() -> dict:
     return api_manager.get_safety_rules()
 
 
+@mcp.tool(
+    description="""
+Get Python SDK methods specification for Auth Admin. Returns a python dictionary of all Auth Python SDK methods.
+Use this to understand the available methods and their required parameters.
+"""
+)
+async def get_auth_admin_methods_spec() -> dict:
+    """Returns the Python SDK spec"""
+    sdk_client = await SupabaseSDKClient.get_instance()
+    return sdk_client.return_python_sdk_spec()
+
+
+@mcp.tool(
+    description="""
+Call an Auth Admin method from Supabase Python SDK. Returns the result of the method call.
+
+Available methods:
+- get_user_by_id: Retrieve a user by their ID
+- list_users: List all users with pagination
+- create_user: Create a new user
+- delete_user: Delete a user by their ID
+- invite_user_by_email: Send an invite link to a user's email
+- generate_link: Generate an email link for various authentication purposes
+- update_user_by_id: Update user attributes by ID
+- delete_factor: Delete a factor on a user
+
+Each method requires specific parameters. For nested parameters, follow the structure exactly:
+
+Examples:
+1. Get user by ID:
+   method: "get_user_by_id"
+   params: {"uid": "user-uuid-here"}
+
+2. Create user:
+   method: "create_user"
+   params: {
+     "attributes": {
+       "email": "user@example.com",
+       "password": "secure-password",
+       "email_confirm": true,
+       "user_metadata": {"name": "John Doe"}
+     }
+   }
+
+3. Generate link:
+   method: "generate_link"
+   params: {
+     "params": {
+       "type": "signup",
+       "email": "user@example.com",
+       "password": "secure-password",
+       "options": {
+         "data": {"name": "John Doe"},
+         "redirect_to": "https://example.com/welcome"
+       }
+     }
+   }
+
+Use get_auth_admin_methods_spec() to see full documentation for all methods.
+"""
+)
+async def call_auth_admin_method(method: str, params: dict) -> dict:
+    """Calls a method of the Python SDK client"""
+    sdk_client = await SupabaseSDKClient.get_instance()
+    return await sdk_client.call_auth_admin_method(method, params)
+
+
 def run():
     """Run the Supabase MCP server."""
     if settings.supabase_project_ref.startswith("127.0.0.1"):
@@ -205,6 +273,8 @@ def run():
         )
     if settings.supabase_access_token:
         logger.info("Personal access token detected - using for Management API")
+    if settings.supabase_service_role_key:
+        logger.info("Service role key detected - using for Python SDK")
     mcp.run()
 
 

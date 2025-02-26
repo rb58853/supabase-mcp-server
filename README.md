@@ -401,6 +401,7 @@ Since v0.3.0 server supports sending arbitrary requests to Supabase Management A
 - 🔍 Strong SQL query validation
 - 📝 Connect to db logs to help debug errors (Pull in [edge functions logs](https://supabase.com/dashboard/project/drmzszdytvvfbcytltsw/logs/edge-logs))
 - 👨‍💻 Supabase CLI integration? (if necessary)
+- 🚧 Create a migration file automatically if a migration has been run successfully on the databasae?
 
 ### Support of Python SDK methods
 

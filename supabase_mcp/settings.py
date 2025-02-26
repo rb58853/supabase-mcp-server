@@ -80,6 +80,11 @@ class Settings(BaseSettings):
         description="Optional personal access token for accessing Supabase Management API",
         alias="SUPABASE_ACCESS_TOKEN",
     )
+    supabase_service_role_key: str | None = Field(
+        default=None,
+        description="Optional service role key for accessing Python SDK",
+        alias="SUPABASE_SERVICE_ROLE_KEY",
+    )
 
     @field_validator("supabase_region")
     @classmethod
@@ -123,7 +128,8 @@ class Settings(BaseSettings):
         logger.info("Final configuration:")
         logger.info(f"  Project ref: {instance.supabase_project_ref}")
         logger.info(f"  Password: {'*' * len(instance.supabase_db_password)}")
-
+        logger.info(f"  Region: {instance.supabase_region}")
+        logger.info(f"  Service role key: {'*' * len(instance.supabase_service_role_key)}")
         return instance
 
 

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.3.6] - 2025-02-26
+### Added
+- Added `call_auth_sdk_methods` which enables MCP server to manage users in your database (create, update, delete, confirm). All Auth SDK methods are supported
+### Changed
+- Improved `get_management_api_spec` to return a subset of API spec to fit in LLM context window better
+
+### Fixed 
+- Fixed an issue with improper encoding of database passwords. Previously passwords containing "%" symbol led to connection failures
+
+
 ## [0.3.5] - 2025-02-26
 ### Fixed
 - Fixed an issue with `get_tables` so that it reliably returns foreign tables and views

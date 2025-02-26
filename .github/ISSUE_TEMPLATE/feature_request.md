@@ -1,7 +1,7 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
-title: "[FEATURE REQUEST] I want X so that I can do Y and gain Z"
+about: Suggest an idea to improve this MCP server
+title: "I want X so that I can do Y and gain Z"
 labels: ''
 assignees: ''
 

@@ -311,7 +311,7 @@ Here are some tips & tricks that might help you:
     Get-Content "$env:USERPROFILE\.local\share\supabase-mcp\mcp_server.log"
     ```
 
-If you are stuck or any of the instructions above are incorrect, please raise an issue on GitHub.
+If you are stuck or any of the instructions above are incorrect, please raise an issue.
 
 ### MCP Inspector
 A super useful to
@@ -346,13 +346,13 @@ The server supports two approaches for executing write operations:
    CREATE TABLE public.test_table (id SERIAL PRIMARY KEY, name TEXT);
    ```
 
-For DDL operations (CREATE/ALTER/DROP), we strongly recommend using explicit transaction control with BEGIN/COMMIT blocks for better reliability and control.
+For DDL operations (CREATE/ALTER/DROP), tool description appropriately guides Cursor/Windsurft to use explicit transaction control with BEGIN/COMMIT blocks.
 
 #### Connection Types
 
-The server works with both:
-- **Direct Database Connections**: Full transaction control, supports all operations
-- **Transaction Pooler Connections**: Used by default in Supabase production/staging environments
+This MCP server uses::
+- **Direct Database Connection**: when connecting to a local Supabase instance
+- **Transaction Pooler Connections**: when connecting to a remote Supabase instance
 
 > ⚠️ **IMPORTANT WARNING**: Session pooling connections are NOT SUPPORTED. Use  transaction pooling and direct connections instead. I'm planning to add / modify connection to support this in v0.4 (soon).
 
@@ -397,11 +397,10 @@ Since v0.3.0 server supports sending arbitrary requests to Supabase Management A
 - 🎮 Programmatic access to Supabase management API with safety controls - ✅ (v0.3.0)
 - 👷‍♂️ Read and read-write database SQL queries with safety controls - ✅ (v0.3.0)
 - 🔄 Robust transaction handling for both direct and pooled connections - ✅ (v0.3.2)
-- 👨‍💻 Supabase CLI integration? (if necessary)
 - 🐍 Support methods and objects available in native Python SDK
 - 🔍 Strong SQL query validation
 - 📝 Connect to db logs to help debug errors (Pull in [edge functions logs](https://supabase.com/dashboard/project/drmzszdytvvfbcytltsw/logs/edge-logs))
-- ⚓️ Simplify connection via a string?
+- 👨‍💻 Supabase CLI integration? (if necessary)
 
 ### Support of Python SDK methods
 

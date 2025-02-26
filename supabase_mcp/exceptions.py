@@ -60,6 +60,12 @@ class APIConnectionError(APIError):
     pass
 
 
+class PythonSDKError(Exception):
+    """Failed to create Python SDK client or call Python SDK method"""
+
+    pass
+
+
 class APIResponseError(APIError):
     """Failed to process API response"""
 

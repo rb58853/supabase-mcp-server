@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.3.6] - 2025-02-26
+### Added
+- Added `call_auth_admin_method` which enables MCP server to manage users in your database (create, update, delete, confirm). All Auth SDK methods are supported
+- Added `get_auth_admin_methods_spec` to retrieve documentation for all available Auth Admin methods. Response objects now use attribute access (dot notation) instead of dictionary access.
+
+### Fixed
+- Fixed an issue with improper encoding of database passwords. Previously passwords containing "%" symbol led to connection failures
+
+
 ## [0.3.5] - 2025-02-26
 ### Fixed
 - Fixed an issue with `get_tables` so that it reliably returns foreign tables and views

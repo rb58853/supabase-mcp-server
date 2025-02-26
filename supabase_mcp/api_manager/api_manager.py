@@ -16,7 +16,7 @@ from tenacity import (
 )
 
 from supabase_mcp.api_manager.api_safety_config import SafetyConfig, SafetyLevel
-from supabase_mcp.api_manager.spec_manager import SpecManager
+from supabase_mcp.api_manager.api_spec_manager import ApiSpecManager
 from supabase_mcp.exceptions import (
     APIClientError,
     APIConnectionError,
@@ -46,7 +46,7 @@ class SupabaseApiManager:
     async def create(cls) -> SupabaseApiManager:
         """Factory method to create and initialize an API manager"""
         manager = cls()
-        manager.spec_manager = await SpecManager.create()  # Use the running event loop
+        manager.spec_manager = await ApiSpecManager.create()  # Use the running event loop
         return manager
 
     @classmethod

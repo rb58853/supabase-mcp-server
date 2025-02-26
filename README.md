@@ -46,6 +46,7 @@ A feature-rich MCP server that enables Cursor and Windsurf to safely interact wi
 - 🔐 Control read-only and read-write modes of SQL query execution
 - 🔄 Robust transaction handling for both direct and pooled database connections
 - 💻 Manage your Supabase projects with Supabase Management API
+- 🧑‍💻 Manage users with Supabase Auth Admin methods via Python SDK
 - 🔨 Pre-built tools to help Cursor & Windsurf work with MCP more effectively
 - 📦 Dead-simple install & setup via package manager (uv, pipx, etc.)
 
@@ -122,7 +123,7 @@ After installing the package, you'll need to configure your database connection 
 
 #### Remote Supabase instance
 
-> ⚠️ **IMPORTANT WARNING**: Session pooling connections are NOT supported yet. Use  transaction pooling and direct connections instead. I'm planning to add / modify connection to support this in v0.4 (soon).
+> ⚠️ **IMPORTANT WARNING**: Session pooling connections are not supported and there are no plans to support it yet. Let me know if you feel there is a use case for supporting this in an MCP server
 
 ![Session pool connections are not supported yet](https://github.com/user-attachments/assets/c01e0e06-8fdc-4632-bde5-922c7a527897)
 
@@ -354,7 +355,6 @@ This MCP server uses::
 - **Direct Database Connection**: when connecting to a local Supabase instance
 - **Transaction Pooler Connections**: when connecting to a remote Supabase instance
 
-> ⚠️ **IMPORTANT WARNING**: Session pooling connections are NOT SUPPORTED. Use  transaction pooling and direct connections instead. I'm planning to add / modify connection to support this in v0.4 (soon).
 
 When connecting via Supabase's Transaction Pooler, some complex transaction patterns may not work as expected. For schema changes in these environments, use explicit transaction blocks or consider using Supabase migrations or the SQL Editor in the dashboard.
 
@@ -389,6 +389,41 @@ Since v0.3.0 server supports sending arbitrary requests to Supabase Management A
     - Allows to switch between safe and unsafe modes dynamically
     - Blocked operations (delete project, delete database) are not allowed regardless of the mode
 
+### Auth Admin tools
+I was planning to add support for Python SDK methods to the MCP server. Upon consideration I decided to only add support for Auth admin methods as I often found myself manually creating test users which was prone to errors and time consuming. Now I can just ask Cursor to create a test user and it will be done seamlessly. Check out the full Auth Admin SDK method docs to know what it can do.
+
+Since v0.3.6 server supports direct access to Supabase Auth Admin methods via Python SDK:
+  - Includes the following tools:
+    - `get_auth_admin_methods_spec` to retrieve documentation for all available Auth Admin methods
+    - `call_auth_admin_method` to directly invoke Auth Admin methods with proper parameter handling
+  - Supported methods:
+    - `get_user_by_id`: Retrieve a user by their ID
+    - `list_users`: List all users with pagination
+    - `create_user`: Create a new user
+    - `delete_user`: Delete a user by their ID
+    - `invite_user_by_email`: Send an invite link to a user's email
+    - `generate_link`: Generate an email link for various authentication purposes
+    - `update_user_by_id`: Update user attributes by ID
+    - `delete_factor`: Delete a factor on a user (currently not implemented in SDK)
+
+#### Why use Auth Admin SDK instead of raw SQL queries?
+
+The Auth Admin SDK provides several key advantages over direct SQL manipulation:
+- **Functionality**: Enables operations not possible with SQL alone (invites, magic links, MFA)
+- **Accuracy**: More reliable then creating and executing raw SQL queries on auth schemas
+- **Simplicity**: Offers clear methods with proper validation and error handling
+
+  - Response format:
+    - All methods return structured Python objects instead of raw dictionaries
+    - Object attributes can be accessed using dot notation (e.g., `user.id` instead of `user["id"]`)
+  - Edge cases and limitations:
+    - UUID validation: Many methods require valid UUID format for user IDs and will return specific validation errors
+    - Email configuration: Methods like `invite_user_by_email` and `generate_link` require email sending to be configured in your Supabase project
+    - Link types: When generating links, different link types have different requirements:
+      - `signup` links don't require the user to exist
+      - `magiclink` and `recovery` links require the user to already exist in the system
+    - Error handling: The server provides detailed error messages from the Supabase API, which may differ from the dashboard interface
+    - Method availability: Some methods like `delete_factor` are exposed in the API but not fully implemented in the SDK
 
 ## Roadmap
 
@@ -397,14 +432,13 @@ Since v0.3.0 server supports sending arbitrary requests to Supabase Management A
 - 🎮 Programmatic access to Supabase management API with safety controls - ✅ (v0.3.0)
 - 👷‍♂️ Read and read-write database SQL queries with safety controls - ✅ (v0.3.0)
 - 🔄 Robust transaction handling for both direct and pooled connections - ✅ (v0.3.2)
-- 🐍 Support methods and objects available in native Python SDK
+- 🐍 Support methods and objects available in native Python SDK - ✅ (v0.3.6)
 - 🔍 Strong SQL query validation
 - 📝 Connect to db logs to help debug errors (Pull in [edge functions logs](https://supabase.com/dashboard/project/drmzszdytvvfbcytltsw/logs/edge-logs))
 - 👨‍💻 Supabase CLI integration? (if necessary)
+- 🚧 Create a migration file automatically if a migration has been run successfully on the databasae?
 
-### Support of Python SDK methods
 
-I'm planning to add support for Auth methods from Python SDK as it would allow Cursor to create test users for me, which might be handy.
 
 ### Connect to Supabase logs
 

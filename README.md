@@ -125,8 +125,6 @@ After installing the package, you'll need to configure your database connection 
 
 > ⚠️ **IMPORTANT WARNING**: Session pooling connections are not supported and there are no plans to support it yet. Let me know if you feel there is a use case for supporting this in an MCP server
 
-![Session pool connections are not supported yet](https://github.com/user-attachments/assets/c01e0e06-8fdc-4632-bde5-922c7a527897)
-
 For remote Supabase projects, you need to configure:
 - `SUPABASE_PROJECT_REF` - Your project reference (found in project URL)
 - `SUPABASE_DB_PASSWORD` - Your database password

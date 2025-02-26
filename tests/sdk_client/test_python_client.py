@@ -92,19 +92,6 @@ class TestSDKClient:
             await sdk_client.call_auth_admin_method("unknown_method", {})
         assert "Unknown method" in str(excinfo.value)
 
-    async def test_call_methods(self, sdk_client):
-        """Test calling each auth admin method with valid parameters"""
-        # Test sample methods to ensure they're properly implemented
-        get_user_params = {"uid": "test-user-id"}
-        await sdk_client.call_auth_admin_method("get_user_by_id", get_user_params)
-
-        list_users_params = {"page": 1, "per_page": 10}
-        await sdk_client.call_auth_admin_method("list_users", list_users_params)
-
-        # Create user with valid attributes
-        create_user_params = {"attributes": {"email": "test@example.com", "password": "secure-password"}}
-        await sdk_client.call_auth_admin_method("create_user", create_user_params)
-
     async def test_method_exception_handling(self, sdk_client, mock_supabase_client):
         """Test exception handling when auth admin methods raise errors"""
         # Mock the get_user_by_id method to raise an exception

@@ -71,6 +71,8 @@ IMPORTANT USAGE GUIDELINES:
 3. NEVER mix READ and WRITE operations in the same query
 4. NEVER use single DDL statements without transaction control
 5. Remember to enable unsafe mode first with live_dangerously('database', True)
+6. For auth operations (primarily creating, updating, deleting users, generating links, etc), prefer using the Auth Admin SDK methods 
+   instead of direct SQL manipulation to ensure correctness and prevent security issues
 
 TRANSACTION HANDLING:
 - The server detects BEGIN/COMMIT/ROLLBACK keywords to respect your transaction control

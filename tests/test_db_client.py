@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 
 import pytest
 
@@ -17,9 +18,11 @@ def test_connection_string_local_default():
 def test_connection_string_integration(custom_connection_settings):
     """Test connection string generation with integration settings from .env.test"""
     client = SupabaseClient(settings_instance=custom_connection_settings)
+    # Use urllib.parse.quote_plus to encode the password in the expected URL
+    encoded_password = urllib.parse.quote_plus(custom_connection_settings.supabase_db_password)
     expected_url = (
         f"postgresql://postgres.{custom_connection_settings.supabase_project_ref}:"
-        f"{custom_connection_settings.supabase_db_password}@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+        f"{encoded_password}@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
     )
     assert client.db_url == expected_url
 

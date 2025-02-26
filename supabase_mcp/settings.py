@@ -129,7 +129,9 @@ class Settings(BaseSettings):
         logger.info(f"  Project ref: {instance.supabase_project_ref}")
         logger.info(f"  Password: {'*' * len(instance.supabase_db_password)}")
         logger.info(f"  Region: {instance.supabase_region}")
-        logger.info(f"  Service role key: {'*' * len(instance.supabase_service_role_key)}")
+        logger.info(
+            f"  Service role key: {'*' * len(instance.supabase_service_role_key) if instance.supabase_service_role_key else 'Not set'}"
+        )
         return instance
 
 

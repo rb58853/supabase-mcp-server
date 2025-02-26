@@ -3,7 +3,6 @@ from pydantic import ValidationError
 
 from supabase_mcp.sdk_client.auth_admin_models import (
     PARAM_MODELS,
-    AdminUserAttributes,
     CreateUserParams,
     DeleteFactorParams,
     DeleteUserParams,
@@ -51,20 +50,20 @@ class TestModelConversion:
             ListUsersParams.model_validate(invalid_payload)
         assert "page" in str(excinfo.value)
 
-    def test_admin_user_attributes_conversion(self):
-        """Test conversion of user attributes JSON data"""
+    def test_create_user_conversion(self):
+        """Test conversion of create_user JSON data"""
         # Valid payload with email
-        valid_email_payload = {
+        valid_payload = {
             "email": "test@example.com",
             "password": "secure-password",
             "email_confirm": True,
             "user_metadata": {"name": "Test User"},
         }
-        attributes = AdminUserAttributes.model_validate(valid_email_payload)
-        assert attributes.email == valid_email_payload["email"]
-        assert attributes.password == valid_email_payload["password"]
-        assert attributes.email_confirm is True
-        assert attributes.user_metadata == valid_email_payload["user_metadata"]
+        params = CreateUserParams.model_validate(valid_payload)
+        assert params.email == valid_payload["email"]
+        assert params.password == valid_payload["password"]
+        assert params.email_confirm is True
+        assert params.user_metadata == valid_payload["user_metadata"]
 
         # Valid payload with phone
         valid_phone_payload = {
@@ -72,49 +71,16 @@ class TestModelConversion:
             "password": "secure-password",
             "phone_confirm": True,
         }
-        attributes = AdminUserAttributes.model_validate(valid_phone_payload)
-        assert attributes.phone == valid_phone_payload["phone"]
-        assert attributes.password == valid_phone_payload["password"]
-        assert attributes.phone_confirm is True
+        params = CreateUserParams.model_validate(valid_phone_payload)
+        assert params.phone == valid_phone_payload["phone"]
+        assert params.password == valid_phone_payload["password"]
+        assert params.phone_confirm is True
 
         # Invalid payload (missing both email and phone)
         invalid_payload = {"password": "secure-password"}
         with pytest.raises(ValidationError) as excinfo:
-            AdminUserAttributes.model_validate(invalid_payload)
-        assert "Either email or phone must be provided" in str(excinfo.value)
-
-    def test_create_user_conversion(self):
-        """Test conversion of create_user JSON data"""
-        # Valid nested payload
-        valid_payload = {
-            "attributes": {
-                "email": "test@example.com",
-                "password": "secure-password",
-                "email_confirm": True,
-                "user_metadata": {"name": "Test User"},
-            }
-        }
-        params = CreateUserParams.model_validate(valid_payload)
-        assert params.attributes.email == valid_payload["attributes"]["email"]
-        assert params.attributes.password == valid_payload["attributes"]["password"]
-        assert params.attributes.email_confirm is True
-        assert params.attributes.user_metadata == valid_payload["attributes"]["user_metadata"]
-
-        # Invalid nested payload (missing required email/phone)
-        invalid_payload = {
-            "attributes": {
-                "password": "secure-password",
-            }
-        }
-        with pytest.raises(ValidationError) as excinfo:
             CreateUserParams.model_validate(invalid_payload)
         assert "Either email or phone must be provided" in str(excinfo.value)
-
-        # Invalid payload (missing attributes)
-        invalid_payload = {}
-        with pytest.raises(ValidationError) as excinfo:
-            CreateUserParams.model_validate(invalid_payload)
-        assert "attributes" in str(excinfo.value)
 
     def test_delete_user_conversion(self):
         """Test conversion of delete_user JSON data"""
@@ -163,38 +129,32 @@ class TestModelConversion:
         """Test conversion of generate_link JSON data"""
         # Valid signup link payload
         valid_signup_payload = {
-            "params": {
-                "type": "signup",
-                "email": "user@example.com",
-                "password": "secure-password",
-                "options": {"data": {"name": "New User"}, "redirect_to": "https://example.com/welcome"},
-            }
+            "type": "signup",
+            "email": "user@example.com",
+            "password": "secure-password",
+            "options": {"data": {"name": "New User"}, "redirect_to": "https://example.com/welcome"},
         }
         params = GenerateLinkParams.model_validate(valid_signup_payload)
-        assert params.params.type == valid_signup_payload["params"]["type"]
-        assert params.params.email == valid_signup_payload["params"]["email"]
-        assert params.params.password == valid_signup_payload["params"]["password"]
-        assert params.params.options == valid_signup_payload["params"]["options"]
+        assert params.type == valid_signup_payload["type"]
+        assert params.email == valid_signup_payload["email"]
+        assert params.password == valid_signup_payload["password"]
+        assert params.options == valid_signup_payload["options"]
 
         # Valid email_change link payload
         valid_email_change_payload = {
-            "params": {
-                "type": "email_change_current",
-                "email": "user@example.com",
-                "new_email": "new@example.com",
-            }
+            "type": "email_change_current",
+            "email": "user@example.com",
+            "new_email": "new@example.com",
         }
         params = GenerateLinkParams.model_validate(valid_email_change_payload)
-        assert params.params.type == valid_email_change_payload["params"]["type"]
-        assert params.params.email == valid_email_change_payload["params"]["email"]
-        assert params.params.new_email == valid_email_change_payload["params"]["new_email"]
+        assert params.type == valid_email_change_payload["type"]
+        assert params.email == valid_email_change_payload["email"]
+        assert params.new_email == valid_email_change_payload["new_email"]
 
         # Invalid payload (missing password for signup)
         invalid_signup_payload = {
-            "params": {
-                "type": "signup",
-                "email": "user@example.com",
-            }
+            "type": "signup",
+            "email": "user@example.com",
         }
         with pytest.raises(ValidationError) as excinfo:
             GenerateLinkParams.model_validate(invalid_signup_payload)
@@ -202,10 +162,8 @@ class TestModelConversion:
 
         # Invalid payload (missing new_email for email_change)
         invalid_email_change_payload = {
-            "params": {
-                "type": "email_change_current",
-                "email": "user@example.com",
-            }
+            "type": "email_change_current",
+            "email": "user@example.com",
         }
         with pytest.raises(ValidationError) as excinfo:
             GenerateLinkParams.model_validate(invalid_email_change_payload)
@@ -213,10 +171,8 @@ class TestModelConversion:
 
         # Invalid payload (invalid type)
         invalid_type_payload = {
-            "params": {
-                "type": "invalid-type",
-                "email": "user@example.com",
-            }
+            "type": "invalid-type",
+            "email": "user@example.com",
         }
         with pytest.raises(ValidationError) as excinfo:
             GenerateLinkParams.model_validate(invalid_type_payload)
@@ -227,52 +183,37 @@ class TestModelConversion:
         # Valid payload
         valid_payload = {
             "uid": "d0e8c69f-e0c3-4a1c-b6d6-9a6c756a6a4b",
-            "attributes": {
-                "email": "updated@example.com",
-                "user_metadata": {"name": "Updated User"},
-            },
+            "email": "updated@example.com",
+            "user_metadata": {"name": "Updated User"},
         }
         params = UpdateUserByIdParams.model_validate(valid_payload)
         assert params.uid == valid_payload["uid"]
-        assert params.attributes.email == valid_payload["attributes"]["email"]
-        assert params.attributes.user_metadata == valid_payload["attributes"]["user_metadata"]
+        assert params.email == valid_payload["email"]
+        assert params.user_metadata == valid_payload["user_metadata"]
 
         # Invalid payload (missing uid)
         invalid_payload = {
-            "attributes": {
-                "email": "updated@example.com",
-            }
+            "email": "updated@example.com",
+            "user_metadata": {"name": "Updated User"},
         }
         with pytest.raises(ValidationError) as excinfo:
             UpdateUserByIdParams.model_validate(invalid_payload)
         assert "uid" in str(excinfo.value)
 
-        # Invalid payload (missing attributes)
-        invalid_payload = {
-            "uid": "d0e8c69f-e0c3-4a1c-b6d6-9a6c756a6a4b",
-        }
-        with pytest.raises(ValidationError) as excinfo:
-            UpdateUserByIdParams.model_validate(invalid_payload)
-        assert "attributes" in str(excinfo.value)
-
     def test_delete_factor_conversion(self):
         """Test conversion of delete_factor JSON data"""
         # Valid payload
         valid_payload = {
-            "params": {
-                "user_id": "d0e8c69f-e0c3-4a1c-b6d6-9a6c756a6a4b",
-                "id": "totp-factor-id-123",
-            }
+            "user_id": "d0e8c69f-e0c3-4a1c-b6d6-9a6c756a6a4b",
+            "id": "totp-factor-id-123",
         }
         params = DeleteFactorParams.model_validate(valid_payload)
-        assert params.params.user_id == valid_payload["params"]["user_id"]
-        assert params.params.id == valid_payload["params"]["id"]
+        assert params.user_id == valid_payload["user_id"]
+        assert params.id == valid_payload["id"]
 
         # Invalid payload (missing user_id)
         invalid_payload = {
-            "params": {
-                "id": "totp-factor-id-123",
-            }
+            "id": "totp-factor-id-123",
         }
         with pytest.raises(ValidationError) as excinfo:
             DeleteFactorParams.model_validate(invalid_payload)
@@ -280,9 +221,7 @@ class TestModelConversion:
 
         # Invalid payload (missing id)
         invalid_payload = {
-            "params": {
-                "user_id": "d0e8c69f-e0c3-4a1c-b6d6-9a6c756a6a4b",
-            }
+            "user_id": "d0e8c69f-e0c3-4a1c-b6d6-9a6c756a6a4b",
         }
         with pytest.raises(ValidationError) as excinfo:
             DeleteFactorParams.model_validate(invalid_payload)
@@ -310,8 +249,8 @@ class TestModelConversion:
         method = "create_user"
         model_class = PARAM_MODELS[method]
 
-        valid_payload = {"attributes": {"email": "test@example.com", "password": "secure-password"}}
+        valid_payload = {"email": "test@example.com", "password": "secure-password"}
 
         params = model_class.model_validate(valid_payload)
-        assert params.attributes.email == valid_payload["attributes"]["email"]
-        assert params.attributes.password == valid_payload["attributes"]["password"]
+        assert params.email == valid_payload["email"]
+        assert params.password == valid_payload["password"]

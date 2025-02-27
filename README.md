@@ -313,7 +313,8 @@ Here are some tips & tricks that might help you:
 If you are stuck or any of the instructions above are incorrect, please raise an issue.
 
 ### MCP Inspector
-A super useful to
+A super useful tool to help debug MCP server issues is MCP Inspector. If you installed from source, you can run `supabase-mcp-inspector` from the project repo and it will run the inspector instance. Coupled with logs this will give you complete overview over what's happening in the server.
+> 📝 Running `supabase-mcp-inspector`, if installed from package, doesn't work properly - I will validate and fix in the cominng release.
 
 ## Feature Overview
 
@@ -431,10 +432,10 @@ The Auth Admin SDK provides several key advantages over direct SQL manipulation:
 - 👷‍♂️ Read and read-write database SQL queries with safety controls - ✅ (v0.3.0)
 - 🔄 Robust transaction handling for both direct and pooled connections - ✅ (v0.3.2)
 - 🐍 Support methods and objects available in native Python SDK - ✅ (v0.3.6)
-- 🔍 Strong SQL query validation
-- 📝 Connect to db logs to help debug errors (Pull in [edge functions logs](https://supabase.com/dashboard/project/drmzszdytvvfbcytltsw/logs/edge-logs))
-- 👨‍💻 Supabase CLI integration? (if necessary)
-- 🚧 Create a migration file automatically if a migration has been run successfully on the databasae?
+- 🔍 Stronger SQL query validation (read vs write operations)
+- 📝 Automatic versioning of DDL queries(?)
+- 🪵 Tools / resources to more easily access database, edge functions logs (?) 
+- 👨‍💻 Supabase CLI integration (?)
 
 
 

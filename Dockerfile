@@ -6,7 +6,6 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
-    # pipx \
     curl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -28,9 +27,5 @@ RUN uv venv && \
     . .venv/bin/activate && \
     uv pip install .
 
-# Install the package with pipx from PyPI
-# RUN pipx install supabase-mcp-server==0.3.6
-
 # Set the entrypoint to use the venv
 ENTRYPOINT ["uv", "run", "supabase-mcp-server"]
-# ENTRYPOINT ["supabase-mcp-server"]

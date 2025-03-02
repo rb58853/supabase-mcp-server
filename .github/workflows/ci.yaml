@@ -39,7 +39,6 @@ jobs:
 
       - name: Run tests
         run: |
-          source .venv/bin/activate
           pytest
 
       - name: Build distribution packages

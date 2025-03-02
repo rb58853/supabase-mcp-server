@@ -30,7 +30,6 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
 </p>
 
-
 A feature-rich MCP server that enables Cursor and Windsurf to safely interact with Supabase databases. It provides tools for database management, SQL query execution, and Supabase Management API access with built-in safety controls.
 
 ## Table of contents
@@ -434,8 +433,12 @@ The Auth Admin SDK provides several key advantages over direct SQL manipulation:
 - 🐍 Support methods and objects available in native Python SDK - ✅ (v0.3.6)
 - 🔍 Stronger SQL query validation (read vs write operations)
 - 📝 Automatic versioning of DDL queries(?)
-- 🪵 Tools / resources to more easily access database, edge functions logs (?) 
+- 🪵 Tools / resources to more easily access database, edge functions logs (?)
 - 👨‍💻 Supabase CLI integration (?)
+- 📖 Radically improved knowledge and tools of api spec
+  - Resources to more easily access and check api spec
+  - Atomic url paths and ops (right now LLM trips more often then not)
+- Better support for local database management
 
 
 

@@ -393,6 +393,37 @@ wheels = [
 ]
 
 [[package]]
+name = "pglast"
+version = "7.3"
+source = { registry = "https://pypi.org/simple/" }
+dependencies = [
+    { name = "setuptools" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/4b/cc3fdc5aa74cb6c95e63d7346f983be23fb5ff96f84c760a1a3bdda10937/pglast-7.3.tar.gz", hash = "sha256:8e5d0b48918994a614d5e5fbcb51250cd6ed90e468ee0ad1dc1cf93ade6969b0", size = 3367498 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2b/79/3a8b5a10750827c702491a7d6a77f9c73b78cef1412d2963ac6d13a3f772/pglast-7.3-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:f136af80e9ba5283aaf1ad1d2ca21fdef93e797adcdaab8b858af8f3b01ced33", size = 1146687 },
+    { url = "https://files.pythonhosted.org/packages/95/61/8f87157a29084efc200f9fdc9ecb878736e8a18a6832e861edca9a5a6d72/pglast-7.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:7d39520a0be2ebeb5d3f5915b6391551a4f5db0500d58630bb7684821b474110", size = 1083282 },
+    { url = "https://files.pythonhosted.org/packages/ce/f9/5f6ddf3468619018fec076403a68e581cf26b8f8513a60c2d1bd86b918c1/pglast-7.3-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e949152aae3bef5187eede9481b7c37531782d91d88fdc6cf464ca657ecdd8e7", size = 5543425 },
+    { url = "https://files.pythonhosted.org/packages/7a/63/7d7ed62a766195b55431aae5a8bbedcbdb590d1d8482922603be11428df3/pglast-7.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a7d8a177bc3e4635add77cc8362b7396c4b87582fa7a1d927925598a078f5fbb", size = 5642429 },
+    { url = "https://files.pythonhosted.org/packages/ae/69/b78503626f041a823453128a3cd99048fcdc736eb6742247c70fecc68f28/pglast-7.3-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:96d0d409bf538eaaf6cd34284f22e19ede9b238560a48ff09586fae19a7e4221", size = 5413273 },
+    { url = "https://files.pythonhosted.org/packages/29/34/82978dd1ea1d7699e3755787ffe8f0948aac5fc39ee66986cba26a63f8f2/pglast-7.3-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:514e41f730cc5d8acdbaee52dae7d52364df19a0749ad4a43124c4866f46b970", size = 5297931 },
+    { url = "https://files.pythonhosted.org/packages/9f/8e/0181545bc626a53bdf86589be2d1a7a2e3dff3846ead76058098de847a6e/pglast-7.3-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:3dc527a257b71f44d41bf0bb645e72a1fa01985406879a3361c4ccd9e687dde1", size = 5253744 },
+    { url = "https://files.pythonhosted.org/packages/29/90/92e0f0f4426e2a5d27f3c3befd900011dafc1cf0b306cfe71a9e8b150243/pglast-7.3-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:ab7e24832f756ec26a3601402dcfa92fcb8655520b91b6f4a791c88ff673b9c7", size = 5432941 },
+    { url = "https://files.pythonhosted.org/packages/3e/e8/28fe489ce8b8a22feab716c091136a6ba2e03a35657326213d5270c27b29/pglast-7.3-cp312-cp312-win32.whl", hash = "sha256:bedbc03dc0801d60c14e9286ba876f14aa66ad505aa9c095d088fcdb6b09ec58", size = 1010573 },
+    { url = "https://files.pythonhosted.org/packages/84/41/8c978f22b792ecb5351ea3c985c3245ac628724a86d3969a9e52f966a9db/pglast-7.3-cp312-cp312-win_amd64.whl", hash = "sha256:fc97da805992ce04f6020881bede2c8c832912a6a804a2b178a96e5bb27b56b5", size = 1055119 },
+    { url = "https://files.pythonhosted.org/packages/21/53/4f60b7d0a6766bd61c3a81e0d1feb2eb6fc5a4f01d01baba16f60c72f0ed/pglast-7.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:058bafadb31816ee7e86dd8e00b8ed4ea03844fb94a2beae6f8f873322958afc", size = 1141206 },
+    { url = "https://files.pythonhosted.org/packages/82/29/a1f34547bbcb8d558882e4e7257ad66ec2deed1561bc3b7cb97537da6665/pglast-7.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:7a9613d9eaf5f8a7a20a520ca9d08c0916ab5dee5481915d9e0a14d4371099ac", size = 1080096 },
+    { url = "https://files.pythonhosted.org/packages/b6/84/cf8d4ce80b167487ad51e310bbc63efa889437eabfe3706d80ac1ec10503/pglast-7.3-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c29fc079b7bd78760d663814c45df9360529e12b22644e1a2f5fb94b3e07ee79", size = 5547457 },
+    { url = "https://files.pythonhosted.org/packages/7e/d6/bbdbb48e1669508b03c03cf6438e99b9d52a89b956c2e30b5f5798c31b13/pglast-7.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ab8735d0055c241f07366949d0bfc54e0b0d26981681f9e0b9f83ce7bc117d25", size = 5642884 },
+    { url = "https://files.pythonhosted.org/packages/ea/ac/e86bd9dade72c610b1bc47fe9eb44638c510701b440bf95574c679e30d64/pglast-7.3-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:48c634096a76bd99d3897f280cbef47ebe76cefcc911b2d698a633e55f17f440", size = 5415160 },
+    { url = "https://files.pythonhosted.org/packages/30/5d/7a50a29860e9ea17a1e2f477f8f9628736fb6e30fd925a2c8a1d14d0059d/pglast-7.3-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:41eb3583e0fa64c8bc0949ad61bbf146ea416796ff0aa40adb6c24e21b6a1bcd", size = 5300833 },
+    { url = "https://files.pythonhosted.org/packages/82/0d/bf024515489d484cec50764e6deeadfc6193fe58907afc308f9a7246a3e1/pglast-7.3-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:8e377c7a88b0231eef6ad65b0b2feef324942af34c314a53c9a9727d14c79216", size = 5258070 },
+    { url = "https://files.pythonhosted.org/packages/03/a7/2be696fdffe37987ea86cef414c0c839676da2d769d55237e02c2054663c/pglast-7.3-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:8c683c3dfcd208a9716d91352e51382e3b0a7746286aea38c9f7802e75fa49f6", size = 5441131 },
+    { url = "https://files.pythonhosted.org/packages/6c/b5/fc480ef71e133d432abed9e60263b97ed8142884dbaf13b83456fae24dd3/pglast-7.3-cp313-cp313-win32.whl", hash = "sha256:154d144829448d2c99bcaffb0b87e4ef9d9df7b3212b3476187191145348f3a1", size = 1009630 },
+    { url = "https://files.pythonhosted.org/packages/63/a0/b7089a0b9fcdfea2c5b12b0c3bbfe01288ce2115a76e7d73779470ec2aa1/pglast-7.3-cp313-cp313-win_amd64.whl", hash = "sha256:9d3f2286b8c47e76e6a6104ec2104623c175bd046aa53775822e0b8c5a9bc5e0", size = 1050662 },
+]
+
+[[package]]
 name = "pluggy"
 version = "1.5.0"
 source = { registry = "https://pypi.org/simple/" }
@@ -631,6 +662,15 @@ wheels = [
 ]
 
 [[package]]
+name = "setuptools"
+version = "75.8.2"
+source = { registry = "https://pypi.org/simple/" }
+sdist = { url = "https://files.pythonhosted.org/packages/d1/53/43d99d7687e8cdef5ab5f9ec5eaf2c0423c2b35133a2b7e7bc276fc32b21/setuptools-75.8.2.tar.gz", hash = "sha256:4880473a969e5f23f2a2be3646b2dfd84af9028716d398e46192f84bc36900d2", size = 1344083 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/38/7d7362e031bd6dc121e5081d8cb6aa6f6fedf2b67bf889962134c6da4705/setuptools-75.8.2-py3-none-any.whl", hash = "sha256:558e47c15f1811c1fa7adbd0096669bf76c1d3f433f58324df69f3f5ecac4e8f", size = 1229385 },
+]
+
+[[package]]
 name = "shellingham"
 version = "1.5.4"
 source = { registry = "https://pypi.org/simple/" }
@@ -726,6 +766,7 @@ name = "supabase-mcp-server"
 source = { editable = "." }
 dependencies = [
     { name = "mcp", extra = ["cli"] },
+    { name = "pglast" },
     { name = "psycopg2" },
     { name = "supabase" },
     { name = "tenacity" },
@@ -741,6 +782,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "mcp", extras = ["cli"], specifier = ">=1.2.1" },
+    { name = "pglast", specifier = ">=7.3" },
     { name = "psycopg2", specifier = ">=2.9.10" },
     { name = "supabase", specifier = ">=2.13.0" },
     { name = "tenacity", specifier = ">=9.0.0" },

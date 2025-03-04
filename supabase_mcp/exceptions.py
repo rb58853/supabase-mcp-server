@@ -1,3 +1,6 @@
+from typing import Any
+
+
 class DatabaseError(Exception):
     """Base class for database-related errors."""
 
@@ -5,49 +8,55 @@ class DatabaseError(Exception):
 
 
 class ConnectionError(DatabaseError):
-    """Raised when connection to database fails."""
+    """Raised when a database connection fails."""
 
     pass
 
 
 class PermissionError(DatabaseError):
-    """Raised when user lacks required privileges."""
+    """Raised when a database operation is not permitted."""
 
     pass
 
 
 class QueryError(DatabaseError):
-    """Raised when query execution fails."""
+    """Raised when a database query fails."""
 
     pass
 
 
 class TimeoutError(DatabaseError):
-    """Raised when a query execution exceeds the specified timeout."""
+    """Raised when a database operation times out."""
 
     pass
 
 
 class ValidationError(Exception):
-    """Raised when input validation fails."""
+    """Raised when validation fails."""
 
     pass
 
 
 class SafetyError(Exception):
-    """Operation not allowed due to safety rules"""
+    """Raised when a safety check fails."""
+
+    pass
+
+
+class OperationNotAllowedError(SafetyError):
+    """Raised when an operation is not allowed in the current safety mode."""
 
     pass
 
 
 class APIError(Exception):
-    """Base class for API-related errors"""
+    """Base class for API-related errors."""
 
     def __init__(
         self,
         message: str,
         status_code: int | None = None,
-        response_body: dict | None = None,
+        response_body: dict[str, Any] | None = None,
     ):
         self.status_code = status_code
         self.response_body = response_body
@@ -55,36 +64,36 @@ class APIError(Exception):
 
 
 class APIConnectionError(APIError):
-    """Failed to connect to API"""
+    """Raised when an API connection fails."""
 
     pass
 
 
 class PythonSDKError(Exception):
-    """Failed to create Python SDK client or call Python SDK method"""
+    """Raised when a Python SDK operation fails."""
 
     pass
 
 
 class APIResponseError(APIError):
-    """Failed to process API response"""
+    """Raised when an API response is invalid."""
 
     pass
 
 
 class APIClientError(APIError):
-    """Client-side error (4xx)"""
+    """Raised when an API client error occurs."""
 
     pass
 
 
 class APIServerError(APIError):
-    """Server-side error (5xx)"""
+    """Raised when an API server error occurs."""
 
     pass
 
 
 class UnexpectedError(APIError):
-    """Unexpected error during API operation"""
+    """Raised when an unexpected error occurs."""
 
     pass

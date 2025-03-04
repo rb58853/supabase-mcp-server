@@ -78,3 +78,4 @@ supabase_mcp/_version.py
 # Docs
 .llms-full.txt
 COMMIT_CONVENTION.md
+feature-spec/

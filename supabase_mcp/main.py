@@ -5,32 +5,26 @@ from mcp.server.fastmcp import FastMCP
 
 from supabase_mcp.api_manager.api_manager import SupabaseApiManager
 from supabase_mcp.api_manager.api_safety_config import SafetyLevel
-from supabase_mcp.db_client.db_client import SupabaseClient
-from supabase_mcp.db_client.db_safety_config import DbSafetyLevel
+from supabase_mcp.db_client.db_client import SafetyMode, SupabaseClient
+from supabase_mcp.db_client.query_manager import QueryManager
 from supabase_mcp.logger import logger
-from supabase_mcp.queries import PreBuiltQueries
 from supabase_mcp.sdk_client.python_client import SupabaseSDKClient
 from supabase_mcp.settings import settings
-from supabase_mcp.validators import (
-    validate_schema_name,
-    validate_sql_query,
-    validate_table_name,
-)
 
 try:
     mcp = FastMCP("supabase")
-    supabase = SupabaseClient.create()
+    postgres_client = SupabaseClient.create()
+    query_manager = QueryManager(postgres_client)
 except Exception as e:
     logger.error(f"Failed to create Supabase client: {e}")
     raise e
 
 
-@mcp.tool(description="List all database schemas with their sizes and table counts.")
+@mcp.tool(description="List all database schemas with their sizes and table counts.")  # type: ignore
 async def get_db_schemas():
     """Get all accessible database schemas with their total sizes and number of tables."""
-    query = PreBuiltQueries.get_schemas_query()
-    result = supabase.execute_query(query)
-    return result
+    query = query_manager.get_schemas_query()
+    return query_manager.handle_query(query)
 
 
 @mcp.tool(
@@ -38,18 +32,15 @@ async def get_db_schemas():
 )
 async def get_tables(schema_name: str):
     """Get all tables, foreign tables, and views from a schema with size, row count, column count, and index information."""
-    schema_name = validate_schema_name(schema_name)
-    query = PreBuiltQueries.get_tables_in_schema_query(schema_name)
-    return supabase.execute_query(query)
+    query = query_manager.get_tables_query(schema_name)
+    return query_manager.handle_query(query)
 
 
 @mcp.tool(description="Get detailed table structure including columns, keys, and relationships.")
 async def get_table_schema(schema_name: str, table: str):
     """Get table schema including column definitions, primary keys, and foreign key relationships."""
-    schema_name = validate_schema_name(schema_name)
-    table = validate_table_name(table)
-    query = PreBuiltQueries.get_table_schema_query(schema_name, table)
-    return supabase.execute_query(query)
+    query = query_manager.get_table_schema_query(schema_name, table)
+    return query_manager.handle_query(query)
 
 
 @mcp.tool(
@@ -81,14 +72,19 @@ TRANSACTION HANDLING:
 
 Failure to follow these guidelines will result in errors.
 """
-)
+)  # type: ignore
 async def execute_sql_query(query: str):
     """Execute an SQL query with validation."""
-    query = validate_sql_query(query)
-    return supabase.execute_query(query)
+    return query_manager.handle_query(query)
 
 
-# Core Tools
+@mcp.tool(description="Retrieve a list of all migrations a user has from Supabase.")
+async def retrieve_migrations():
+    """Get all migrations from the supabase_migrations schema."""
+    query = query_manager.get_migrations_query()
+    return query_manager.handle_query(query)
+
+
 @mcp.tool(
     description="""
 Execute a Supabase Management API request. Use paths exactly as defined in the API spec -
@@ -113,7 +109,7 @@ Examples:
    request_params: {}
    request_body: {"name": "test-function", "slug": "test-function"}
 """
-)
+)  # type: ignore
 async def send_management_api_request(
     method: str,
     path: str,  # URL path
@@ -148,7 +144,7 @@ In unsafe mode:
 - API: state-changing operations permitted (except blocked ones)
 - Database: all SQL operations permitted
 """
-)
+)  # type: ignore
 async def live_dangerously(service: Literal["api", "database"], enable: bool = False) -> dict:
     """
     Toggle between safe and unsafe operation modes for a specific service.
@@ -165,8 +161,8 @@ async def live_dangerously(service: Literal["api", "database"], enable: bool = F
         api_manager.switch_mode(SafetyLevel.UNSAFE if enable else SafetyLevel.SAFE)
         return {"service": "api", "mode": api_manager.mode}
     else:  # database
-        supabase.switch_mode(DbSafetyLevel.RW if enable else DbSafetyLevel.RO)
-        return {"service": "database", "mode": supabase.mode}
+        postgres_client.switch_mode(SafetyMode.READWRITE if enable else SafetyMode.READONLY)
+        return {"service": "database", "mode": postgres_client.mode}
 
 
 @mcp.tool(
@@ -174,7 +170,7 @@ async def live_dangerously(service: Literal["api", "database"], enable: bool = F
 Get the latests complete Management API specification.
 Use this to understand available operations and their requirements.
 """
-)
+)  # type: ignore
 async def get_management_api_spec() -> dict:
     """
     Get enriched API specification with safety information.
@@ -186,7 +182,7 @@ async def get_management_api_spec() -> dict:
     return api_manager.get_spec()
 
 
-@mcp.tool(description="Get all safety rules for the Supabase Management API")
+@mcp.tool(description="Get all safety rules for the Supabase Management API")  # type: ignore
 async def get_management_api_safety_rules() -> dict:
     """Returns all safety rules including blocked and unsafe operations with human-readable explanations"""
     api_manager = await SupabaseApiManager.get_manager()
@@ -198,7 +194,7 @@ async def get_management_api_safety_rules() -> dict:
 Get Python SDK methods specification for Auth Admin. Returns a python dictionary of all Auth Python SDK methods.
 Use this to understand the available methods and their required parameters.
 """
-)
+)  # type: ignore
 async def get_auth_admin_methods_spec() -> dict:
     """Returns the Python SDK spec"""
     sdk_client = await SupabaseSDKClient.get_instance()
@@ -251,7 +247,7 @@ Examples:
 
 Use get_auth_admin_methods_spec() to see full documentation for all methods.
 """
-)
+)  # type: ignore
 async def call_auth_admin_method(method: str, params: dict) -> dict:
     """Calls a method of the Python SDK client"""
     sdk_client = await SupabaseSDKClient.get_instance()

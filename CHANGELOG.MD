@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.3.8] - Planned
+## Added
+1. Runtime SQL query validation
+2. Automatic versioning of database changes 
+3. Improvement of SQL execution safety mode
+  - Categorizes all queries into three safety levels:
+    - `safe` - includes all read operations, plus basic postgres commands which do not modify the data or database structure. Always allowed.
+    - `write` - includes write operations. Requires `write` db_client mode to be enabled for use.
+    - `destructive` - include operations which modify database structure, or can lead to data loss. Require 2-step confirmation to be executed AND a `write` mode enabled.
+
+## Changed
+- Updated README.md with detailed feature description.
+
+## [0.3.7] - 2025-03-02
+### Fixed:
+- fixed various documentation inaccuracies
+
+### Added
+- enabled auth admin SDK use with local Supabase instances
+
+
 ## [0.3.6] - 2025-02-26
 ### Added
 - Added `call_auth_admin_method` which enables MCP server to manage users in your database (create, update, delete, confirm). All Auth SDK methods are supported

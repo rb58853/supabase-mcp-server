@@ -3,8 +3,7 @@ import urllib.parse
 
 import pytest
 
-from supabase_mcp.db_client.db_client import QueryResult, SupabaseClient
-from supabase_mcp.db_client.db_safety_config import DbSafetyLevel
+from supabase_mcp.db_client.db_client import QueryResult, SafetyMode, SupabaseClient
 from supabase_mcp.exceptions import QueryError
 
 
@@ -59,25 +58,25 @@ def test_connection_string_ci():
 def test_client_default_mode():
     """Test client initializes in read-only mode by default"""
     client = SupabaseClient(project_ref="127.0.0.1:54322", db_password="postgres")
-    assert client.mode == DbSafetyLevel.RO
+    assert client.mode == SafetyMode.READONLY
 
 
 def test_client_explicit_mode():
     """Test client respects explicit mode setting"""
-    client = SupabaseClient(project_ref="127.0.0.1:54322", db_password="postgres", _mode=DbSafetyLevel.RW)
-    assert client.mode == DbSafetyLevel.RW
+    client = SupabaseClient(project_ref="127.0.0.1:54322", db_password="postgres", _mode=SafetyMode.READWRITE)
+    assert client.mode == SafetyMode.READWRITE
 
 
 def test_mode_switching():
     """Test mode switching works correctly"""
     client = SupabaseClient(project_ref="127.0.0.1:54322", db_password="postgres")
-    assert client.mode == DbSafetyLevel.RO
+    assert client.mode == SafetyMode.READONLY
 
-    client.switch_mode(DbSafetyLevel.RW)
-    assert client.mode == DbSafetyLevel.RW
+    client.switch_mode(SafetyMode.READWRITE)
+    assert client.mode == SafetyMode.READWRITE
 
-    client.switch_mode(DbSafetyLevel.RO)
-    assert client.mode == DbSafetyLevel.RO
+    client.switch_mode(SafetyMode.READONLY)
+    assert client.mode == SafetyMode.READONLY
 
 
 # Query execution tests
@@ -90,7 +89,7 @@ def test_readonly_query_execution(integration_client):
     assert result.rows == [{"num": 1}]
 
     # Should also work in read-write mode
-    integration_client.switch_mode(DbSafetyLevel.RW)
+    integration_client.switch_mode(SafetyMode.READWRITE)
     result = integration_client.execute_query("SELECT 1 as num")
     assert result.rows == [{"num": 1}]
 
@@ -121,7 +120,7 @@ def test_query_error_handling(integration_client):
 def test_transaction_commit_in_write_mode(integration_client):
     """Test that transactions are properly committed in write mode"""
     # Switch to write mode
-    integration_client.switch_mode(DbSafetyLevel.RW)
+    integration_client.switch_mode(SafetyMode.READWRITE)
 
     try:
         # Use explicit transaction control with a regular table (not temporary)
@@ -147,14 +146,14 @@ def test_transaction_commit_in_write_mode(integration_client):
             print(f"Cleanup error: {e}")
 
         # Switch back to read-only mode
-        integration_client.switch_mode(DbSafetyLevel.RO)
+        integration_client.switch_mode(SafetyMode.READONLY)
 
 
 @pytest.mark.integration
 def test_explicit_transaction_control(integration_client):
     """Test explicit transaction control with BEGIN/COMMIT"""
     # Switch to write mode
-    integration_client.switch_mode(DbSafetyLevel.RW)
+    integration_client.switch_mode(SafetyMode.READWRITE)
 
     try:
         # Create a test table
@@ -184,14 +183,14 @@ def test_explicit_transaction_control(integration_client):
             print(f"Cleanup error: {e}")
 
         # Switch back to read-only mode
-        integration_client.switch_mode(DbSafetyLevel.RO)
+        integration_client.switch_mode(SafetyMode.READONLY)
 
 
 @pytest.mark.integration
 def test_savepoint_and_rollback(integration_client):
     """Test savepoint and rollback functionality within transactions"""
     # Switch to write mode
-    integration_client.switch_mode(DbSafetyLevel.RW)
+    integration_client.switch_mode(SafetyMode.READWRITE)
 
     try:
         # Create a test table
@@ -229,5 +228,5 @@ def test_savepoint_and_rollback(integration_client):
             print(f"Cleanup error: {e}")
 
         # Switch back to read-only mode
-        integration_client.switch_mode(DbSafetyLevel.RO)
-        assert integration_client.mode == DbSafetyLevel.RO
+        integration_client.switch_mode(SafetyMode.READONLY)
+        assert integration_client.mode == SafetyMode.READONLY

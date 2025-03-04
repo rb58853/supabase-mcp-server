@@ -352,17 +352,17 @@ async def test_live_dangerously_tool():
     # Start with safe mode
     result = await live_dangerously(service="database", enable=False)
     assert result["service"] == "database", "Response should identify database service"
-    assert result["mode"] == "ro", "Database should be in read-only mode"
+    assert result["mode"] == "readonly", "Database should be in read-only mode"
 
     # Switch to unsafe mode
     result = await live_dangerously(service="database", enable=True)
     assert result["service"] == "database", "Response should identify database service"
-    assert result["mode"] == "rw", "Database should be in read-write mode"
+    assert result["mode"] == "readwrite", "Database should be in read-write mode"
 
     # Switch back to safe mode
     result = await live_dangerously(service="database", enable=False)
     assert result["service"] == "database", "Response should identify database service"
-    assert result["mode"] == "ro", "Database should be in read-only mode"
+    assert result["mode"] == "readonly", "Database should be in read-only mode"
 
     # Test API service mode switching
     # Start with safe mode

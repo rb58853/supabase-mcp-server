@@ -269,6 +269,8 @@ type: command
 command: supabase-mcp-server
 # if you installed with uv
 command: uv run supabase-mcp-server
+# if the above doesn't work, use the full path (recommended)
+command: /full/path/to/supabase-mcp-server  # Find with 'which supabase-mcp-server' (macOS/Linux) or 'where supabase-mcp-server' (Windows)
 ```
 
 If configuration is correct, you should see a green dot indicator and the number of tools exposed by the server.
@@ -301,6 +303,10 @@ If configuration is correct, you should see green dot indicator and clickable su
 Here are some tips & tricks that might help you:
 - **Debug installation** - run `supabase-mcp-server` directly from the terminal to see if it works. If it doesn't, there might be an issue with the installation.
 - **MCP Server configuration** - if the above step works, it means the server is installed and configured correctly. As long as you provided the right command, IDE should be able to connect. Make sure to provide the right path to the server executable.
+- **"No tools found" error** - If you see "Client closed - no tools available" in Cursor despite the package being installed:
+  - Find the full path to the executable by running `which supabase-mcp-server` (macOS/Linux) or `where supabase-mcp-server` (Windows)
+  - Use the full path in your MCP server configuration instead of just `supabase-mcp-server`
+  - For example: `/Users/username/.local/bin/supabase-mcp-server` or `C:\Users\username\.local\bin\supabase-mcp-server.exe`
 - **Environment variables** - to connect to the right database, make sure you either set env variables in `mcp_config.json` or in `.env` file placed in a global config directory (`~/.config/supabase-mcp/.env` on macOS/Linux or `%APPDATA%\supabase-mcp\.env` on Windows).
 - **Accessing logs** - The MCP server writes detailed logs to a file:
   - Log file location:
@@ -320,7 +326,7 @@ If you are stuck or any of the instructions above are incorrect, please raise an
 
 ### MCP Inspector
 A super useful tool to help debug MCP server issues is MCP Inspector. If you installed from source, you can run `supabase-mcp-inspector` from the project repo and it will run the inspector instance. Coupled with logs this will give you complete overview over what's happening in the server.
-> 📝 Running `supabase-mcp-inspector`, if installed from package, doesn't work properly - I will validate and fix in the cominng release.
+> 📝 Running `supabase-mcp-inspector`, if installed from package, doesn't work properly - I will validate and fix in the coming release.
 
 ## Feature Overview
 
@@ -431,7 +437,17 @@ The Auth Admin SDK provides several key advantages over direct SQL manipulation:
     - Error handling: The server provides detailed error messages from the Supabase API, which may differ from the dashboard interface
     - Method availability: Some methods like `delete_factor` are exposed in the API but not fully implemented in the SDK
 
-## Roadmap
+### Automatic Versioning of Database Changes
+
+"With great power comes great responsibility." While `execute_sql_query` tool coupled with aptly named `live_dangerously` tool provide a powerful and simple way to manage your Supabase database, it also means that dropping a table or modifying one is one chat message away. In order to reduce the risk of irreversible changes, since v0.3.8 the server supports:
+- automatic creation of migration scripts for all write & destructive sql operations executed on the database
+- improved safety mode of query execution, in which all queries are categorized in:
+  - `safe` type: always allowed. Includes all read-only ops.
+  - `write`type: requires `write` mode to be enabled by the user.
+  - `destructive` type: requires `write` mode to be enabled by the user AND a 2-step confirmation of query execution for clients that do not execute tools automatically.
+
+
+## Feature Changelog
 
 - 📦 Simplified installation via package manager - ✅ (v0.2.0)
 - 🌎 Support for different Supabase regions - ✅ (v0.2.2)
@@ -439,16 +455,15 @@ The Auth Admin SDK provides several key advantages over direct SQL manipulation:
 - 👷‍♂️ Read and read-write database SQL queries with safety controls - ✅ (v0.3.0)
 - 🔄 Robust transaction handling for both direct and pooled connections - ✅ (v0.3.2)
 - 🐍 Support methods and objects available in native Python SDK - ✅ (v0.3.6)
-- 🔍 Stronger SQL query validation (read vs write operations)
-- 📝 Automatic versioning of DDL queries(?)
+- 🔍 Stronger SQL query validation ✅ (v0.3.8)
+- 📝 Automatic versioning of DDL queries ✅ (v0.3.8)
 - 🪵 Tools / resources to more easily access database, edge functions logs (?)
 - 👨‍💻 Supabase CLI integration (?)
 - 📖 Radically improved knowledge and tools of api spec
   - Resources to more easily access and check api spec
   - Atomic url paths and ops (right now LLM trips more often then not)
-- Better support for local database management
 
-
+For a more detailed roadmap, please see this [discussion](github.com) on GitHub.
 
 ### Connect to Supabase logs
 

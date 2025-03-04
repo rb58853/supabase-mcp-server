@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report an issuewith the ser
+about: Report an issue with the Supabase MCP server
 title: "An issue with doing X when Y under conditions Z"
 labels: bug
 assignees: alexander-zuev

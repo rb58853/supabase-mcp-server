@@ -1,5 +1,6 @@
 import urllib.parse
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Literal
 
 import psycopg2
@@ -8,11 +9,10 @@ from psycopg2.extras import RealDictCursor
 from psycopg2.pool import SimpleConnectionPool
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from supabase_mcp.db_client.db_safety_config import DbSafetyLevel
 from supabase_mcp.exceptions import ConnectionError, PermissionError, QueryError
 from supabase_mcp.logger import logger
 from supabase_mcp.settings import Settings, settings
-from supabase_mcp.validators import validate_transaction_control
+from supabase_mcp.sql_validator.validator import SQLValidator
 
 
 @dataclass
@@ -22,6 +22,13 @@ class QueryResult:
     rows: list[dict[str, Any]]
     count: int
     status: str
+
+
+class SafetyMode(str, Enum):
+    """Safety mode for the database connection."""
+
+    READONLY = "readonly"  # only safe operations are allowed
+    READWRITE = "readwrite"  # write operations are allowed
 
 
 class SupabaseClient:
@@ -34,7 +41,7 @@ class SupabaseClient:
         project_ref: str | None = None,
         db_password: str | None = None,
         settings_instance: Settings | None = None,
-        _mode: Literal[DbSafetyLevel.RO, DbSafetyLevel.RW] = DbSafetyLevel.RO,  # Start
+        _mode: Literal[SafetyMode.READONLY, SafetyMode.READWRITE] = SafetyMode.READONLY,  # Start
     ):
         """Initialize the PostgreSQL connection pool.
 
@@ -49,6 +56,7 @@ class SupabaseClient:
         self.db_password = db_password or self._settings.supabase_db_password
         self.db_url = self._get_db_url_from_supabase()
         self._mode = _mode
+        self.sql_validator = SQLValidator()
 
     def _get_db_url_from_supabase(self) -> str:
         """Create PostgreSQL connection string from settings."""
@@ -134,16 +142,16 @@ class SupabaseClient:
                 logger.error(f"Error closing connection pool: {e}")
 
     @property
-    def mode(self) -> DbSafetyLevel:
+    def mode(self) -> SafetyMode:
         """Current operation mode"""
         return self._mode
 
-    def switch_mode(self, mode: Literal[DbSafetyLevel.RO, DbSafetyLevel.RW]) -> None:
+    def switch_mode(self, mode: Literal[SafetyMode.READONLY, SafetyMode.READWRITE]) -> None:
         """Switch the database connection mode."""
         self._mode = mode
         logger.info(f"Switched to {self.mode.value} mode")
 
-    def execute_query(self, query: str, params: tuple = None) -> QueryResult:
+    def execute_query(self, query: str, params: tuple[Any, ...] | None = None) -> QueryResult:
         """Execute a SQL query and return structured results.
 
         Args:
@@ -161,18 +169,18 @@ class SupabaseClient:
         if self._pool is None:
             self._pool = self._get_pool()
 
-        pool = self._get_pool()
+        pool = self._pool
         conn = pool.getconn()
         try:
             # Check if we are in transaction mode
             in_transaction = conn.status == psycopg2.extensions.STATUS_IN_TRANSACTION
             logger.debug(f"Connection state before query: {conn.status}")
 
-            has_transaction_control = validate_transaction_control(query)
+            has_transaction_control = self.sql_validator.validate_transaction_control(query)
             logger.debug(f"Has transaction control: {has_transaction_control}")
 
             # Define readonly once at the top so it's available throughout the function
-            readonly = self.mode == DbSafetyLevel.RO
+            readonly = self.mode == SafetyMode.READONLY
 
             # Set session only if not in transaction mode
             if not in_transaction:

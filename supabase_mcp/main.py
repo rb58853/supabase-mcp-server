@@ -5,8 +5,9 @@ from mcp.server.fastmcp import FastMCP
 
 from supabase_mcp.api_manager.api_manager import SupabaseApiManager
 from supabase_mcp.api_manager.api_safety_config import SafetyLevel
-from supabase_mcp.db_client.db_client import SafetyMode, SupabaseClient
+from supabase_mcp.db_client.db_client import QueryResult, SafetyMode, SupabaseClient
 from supabase_mcp.db_client.query_manager import QueryManager
+from supabase_mcp.exceptions import ConfirmationRequiredError
 from supabase_mcp.logger import logger
 from supabase_mcp.sdk_client.python_client import SupabaseSDKClient
 from supabase_mcp.settings import settings
@@ -20,15 +21,39 @@ except Exception as e:
     raise e
 
 
-@mcp.tool(description="List all database schemas with their sizes and table counts.")  # type: ignore
+@mcp.tool(
+    description="""List all database schemas with their sizes and table counts.
+
+Returns a comprehensive overview of all schemas in the database, including:
+- Schema names
+- Total size of each schema
+- Number of tables in each schema
+- Owner information
+
+This is useful for getting a high-level understanding of the database structure.
+"""
+)  # type: ignore
 async def get_db_schemas():
-    """Get all accessible database schemas with their total sizes and number of tables."""
+    """Get all schemas from the database with size and table count information."""
     query = query_manager.get_schemas_query()
     return query_manager.handle_query(query)
 
 
 @mcp.tool(
-    description="List all tables, foreign tables, and views in a schema with their sizes, row counts, and metadata."
+    description="""List all tables, foreign tables, and views in a schema with their sizes, row counts, and metadata.
+
+Provides detailed information about all database objects in the specified schema:
+- Table/view names
+- Object types (table, view, foreign table)
+- Row counts
+- Size on disk
+- Column counts
+- Index information
+- Last vacuum/analyze times
+
+Parameters:
+- schema_name: Name of the schema to inspect (e.g., 'public', 'auth', etc.)
+"""
 )
 async def get_tables(schema_name: str):
     """Get all tables, foreign tables, and views from a schema with size, row count, column count, and index information."""
@@ -36,7 +61,22 @@ async def get_tables(schema_name: str):
     return query_manager.handle_query(query)
 
 
-@mcp.tool(description="Get detailed table structure including columns, keys, and relationships.")
+@mcp.tool(
+    description="""Get detailed table structure including columns, keys, and relationships.
+
+Returns comprehensive information about a specific table's structure:
+- Column definitions (names, types, constraints)
+- Primary key information
+- Foreign key relationships
+- Indexes
+- Constraints
+- Triggers
+
+Parameters:
+- schema_name: Name of the schema (e.g., 'public', 'auth')
+- table: Name of the table to inspect
+"""
+)
 async def get_table_schema(schema_name: str, table: str):
     """Get table schema including column definitions, primary keys, and foreign key relationships."""
     query = query_manager.get_table_schema_query(schema_name, table)
@@ -75,11 +115,35 @@ Failure to follow these guidelines will result in errors.
 )  # type: ignore
 async def execute_sql_query(query: str):
     """Execute an SQL query with validation."""
+    try:
+        return query_manager.handle_query(query)
+    except ConfirmationRequiredError:
+        logger.debug("User confirmation required for a destructive operation.")
+        return {
+            "status": "confirmation_required",
+            "message": "⚠️ DESTRUCTIVE OPERATION DETECTED ⚠️\nThis operation could permanently modify or delete data. To proceed:\n1. Review the risks with the user\n2. Get explicit confirmation\n3. Use the confirm_destructive_operation tool with user_confirmation=True",
+            "query": query,
+        }
+
+
+@mcp.tool(
+    description="Execute a destructive database operation after confirmation. Use this only after reviewing the risks with the user."
+)
+async def confirm_destructive_operation(query: str, user_confirmation: bool = False):
+    """Execute a previously identified destructive operation after confirmation."""
+
+    if not user_confirmation:
+        return {
+            "status": "error",
+            "message": "User confirmation is required. Set user_confirmation=True only after explaining the risks to the user.",
+        }
+
+    # Execute the query now that it's confirmed
     return query_manager.handle_query(query)
 
 
 @mcp.tool(description="Retrieve a list of all migrations a user has from Supabase.")
-async def retrieve_migrations():
+async def retrieve_migrations() -> QueryResult:
     """Get all migrations from the supabase_migrations schema."""
     query = query_manager.get_migrations_query()
     return query_manager.handle_query(query)

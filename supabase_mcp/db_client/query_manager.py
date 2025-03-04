@@ -3,7 +3,7 @@ from typing import Any
 
 from supabase_mcp.db_client.db_client import QueryResult, SafetyMode, SupabaseClient
 from supabase_mcp.db_client.migration_manager import MigrationManager
-from supabase_mcp.exceptions import OperationNotAllowedError
+from supabase_mcp.exceptions import ConfirmationRequiredError, OperationNotAllowedError
 from supabase_mcp.logger import logger
 from supabase_mcp.sql_validator.models import SQLBatchValidationResult, SQLQuerySafetyLevel
 from supabase_mcp.sql_validator.validator import SQLValidator
@@ -79,24 +79,37 @@ class QueryManager:
 
         Raises:
             OperationNotAllowedError: If the query is not allowed in the current safety mode
+            ConfirmationRequiredError: If the query requires user confirmation
         """
         # Get the current safety mode from the database client
         current_mode = self.db_client.mode
 
-        # Check if the query is allowed in the current safety mode
-        if current_mode == SafetyMode.READONLY and validation_result.highest_safety_level != SQLQuerySafetyLevel.SAFE:
+        # Read operations are always allowed regardless of mode
+        if validation_result.highest_safety_level == SQLQuerySafetyLevel.SAFE:
+            return
+
+        # Write operations require READWRITE mode
+        if validation_result.highest_safety_level == SQLQuerySafetyLevel.WRITE and current_mode == SafetyMode.READONLY:
             raise OperationNotAllowedError(
-                f"Operation with safety level {validation_result.highest_safety_level} "
+                f"Write operation with safety level {validation_result.highest_safety_level} "
                 f"is not allowed in {current_mode.value} mode"
             )
 
+        # Destructive operations are rejected in non-READWRITE mode
         if (
-            current_mode == SafetyMode.READWRITE
-            and validation_result.highest_safety_level == SQLQuerySafetyLevel.DESTRUCTIVE
+            validation_result.highest_safety_level == SQLQuerySafetyLevel.DESTRUCTIVE
+            and current_mode != SafetyMode.READWRITE
         ):
             raise OperationNotAllowedError(
-                f"Operation with safety level {validation_result.highest_safety_level} "
+                f"Destructive operation with safety level {validation_result.highest_safety_level} "
                 f"is not allowed in {current_mode.value} mode"
+            )
+
+        # Destructive operations require confirmation even in READWRITE mode
+        if validation_result.highest_safety_level == SQLQuerySafetyLevel.DESTRUCTIVE:
+            raise ConfirmationRequiredError(
+                f"Destructive operation with safety level {validation_result.highest_safety_level} "
+                f"requires explicit user confirmation"
             )
 
     def handle_migration(self, validation_result: SQLBatchValidationResult, query: str) -> None:

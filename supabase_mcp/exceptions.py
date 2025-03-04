@@ -49,6 +49,12 @@ class OperationNotAllowedError(SafetyError):
     pass
 
 
+class ConfirmationRequiredError(SafetyError):
+    """Raised when a user needs to confirm destructive SQL operation"""
+
+    pass
+
+
 class APIError(Exception):
     """Base class for API-related errors."""
 

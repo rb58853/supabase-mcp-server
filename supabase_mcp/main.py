@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 
@@ -11,309 +11,112 @@ from supabase_mcp.exceptions import ConfirmationRequiredError
 from supabase_mcp.logger import logger
 from supabase_mcp.sdk_client.python_client import SupabaseSDKClient
 from supabase_mcp.settings import settings
+from supabase_mcp.tool_manager import ToolManager, ToolName
 
 try:
     mcp = FastMCP("supabase")
     postgres_client = SupabaseClient.create()
     query_manager = QueryManager(postgres_client)
+    tool_manager = ToolManager.get_instance()
 except Exception as e:
     logger.error(f"Failed to create Supabase client: {e}")
     raise e
 
 
-@mcp.tool(
-    description="""List all database schemas with their sizes and table counts.
-
-Returns a comprehensive overview of all schemas in the database, including:
-- Schema names
-- Total size of each schema
-- Number of tables in each schema
-- Owner information
-
-This is useful for getting a high-level understanding of the database structure.
-"""
-)  # type: ignore
-async def get_db_schemas():
-    """Get all schemas from the database with size and table count information."""
+@mcp.tool(description=tool_manager.get_description(ToolName.GET_SCHEMAS))  # type: ignore
+async def get_schemas() -> QueryResult:
+    """List all database schemas with their sizes and table counts."""
     query = query_manager.get_schemas_query()
     return query_manager.handle_query(query)
 
 
-@mcp.tool(
-    description="""List all tables, foreign tables, and views in a schema with their sizes, row counts, and metadata.
-
-Provides detailed information about all database objects in the specified schema:
-- Table/view names
-- Object types (table, view, foreign table)
-- Row counts
-- Size on disk
-- Column counts
-- Index information
-- Last vacuum/analyze times
-
-Parameters:
-- schema_name: Name of the schema to inspect (e.g., 'public', 'auth', etc.)
-"""
-)
-async def get_tables(schema_name: str):
-    """Get all tables, foreign tables, and views from a schema with size, row count, column count, and index information."""
+@mcp.tool(description=tool_manager.get_description(ToolName.GET_TABLES))  # type: ignore
+async def get_tables(schema_name: str) -> QueryResult:
+    """List all tables, foreign tables, and views in a schema with their sizes, row counts, and metadata."""
     query = query_manager.get_tables_query(schema_name)
     return query_manager.handle_query(query)
 
 
-@mcp.tool(
-    description="""Get detailed table structure including columns, keys, and relationships.
-
-Returns comprehensive information about a specific table's structure:
-- Column definitions (names, types, constraints)
-- Primary key information
-- Foreign key relationships
-- Indexes
-- Constraints
-- Triggers
-
-Parameters:
-- schema_name: Name of the schema (e.g., 'public', 'auth')
-- table: Name of the table to inspect
-"""
-)
-async def get_table_schema(schema_name: str, table: str):
-    """Get table schema including column definitions, primary keys, and foreign key relationships."""
+@mcp.tool(description=tool_manager.get_description(ToolName.GET_TABLE_SCHEMA))  # type: ignore
+async def get_table_schema(schema_name: str, table: str) -> QueryResult:
+    """Get detailed table structure including columns, keys, and relationships."""
     query = query_manager.get_table_schema_query(schema_name, table)
     return query_manager.handle_query(query)
 
 
-@mcp.tool(
-    description="""
-Query the database with a raw SQL query.
-
-IMPORTANT USAGE GUIDELINES:
-1. For READ operations (SELECT):
-   - Use simple SELECT statements
-   - Example: SELECT * FROM public.users LIMIT 10;
-
-2. For WRITE operations (INSERT/UPDATE/DELETE/CREATE/ALTER/DROP):
-   - ALWAYS wrap in explicit BEGIN/COMMIT blocks
-   - Example:
-     BEGIN;
-     CREATE TABLE public.test_table (id SERIAL PRIMARY KEY, name TEXT);
-     COMMIT;
-
-3. NEVER mix READ and WRITE operations in the same query
-4. NEVER use single DDL statements without transaction control
-5. Remember to enable unsafe mode first with live_dangerously('database', True)
-6. For auth operations (primarily creating, updating, deleting users, generating links, etc), prefer using the Auth Admin SDK methods
-   instead of direct SQL manipulation to ensure correctness and prevent security issues
-
-TRANSACTION HANDLING:
-- The server detects BEGIN/COMMIT/ROLLBACK keywords to respect your transaction control
-- When you use these keywords, the server will not interfere with your transactions
-- For queries without transaction control, the server will auto-commit in write mode
-
-Failure to follow these guidelines will result in errors.
-"""
-)  # type: ignore
-async def execute_sql_query(query: str):
-    """Execute an SQL query with validation."""
-    try:
-        return query_manager.handle_query(query)
-    except ConfirmationRequiredError:
-        logger.debug("User confirmation required for a destructive operation.")
-        return {
-            "status": "confirmation_required",
-            "message": "⚠️ DESTRUCTIVE OPERATION DETECTED ⚠️\nThis operation could permanently modify or delete data. To proceed:\n1. Review the risks with the user\n2. Get explicit confirmation\n3. Use the confirm_destructive_operation tool with user_confirmation=True",
-            "query": query,
-        }
-
-
-@mcp.tool(
-    description="Execute a destructive database operation after confirmation. Use this only after reviewing the risks with the user."
-)
-async def confirm_destructive_operation(query: str, user_confirmation: bool = False):
-    """Execute a previously identified destructive operation after confirmation."""
-
-    if not user_confirmation:
-        return {
-            "status": "error",
-            "message": "User confirmation is required. Set user_confirmation=True only after explaining the risks to the user.",
-        }
-
-    # Execute the query now that it's confirmed
+@mcp.tool(description=tool_manager.get_description(ToolName.EXECUTE_POSTGRESQL))  # type: ignore
+async def execute_postgresql(query: str) -> QueryResult:
+    """Execute PostgreSQL statements against your Supabase database."""
     return query_manager.handle_query(query)
 
 
-@mcp.tool(description="Retrieve a list of all migrations a user has from Supabase.")
+@mcp.tool(description=tool_manager.get_description(ToolName.CONFIRM_DESTRUCTIVE_POSTGRESQL))  # type: ignore
+async def confirm_destructive_postgresql(query: str, user_confirmation: bool = False) -> QueryResult:
+    """Execute a destructive database operation after confirmation. Use this only after reviewing the risks with the user."""
+    if not user_confirmation:
+        raise ConfirmationRequiredError("Destructive operation requires explicit user confirmation.")
+
+    return query_manager.handle_query(query)
+
+
+@mcp.tool(description=tool_manager.get_description(ToolName.RETRIEVE_MIGRATIONS))  # type: ignore
 async def retrieve_migrations() -> QueryResult:
     """Get all migrations from the supabase_migrations schema."""
     query = query_manager.get_migrations_query()
     return query_manager.handle_query(query)
 
 
-@mcp.tool(
-    description="""
-Execute a Supabase Management API request. Use paths exactly as defined in the API spec -
-the {ref} parameter will be automatically injected from settings.
-
-Parameters:
-- method: HTTP method (GET, POST, PUT, PATCH, DELETE)
-- path: API path (e.g. /v1/projects/{ref}/functions)
-- request_params: Query parameters as dict (e.g. {"key": "value"}) - use empty dict {} if not needed
-- request_body: Request body as dict (e.g. {"name": "test"}) - use empty dict {} if not needed
-
-Examples:
-1. GET request with params:
-   method: "GET"
-   path: "/v1/projects/{ref}/functions"
-   request_params: {"name": "test"}
-   request_body: {}
-
-2. POST request with body:
-   method: "POST"
-   path: "/v1/projects/{ref}/functions"
-   request_params: {}
-   request_body: {"name": "test-function", "slug": "test-function"}
-"""
-)  # type: ignore
+@mcp.tool(description=tool_manager.get_description(ToolName.SEND_MANAGEMENT_API_REQUEST))  # type: ignore
 async def send_management_api_request(
-    method: str,
-    path: str,  # URL path
-    request_params: dict,  # Query parameters as dict
-    request_body: dict,  # Request body as dict
-) -> dict:
-    """
-    Execute a Management API request.
-
-    Args:
-        method: HTTP method (GET, POST, etc)
-        path: API path exactly as in spec, {ref} will be auto-injected
-        request_params: Query parameters as dict if needed (e.g. {"key": "value"})
-        request_body: Request body as dict for POST/PUT/PATCH (e.g. {"name": "test"})
-
-    Example:
-        To get a function details, use:
-        path="/v1/projects/{ref}/functions/{function_slug}"
-        The {ref} will be auto-injected, only function_slug needs to be provided
-    """
+    method: str, path: str, request_params: dict[str, Any], request_body: dict[str, Any]
+) -> dict[str, Any]:
+    """Execute a Supabase Management API request."""
     api_manager = await SupabaseApiManager.get_manager()
     return await api_manager.execute_request(method, path, request_params, request_body)
 
 
-@mcp.tool(
-    description="""
-Toggle unsafe mode for either Management API or Database operations.
-In safe mode (default):
-- API: only read operations allowed
-- Database: only SELECT queries allowed
-In unsafe mode:
-- API: state-changing operations permitted (except blocked ones)
-- Database: all SQL operations permitted
-"""
-)  # type: ignore
-async def live_dangerously(service: Literal["api", "database"], enable: bool = False) -> dict:
+@mcp.tool(description=tool_manager.get_description(ToolName.LIVE_DANGEROUSLY))  # type: ignore
+async def live_dangerously(service: Literal["api", "database"], enable: bool = False) -> dict[str, Any]:
     """
-    Toggle between safe and unsafe operation modes for a specific service.
+    Toggle between safe and unsafe operation modes for API or Database services.
 
-    Args:
-        service: Which service to toggle ("api" or "database")
-        enable: True to enable unsafe mode, False for safe mode
-
-    Returns:
-        dict: Current mode status for the specified service
+    This function controls the safety level for operations, allowing you to:
+    - Enable write operations for the database (INSERT, UPDATE, DELETE, schema changes)
+    - Enable state-changing operations for the Management API
     """
     if service == "api":
         api_manager = await SupabaseApiManager.get_manager()
         api_manager.switch_mode(SafetyLevel.UNSAFE if enable else SafetyLevel.SAFE)
         return {"service": "api", "mode": api_manager.mode}
-    else:  # database
+    elif service == "database":
         postgres_client.switch_mode(SafetyMode.READWRITE if enable else SafetyMode.READONLY)
         return {"service": "database", "mode": postgres_client.mode}
 
 
-@mcp.tool(
-    description="""
-Get the latests complete Management API specification.
-Use this to understand available operations and their requirements.
-"""
-)  # type: ignore
-async def get_management_api_spec() -> dict:
-    """
-    Get enriched API specification with safety information.
-
-    Returns:
-        dict: OpenAPI spec with added safety metadata per operation
-    """
+@mcp.tool(description=tool_manager.get_description(ToolName.GET_MANAGEMENT_API_SPEC))  # type: ignore
+async def get_management_api_spec() -> dict[str, Any]:
+    """Get the latests complete Management API specification."""
     api_manager = await SupabaseApiManager.get_manager()
     return api_manager.get_spec()
 
 
-@mcp.tool(description="Get all safety rules for the Supabase Management API")  # type: ignore
-async def get_management_api_safety_rules() -> dict:
-    """Returns all safety rules including blocked and unsafe operations with human-readable explanations"""
+@mcp.tool(description=tool_manager.get_description(ToolName.GET_MANAGEMENT_API_SAFETY_RULES))  # type: ignore
+async def get_management_api_safety_rules() -> str:
+    """Get all safety rules for the Supabase Management API"""
     api_manager = await SupabaseApiManager.get_manager()
     return api_manager.get_safety_rules()
 
 
-@mcp.tool(
-    description="""
-Get Python SDK methods specification for Auth Admin. Returns a python dictionary of all Auth Python SDK methods.
-Use this to understand the available methods and their required parameters.
-"""
-)  # type: ignore
-async def get_auth_admin_methods_spec() -> dict:
-    """Returns the Python SDK spec"""
+@mcp.tool(description=tool_manager.get_description(ToolName.GET_AUTH_ADMIN_METHODS_SPEC))  # type: ignore
+async def get_auth_admin_methods_spec() -> dict[str, Any]:
+    """Get Python SDK methods specification for Auth Admin."""
     sdk_client = await SupabaseSDKClient.get_instance()
     return sdk_client.return_python_sdk_spec()
 
 
-@mcp.tool(
-    description="""
-Call an Auth Admin method from Supabase Python SDK. Returns the result of the method call.
-
-Available methods:
-- get_user_by_id: Retrieve a user by their ID
-- list_users: List all users with pagination
-- create_user: Create a new user
-- delete_user: Delete a user by their ID
-- invite_user_by_email: Send an invite link to a user's email
-- generate_link: Generate an email link for various authentication purposes
-- update_user_by_id: Update user attributes by ID
-- delete_factor: Delete a factor on a user
-
-Each method requires specific parameters. For nested parameters, follow the structure exactly:
-
-Examples:
-1. Get user by ID:
-   method: "get_user_by_id"
-   params: {"uid": "user-uuid-here"}
-
-2. Create user:
-   method: "create_user"
-   params: {
-     "email": "user@example.com",
-     "password": "secure-password",
-     "email_confirm": true,
-     "user_metadata": {"name": "John Doe"}
-   }
-
-3. Generate link:
-   method: "generate_link"
-   params: {
-     "params": {
-       "type": "signup",
-       "email": "user@example.com",
-       "password": "secure-password",
-       "options": {
-         "data": {"name": "John Doe"},
-         "redirect_to": "https://example.com/welcome"
-       }
-     }
-   }
-
-Use get_auth_admin_methods_spec() to see full documentation for all methods.
-"""
-)  # type: ignore
-async def call_auth_admin_method(method: str, params: dict) -> dict:
-    """Calls a method of the Python SDK client"""
+@mcp.tool(description=tool_manager.get_description(ToolName.CALL_AUTH_ADMIN_METHOD))  # type: ignore
+async def call_auth_admin_method(method: str, params: dict[str, Any]) -> dict[str, Any]:
+    """Call an Auth Admin method from Supabase Python SDK."""
     sdk_client = await SupabaseSDKClient.get_instance()
     return await sdk_client.call_auth_admin_method(method, params)
 

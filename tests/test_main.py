@@ -117,10 +117,10 @@ async def test_get_db_schemas_tool(integration_client):
     3. Contains at least the public schema
     """
     # Call the actual tool function from main.py
-    from supabase_mcp.main import get_db_schemas
+    from supabase_mcp.main import get_schemas
 
     # Execute the tool
-    result = await get_db_schemas()
+    result = await get_schemas()
 
     # Verify result structure (should be a QueryResult)
     assert hasattr(result, "rows"), "Result should have rows attribute"

@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [0.3.8] - Planned
 ## Added
 1. Runtime SQL query validation
-2. Automatic versioning of database changes 
+2. Automatic versioning of database changes
 3. Improvement of SQL execution safety mode
   - Categorizes all queries into three safety levels:
     - `safe` - includes all read operations, plus basic postgres commands which do not modify the data or database structure. Always allowed.

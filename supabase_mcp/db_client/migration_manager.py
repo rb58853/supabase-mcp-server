@@ -63,7 +63,7 @@ class MigrationManager:
         # Create the migration query
         migration_query = """
         BEGIN;
-        INSERT INTO supabase_migrations.schema_migrations 
+        INSERT INTO supabase_migrations.schema_migrations
         (version, name, statements)
         VALUES (%s, %s, %s);
         COMMIT;

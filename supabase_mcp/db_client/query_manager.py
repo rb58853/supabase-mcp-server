@@ -36,6 +36,7 @@ class QueryManager:
         self.db_client = db_client
         self.validator = SQLValidator()
         self.migration_manager = MigrationManager()
+        logger.debug(f"QueryManager initialized with db_client mode: {db_client.mode}")
 
     def handle_query(self, query: str, params: tuple[Any, ...] | None = None) -> QueryResult:
         """
@@ -65,7 +66,10 @@ class QueryManager:
 
         # Check if migration is needed
         if validation_result.needs_migration():
+            logger.debug("Query requires migration, handling...")
             self.handle_migration(validation_result, query)
+        else:
+            logger.debug("No migration needed for this query")
 
         # Execute the query
         return self.db_client.execute_query(query, params)
@@ -83,13 +87,17 @@ class QueryManager:
         """
         # Get the current safety mode from the database client
         current_mode = self.db_client.mode
+        logger.debug(f"Db_client safety level: {current_mode}")
+        logger.debug(f"Query safety level: {validation_result.highest_safety_level}")
 
         # Read operations are always allowed regardless of mode
         if validation_result.highest_safety_level == SQLQuerySafetyLevel.SAFE:
+            logger.debug("Query is SAFE, allowing execution in any mode")
             return
 
         # Write operations require READWRITE mode
         if validation_result.highest_safety_level == SQLQuerySafetyLevel.WRITE and current_mode == SafetyMode.READONLY:
+            logger.debug(f"WRITE operation rejected in {current_mode.value} mode")
             raise OperationNotAllowedError(
                 f"Write operation with safety level {validation_result.highest_safety_level} "
                 f"is not allowed in {current_mode.value} mode"
@@ -100,6 +108,7 @@ class QueryManager:
             validation_result.highest_safety_level == SQLQuerySafetyLevel.DESTRUCTIVE
             and current_mode != SafetyMode.READWRITE
         ):
+            logger.debug(f"DESTRUCTIVE operation rejected in {current_mode.value} mode")
             raise OperationNotAllowedError(
                 f"Destructive operation with safety level {validation_result.highest_safety_level} "
                 f"is not allowed in {current_mode.value} mode"
@@ -107,10 +116,13 @@ class QueryManager:
 
         # Destructive operations require confirmation even in READWRITE mode
         if validation_result.highest_safety_level == SQLQuerySafetyLevel.DESTRUCTIVE:
+            logger.debug("DESTRUCTIVE operation requires explicit confirmation")
             raise ConfirmationRequiredError(
                 f"Destructive operation with safety level {validation_result.highest_safety_level} "
                 f"requires explicit user confirmation"
             )
+
+        logger.debug(f"Safety level {validation_result.highest_safety_level} allowed in {current_mode.value} mode")
 
     def handle_migration(self, validation_result: SQLBatchValidationResult, query: str) -> None:
         """
@@ -126,14 +138,14 @@ class QueryManager:
         try:
             # Prepare the migration with the original query
             migration_query, migration_params = self.migration_manager.prepare_migration(migration_name, query)
+            logger.debug(f"Migration query prepared with {len(migration_params[2])} statements")
 
             # Execute the migration query
             self.db_client.execute_query(migration_query, migration_params)
             logger.info(f"Created migration for query: {migration_name}")
         except Exception as e:
-            # Log the error but don't prevent the original query from executing
-            # This is a design decision - migration failures shouldn't block the main operation
-            logger.error(f"Failed to create migration: {e}")
+            logger.debug(f"Migration failure details: {str(e)}")
+            raise e
 
     @classmethod
     def load_sql(cls, filename: str) -> str:
@@ -156,10 +168,13 @@ class QueryManager:
         file_path = cls.SQL_DIR / filename
 
         if not file_path.exists():
+            logger.error(f"SQL file not found: {file_path}")
             raise FileNotFoundError(f"SQL file not found: {file_path}")
 
         with open(file_path) as f:
-            return f.read().strip()
+            sql = f.read().strip()
+            logger.debug(f"Loaded SQL file: {filename} ({len(sql)} chars)")
+            return sql
 
     def get_schemas_query(self) -> str:
         """
@@ -168,6 +183,7 @@ class QueryManager:
         Returns:
             str: SQL query for listing schemas
         """
+        logger.debug("Getting schemas query")
         return self.load_sql("get_schemas")
 
     def get_tables_query(self, schema_name: str) -> str:
@@ -180,6 +196,7 @@ class QueryManager:
         Returns:
             str: SQL query for listing tables
         """
+        logger.debug(f"Getting tables query for schema: {schema_name}")
         sql = self.load_sql("get_tables")
         return sql.format(schema_name=schema_name)
 
@@ -194,6 +211,7 @@ class QueryManager:
         Returns:
             str: SQL query for getting table schema
         """
+        logger.debug(f"Getting table schema query for {schema_name}.{table}")
         sql = self.load_sql("get_table_schema")
         return sql.format(schema_name=schema_name, table=table)
 
@@ -204,4 +222,5 @@ class QueryManager:
         Returns:
             str: SQL query to get all migrations
         """
+        logger.debug("Getting migrations query")
         return self.load_sql("get_migrations")

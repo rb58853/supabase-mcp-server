@@ -1,0 +1,94 @@
+# Database tool descriptions
+
+get_db_schemas: |
+  List all database schemas with their sizes and table counts.
+
+  Returns a comprehensive overview of all schemas in the database, including:
+  - Schema names
+  - Total size of each schema
+  - Number of tables in each schema
+  - Owner information
+
+  This is useful for getting a high-level understanding of the database structure.
+
+get_tables: |
+  List all tables, foreign tables, and views in a schema with their sizes, row counts, and metadata.
+
+  Provides detailed information about all database objects in the specified schema:
+  - Table/view names
+  - Object types (table, view, foreign table)
+  - Row counts
+  - Size on disk
+  - Column counts
+  - Index information
+  - Last vacuum/analyze times
+
+  Parameters:
+  - schema_name: Name of the schema to inspect (e.g., 'public', 'auth', etc.)
+
+get_table_schema: |
+  Get detailed table structure including columns, keys, and relationships.
+
+  Returns comprehensive information about a specific table's structure:
+  - Column definitions (names, types, constraints)
+  - Primary key information
+  - Foreign key relationships
+  - Indexes
+  - Constraints
+  - Triggers
+
+  Parameters:
+  - schema_name: Name of the schema (e.g., 'public', 'auth')
+  - table: Name of the table to inspect
+
+execute_postgresql: |
+  Execute PostgreSQL statements against your Supabase database.
+
+  OPERATION TYPES AND REQUIREMENTS:
+  1. READ Operations (SELECT, EXPLAIN, etc.):
+     - Can be executed directly without special requirements
+     - Example: SELECT * FROM public.users LIMIT 10;
+
+  2. WRITE Operations (INSERT, UPDATE, DELETE):
+     - Require READWRITE mode (use live_dangerously('database', True) first)
+     - MUST use explicit transaction blocks (BEGIN/COMMIT)
+     - Example:
+       BEGIN;
+       INSERT INTO public.users (email) VALUES ('user@example.com');
+       COMMIT;
+
+  3. SCHEMA Operations (CREATE, ALTER, DROP):
+     - Require READWRITE mode (use live_dangerously('database', True) first)
+     - MUST use explicit transaction blocks (BEGIN/COMMIT)
+     - Destructive operations (DROP, TRUNCATE) require additional confirmation
+     - Example:
+       BEGIN;
+       CREATE TABLE public.test_table (id SERIAL PRIMARY KEY, name TEXT);
+       COMMIT;
+
+  TRANSACTION HANDLING:
+  - The server detects BEGIN/COMMIT/ROLLBACK keywords to respect your transaction control
+  - When you use these keywords, the server will not interfere with your transactions
+  - For queries without transaction control, the server will auto-commit in read mode only
+  - WRITE and SCHEMA operations without transaction blocks will be rejected
+  - This ensures atomicity and provides rollback capability for data modifications
+
+  IMPORTANT GUIDELINES:
+  - The database client starts in READONLY mode by default for safety
+  - Only enable READWRITE mode when you need to modify data or schema
+  - Never mix READ and WRITE operations in the same transaction
+  - For destructive operations, be prepared to confirm with the confirm_destructive_postgresql tool
+
+  WHEN TO USE OTHER TOOLS INSTEAD:
+  - For Auth operations (users, authentication, etc.): Use call_auth_admin_method instead of direct SQL
+    The Auth Admin SDK provides safer, validated methods for user management
+  - For project configuration, functions, storage, etc.: Use send_management_api_request
+    The Management API handles Supabase platform features that aren't directly in the database
+
+  Note: This tool operates on the PostgreSQL database only. API operations use separate safety controls.
+
+confirm_destructive_postgresql: |
+  Execute a destructive database operation after confirmation. Use this only after reviewing the risks with the user.
+
+retrieve_migrations: |
+  Retrieve a list of all migrations a user has from Supabase. 

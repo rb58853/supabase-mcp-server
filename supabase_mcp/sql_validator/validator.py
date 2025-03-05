@@ -181,6 +181,9 @@ class SQLValidator:
                     needs_migration=classification["needs_migration"],
                     object_type=object_type,
                 )
+                logger.debug(
+                    f"Identified statement with category: {query_result.category} and command {query_result.command}"
+                )
 
                 # Add result to the batch
                 result.statements.append(query_result)
@@ -192,7 +195,9 @@ class SQLValidator:
             if len(result.statements) == 0:
                 logger.debug("No valid statements found in the query")
                 raise ValidationError("No queries were parsed - please check correctness of your query")
-
+            logger.debug(
+                f"Validated a total of {len(result.statements)} with the highest safety level of: {result.highest_safety_level}"
+            )
             return result
 
         except AttributeError as e:

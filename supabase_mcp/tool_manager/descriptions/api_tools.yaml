@@ -1,0 +1,59 @@
+# API tools descriptions
+
+send_management_api_request: |
+  Execute a Supabase Management API request.
+  
+  This tool allows you to make direct calls to the Supabase Management API, which provides
+  programmatic access to manage your Supabase project settings, resources, and configurations.
+  
+  REQUEST FORMATTING:
+  - Use paths exactly as defined in the API specification
+  - The {ref} parameter will be automatically injected from settings
+  - Format request bodies according to the API specification
+  
+  PARAMETERS:
+  - method: HTTP method (GET, POST, PUT, PATCH, DELETE)
+  - path: API path (e.g. /v1/projects/{ref}/functions)
+  - request_params: Query parameters as dict (e.g. {"key": "value"}) - use empty dict {} if not needed
+  - request_body: Request body as dict (e.g. {"name": "test"}) - use empty dict {} if not needed
+  
+  EXAMPLES:
+  1. GET request with params:
+     method: "GET"
+     path: "/v1/projects/{ref}/functions"
+     request_params: {"name": "test"}
+     request_body: {}
+  
+  2. POST request with body:
+     method: "POST"
+     path: "/v1/projects/{ref}/functions"
+     request_params: {}
+     request_body: {"name": "test-function", "slug": "test-function"}
+  
+  SAFETY CONSIDERATIONS:
+  - By default, only read operations are allowed
+  - To perform write operations, first use live_dangerously(service="api", enable=True)
+  - Some operations may be completely blocked for safety reasons
+  
+  For a complete list of available API endpoints and their parameters, use the get_management_api_spec tool.
+
+get_management_api_spec: |
+  Get the complete Supabase Management API specification.
+  
+  Returns the full OpenAPI specification for the Supabase Management API, including:
+  - All available endpoints and operations
+  - Required and optional parameters for each operation
+  - Request and response schemas
+  - Authentication requirements
+  - Safety information for each operation
+  
+  This specification is useful for understanding:
+  - What operations are available through the Management API
+  - How to properly format requests for each endpoint
+  - Which operations require unsafe mode
+  - What data structures to expect in responses
+  
+  No parameters required.
+
+
+

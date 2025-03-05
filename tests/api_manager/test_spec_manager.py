@@ -5,7 +5,7 @@ import httpx
 import pytest
 import pytest_asyncio
 
-from supabase_mcp.api_manager.api_spec_manager import ApiSpecManager
+from supabase_mcp.api_service.api_spec_manager import ApiSpecManager
 
 # Test data
 SAMPLE_SPEC = {"openapi": "3.0.0", "paths": {"/v1/test": {"get": {"operationId": "test"}}}}

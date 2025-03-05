@@ -6,8 +6,8 @@ with safety validation and request handling.
 
 from typing import Any
 
-from supabase_mcp.api_manager.api_client import APIClient
-from supabase_mcp.api_manager.errors import SafetyError
+from supabase_mcp.api_service.api_client import APIClient
+from supabase_mcp.api_service.errors import SafetyError
 from supabase_mcp.logger import logger
 from supabase_mcp.safety.configs.api_safety_config import APISafetyConfig
 from supabase_mcp.safety.core import ClientType, OperationRiskLevel, SafetyMode

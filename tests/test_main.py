@@ -300,7 +300,7 @@ async def test_management_api_request_tool(integration_client):
     - SUPABASE_ACCESS_TOKEN environment variable to be set
     - Running in a CI environment
     """
-    from supabase_mcp.api_manager.api_manager_legacy import SupabaseApiManager
+    from supabase_mcp.api_service.api_manager_legacy import SupabaseApiManager
     from supabase_mcp.main import send_management_api_request
 
     # Create a dedicated API manager for this test

@@ -15,8 +15,8 @@ from tenacity import (
     wait_exponential,
 )
 
-from supabase_mcp.api_manager.api_client import APIClient
-from supabase_mcp.api_manager.api_spec_manager import ApiSpecManager
+from supabase_mcp.api_service.api_client import APIClient
+from supabase_mcp.api_service.api_spec_manager import ApiSpecManager
 from supabase_mcp.exceptions import (
     APIClientError,
     APIConnectionError,

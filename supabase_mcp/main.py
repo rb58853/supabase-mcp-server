@@ -3,9 +3,9 @@ from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 
-from supabase_mcp.api_manager.api_manager_legacy import SupabaseApiManager
-from supabase_mcp.db_client.db_client import QueryResult, SupabaseClient
-from supabase_mcp.db_client.query_manager import QueryManager
+from supabase_mcp.api_service.api_manager_legacy import SupabaseApiManager
+from supabase_mcp.database_service.database_client import QueryResult, SupabaseClient
+from supabase_mcp.database_service.query_manager import QueryManager
 from supabase_mcp.exceptions import ConfirmationRequiredError
 from supabase_mcp.logger import logger
 from supabase_mcp.safety.core import ClientType

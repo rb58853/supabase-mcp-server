@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from dotenv import load_dotenv
 
-from supabase_mcp.db_client.db_client import SupabaseClient
+from supabase_mcp.database_service.database_client import SupabaseClient
 from supabase_mcp.logger import logger
 from supabase_mcp.settings import Settings
 

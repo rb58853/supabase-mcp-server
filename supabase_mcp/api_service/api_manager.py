@@ -15,7 +15,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from supabase_mcp.api_manager.api_spec_manager import ApiSpecManager
+from supabase_mcp.api_service.api_spec_manager import ApiSpecManager
 from supabase_mcp.exceptions import (
     APIClientError,
     APIConnectionError,
@@ -25,7 +25,7 @@ from supabase_mcp.exceptions import (
     UnexpectedError,
 )
 from supabase_mcp.logger import logger
-from supabase_mcp.safety.configs.api_safety_config import SafetyConfig, SafetyLevel
+from supabase_mcp.safety.core import SafetyConfig SafetyMode
 from supabase_mcp.settings import settings
 
 
@@ -37,7 +37,7 @@ class SupabaseApiManager:
     _instance: SupabaseApiManager | None = None
 
     def __init__(self):
-        self._mode: Literal[SafetyLevel.SAFE, SafetyLevel.UNSAFE] = SafetyLevel.SAFE  # Start in safe mode
+        self._mode: Literal[SafetyMode.SAFE, SafetyMode.UNSAFE] = SafetyMode.SAFE  # Start in safe mode
         self.safety_config = SafetyConfig()
         self.spec_manager = None
         self.client = self.create_httpx_client()

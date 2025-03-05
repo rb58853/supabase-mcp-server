@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Any
 
-from supabase_mcp.db_client.db_client import QueryResult, SupabaseClient
-from supabase_mcp.db_client.migration_manager import MigrationManager
+from supabase_mcp.database_service.database_client import QueryResult, SupabaseClient
+from supabase_mcp.database_service.migration_manager import MigrationManager
 from supabase_mcp.exceptions import OperationNotAllowedError
 from supabase_mcp.logger import logger
 from supabase_mcp.safety.core import ClientType

@@ -3,7 +3,7 @@ import urllib.parse
 
 import pytest
 
-from supabase_mcp.db_client.db_client import QueryResult, SafetyMode, SupabaseClient
+from supabase_mcp.database_service.database_client import QueryResult, SafetyMode, SupabaseClient
 from supabase_mcp.exceptions import QueryError
 
 

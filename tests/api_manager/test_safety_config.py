@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from supabase_mcp.api_manager.api_manager_legacy import SupabaseApiManager
+from supabase_mcp.api_service.api_manager_legacy import SupabaseApiManager
 from supabase_mcp.safety.configs.api_safety_config import SafetyConfig, SafetyLevel
 
 

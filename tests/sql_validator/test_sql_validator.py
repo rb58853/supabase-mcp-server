@@ -1,7 +1,8 @@
 import pytest
 
 from supabase_mcp.exceptions import ValidationError
-from supabase_mcp.sql_validator.models import SQLQueryCategory, SQLQueryCommand, SQLQuerySafetyLevel
+from supabase_mcp.safety.core import OperationRiskLevel
+from supabase_mcp.sql_validator.models import SQLQueryCategory, SQLQueryCommand
 from supabase_mcp.sql_validator.validator import SQLValidator
 
 
@@ -65,9 +66,7 @@ class TestSQLValidator:
         """
         for name, query in sample_dql_queries.items():
             result = validator.validate_query(query)
-            assert result.highest_safety_level == SQLQuerySafetyLevel.SAFE, (
-                f"Query '{name}' should be classified as SAFE"
-            )
+            assert result.highest_safety_level == OperationRiskLevel.LOW, f"Query '{name}' should be classified as SAFE"
             assert result.statements[0].category == SQLQueryCategory.DQL, f"Query '{name}' should be categorized as DQL"
             assert result.statements[0].command == SQLQueryCommand.SELECT, f"Query '{name}' should have command SELECT"
 
@@ -80,7 +79,7 @@ class TestSQLValidator:
         """
         for name, query in sample_dml_queries.items():
             result = validator.validate_query(query)
-            assert result.highest_safety_level == SQLQuerySafetyLevel.WRITE, (
+            assert result.highest_safety_level == OperationRiskLevel.MEDIUM, (
                 f"Query '{name}' should be classified as WRITE"
             )
             assert result.statements[0].category == SQLQueryCategory.DML, f"Query '{name}' should be categorized as DML"
@@ -286,7 +285,7 @@ class TestSQLValidator:
         # Verify the query is parsed correctly despite comments
         assert result.statements[0].category == SQLQueryCategory.DQL, "Query with comments should be categorized as DQL"
         assert result.statements[0].command == SQLQueryCommand.SELECT, "Query with comments should have SELECT command"
-        assert result.highest_safety_level == SQLQuerySafetyLevel.SAFE, "Query with comments should be SAFE"
+        assert result.highest_safety_level == OperationRiskLevel.LOW, "Query with comments should be SAFE"
 
     def test_valid_queries_with_quoted_identifiers(self, validator: SQLValidator, sample_edge_cases: dict[str, str]):
         """
@@ -306,7 +305,7 @@ class TestSQLValidator:
         assert result.statements[0].command == SQLQueryCommand.SELECT, (
             "Query with quoted identifiers should have SELECT command"
         )
-        assert result.highest_safety_level == SQLQuerySafetyLevel.SAFE, "Query with quoted identifiers should be SAFE"
+        assert result.highest_safety_level == OperationRiskLevel.LOW, "Query with quoted identifiers should be SAFE"
 
     def test_valid_queries_with_special_characters(self, validator: SQLValidator, sample_edge_cases: dict[str, str]):
         """
@@ -326,7 +325,7 @@ class TestSQLValidator:
         assert result.statements[0].command == SQLQueryCommand.SELECT, (
             "Query with special characters should have SELECT command"
         )
-        assert result.highest_safety_level == SQLQuerySafetyLevel.SAFE, "Query with special characters should be SAFE"
+        assert result.highest_safety_level == OperationRiskLevel.LOW, "Query with special characters should be SAFE"
 
     def test_valid_postgresql_specific_syntax(
         self,

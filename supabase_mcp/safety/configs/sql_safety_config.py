@@ -4,7 +4,7 @@ from typing import Any
 
 from supabase_mcp.safety.core import OperationRiskLevel, SafetyConfigBase
 from supabase_mcp.sql_validator.models import (
-    SQLBatchValidationResult,
+    QueryValidationResults,
     SQLQueryCategory,
 )
 
@@ -230,10 +230,10 @@ def classify_statement(stmt_type: str, stmt_node: Any) -> dict[str, Any]:
     return config
 
 
-class SQLSafetyConfig(SafetyConfigBase[SQLBatchValidationResult]):
+class SQLSafetyConfig(SafetyConfigBase[QueryValidationResults]):
     """Safety configuration for SQL operations."""
 
-    def get_risk_level(self, operation: SQLBatchValidationResult) -> OperationRiskLevel:
+    def get_risk_level(self, operation: QueryValidationResults) -> OperationRiskLevel:
         """Get the risk level for an SQL batch operation.
 
         Args:

@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
     - `safe` - includes all read operations, plus basic postgres commands which do not modify the data or database structure. Always allowed.
     - `write` - includes write operations. Requires `write` db_client mode to be enabled for use.
     - `destructive` - include operations which modify database structure, or can lead to data loss. Require 2-step confirmation to be executed AND a `write` mode enabled.
+4. Exception
+5. More modern postgresql client - `asyncpg`
+6. Eliminated depenente on PostgreSQL client libary
 
 ## Changed
 - Updated README.md with detailed feature description.

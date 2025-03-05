@@ -6,10 +6,10 @@ from supabase_mcp.exceptions import ValidationError
 from supabase_mcp.logger import logger
 from supabase_mcp.safety.configs.sql_safety_config import classify_statement
 from supabase_mcp.sql_validator.models import (
-    QueryValidationResult,
-    SQLBatchValidationResult,
+    QueryValidationResults,
     SQLQueryCategory,
     SQLQueryCommand,
+    ValidatedStatement,
 )
 
 
@@ -71,7 +71,7 @@ class SQLValidator:
         """
         return any(x in query.upper() for x in ["BEGIN", "COMMIT", "ROLLBACK"])
 
-    def validate_query(self, sql_query: str) -> SQLBatchValidationResult:
+    def validate_query(self, sql_query: str) -> QueryValidationResults:
         """
         Identify the type of SQL query using PostgreSQL's parser.
 
@@ -149,7 +149,7 @@ class SQLValidator:
         # Try to map the statement type, default to UNKNOWN
         return mapping.get(stmt_type, SQLQueryCommand.UNKNOWN)
 
-    def validate_statements(self, original_query: str, parse_tree: Any) -> SQLBatchValidationResult:
+    def validate_statements(self, original_query: str, parse_tree: Any) -> QueryValidationResults:
         """Validate the statements in the parse tree.
 
         Args:
@@ -160,7 +160,7 @@ class SQLValidator:
         Raises:
             ValidationError: If the query is not valid
         """
-        result = SQLBatchValidationResult(original_query=original_query)
+        result = QueryValidationResults(original_query=original_query)
 
         if parse_tree is None:
             return result
@@ -198,7 +198,7 @@ class SQLValidator:
                 )
 
                 # Create validation result
-                query_result = QueryValidationResult(
+                query_result = ValidatedStatement(
                     category=classification["category"],
                     command=self._map_to_command(stmt_type),
                     risk_level=classification["risk_level"],

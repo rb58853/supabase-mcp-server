@@ -14,6 +14,7 @@ class ToolName(str, Enum):
     GET_TABLE_SCHEMA = "get_table_schema"
     EXECUTE_POSTGRESQL = "execute_postgresql"
     CONFIRM_DESTRUCTIVE_POSTGRESQL = "confirm_destructive_postgresql"
+    CONFIRM_DESTRUCTIVE_OPERATION = "confirm_destructive_operation"
     RETRIEVE_MIGRATIONS = "retrieve_migrations"
 
     # Safety tools

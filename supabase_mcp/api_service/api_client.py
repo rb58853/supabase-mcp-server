@@ -9,7 +9,7 @@ from typing import Any
 
 import httpx
 from httpx import Request, Response
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from supabase_mcp.exceptions import (
     APIClientError,
@@ -24,6 +24,14 @@ from supabase_mcp.settings import settings
 SUPABASE_API_URL = "https://api.supabase.com"
 
 
+# Helper function for retry decorator to safely log exceptions
+def log_retry_attempt(retry_state: RetryCallState) -> None:
+    """Log retry attempts with exception details if available."""
+    exception = retry_state.outcome.exception() if retry_state.outcome and retry_state.outcome.failed else None
+    exception_str = str(exception) if exception else "Unknown error"
+    logger.warning(f"Network error, retrying ({retry_state.attempt_number}/3): {exception_str}")
+
+
 class APIClient:
     """
     Client for Supabase Management API.
@@ -31,7 +39,7 @@ class APIClient:
     Handles low-level HTTP requests to the Supabase Management API.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the API client with default settings."""
         self.client = self.create_httpx_client()
 
@@ -45,6 +53,7 @@ class APIClient:
         return httpx.AsyncClient(
             base_url=SUPABASE_API_URL,
             headers=headers,
+            timeout=30.0,
         )
 
     def prepare_request(
@@ -82,9 +91,7 @@ class APIClient:
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         reraise=True,  # Ensure the original exception is raised
-        before_sleep=lambda retry_state: logger.warning(
-            f"Network error, retrying ({retry_state.attempt_number}/3): {retry_state.outcome.exception()}"
-        ),
+        before_sleep=log_retry_attempt,
     )
     async def send_request(self, request: Request) -> Response:
         """
@@ -107,7 +114,7 @@ class APIClient:
             # This will only be reached after all retries are exhausted
             logger.error(f"Network error after all retry attempts: {str(e)}")
             raise APIConnectionError(
-                message=f"Network error after {3} retry attempts: {str(e)}",
+                message=f"Network error after 3 retry attempts: {str(e)}",
                 status_code=None,
             ) from e
         except Exception as e:
@@ -229,3 +236,4 @@ class APIClient:
         """Close the HTTP client and release resources."""
         if self.client:
             await self.client.aclose()
+            logger.info("HTTP API client closed")

@@ -43,6 +43,25 @@ live_dangerously: |
 
   Note: This tool affects ALL subsequent operations for the specified service until changed again.
 
+confirm_destructive_operation: |
+  Execute a destructive database or API operation after confirmation. Use this only after reviewing the risks with the user.
+
+  HOW IT WORKS:
+  - This tool executes a previously rejected high-risk operation using its confirmation ID
+  - The operation will be exactly the same as the one that generated the ID
+  - No need to retype the query or api request params - the system remembers it
+
+  STEPS:
+  1. Explain the risks to the user and get their approval
+  2. Use this tool with the confirmation ID from the error message
+  3. The original query will be executed as-is
+
+  PARAMETERS:
+  - confirmation_id: The ID provided in the error message (required)
+  - user_confirmation: Set to true to confirm execution (default: false)
+
+  NOTE: Confirmation IDs expire after 5 minutes for security
+
 get_management_api_safety_rules: |
   Get all safety rules for the Supabase Management API.
 

@@ -3,8 +3,8 @@ from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 
-from supabase_mcp.api_service.api_manager_legacy import SupabaseApiManager
-from supabase_mcp.database_service.database_client import QueryResult, SupabaseClient
+from supabase_mcp.api_service.api_manager import SupabaseApiManager
+from supabase_mcp.database_service.database_client import AsyncSupabaseClient, QueryResult
 from supabase_mcp.database_service.query_manager import QueryManager
 from supabase_mcp.exceptions import ConfirmationRequiredError
 from supabase_mcp.logger import logger
@@ -18,10 +18,11 @@ from supabase_mcp.tool_manager import ToolManager, ToolName
 
 try:
     mcp = FastMCP("supabase")
-    postgres_client = SupabaseClient.create(settings_instance=settings)
+    postgres_client = AsyncSupabaseClient.get_instance(settings_instance=settings)
     safety_manager = SafetyManager.get_instance()
     query_manager = QueryManager(postgres_client)
     tool_manager = ToolManager.get_instance()
+    register_safety_configs()
 except Exception as e:
     logger.error(f"Failed to create Supabase client: {e}")
     raise e
@@ -31,43 +32,49 @@ except Exception as e:
 async def get_schemas() -> QueryResult:
     """List all database schemas with their sizes and table counts."""
     query = query_manager.get_schemas_query()
-    return query_manager.handle_query(query)
+    return await query_manager.handle_query(query)
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.GET_TABLES))  # type: ignore
 async def get_tables(schema_name: str) -> QueryResult:
     """List all tables, foreign tables, and views in a schema with their sizes, row counts, and metadata."""
     query = query_manager.get_tables_query(schema_name)
-    return query_manager.handle_query(query)
+    return await query_manager.handle_query(query)
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.GET_TABLE_SCHEMA))  # type: ignore
 async def get_table_schema(schema_name: str, table: str) -> QueryResult:
     """Get detailed table structure including columns, keys, and relationships."""
     query = query_manager.get_table_schema_query(schema_name, table)
-    return query_manager.handle_query(query)
+    return await query_manager.handle_query(query)
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.EXECUTE_POSTGRESQL))  # type: ignore
 async def execute_postgresql(query: str) -> QueryResult:
     """Execute PostgreSQL statements against your Supabase database."""
-    return query_manager.handle_query(query, has_confirmation=False)
+    return await query_manager.handle_query(query, has_confirmation=False)
 
 
-@mcp.tool(description=tool_manager.get_description(ToolName.CONFIRM_DESTRUCTIVE_POSTGRESQL))  # type: ignore
-async def confirm_destructive_postgresql(confirmation_id: str, user_confirmation: bool = False) -> QueryResult:
-    """Execute a destructive database operation after confirmation. Use this only after reviewing the risks with the user."""
+@mcp.tool(description=tool_manager.get_description(ToolName.CONFIRM_DESTRUCTIVE_OPERATION))  # type: ignore
+async def confirm_destructive_operation(
+    operation_type: Literal["api", "database"], confirmation_id: str, user_confirmation: bool = False
+) -> QueryResult | dict[str, Any]:
+    """Execute a destructive operation after confirmation. Use this only after reviewing the risks with the user."""
     if not user_confirmation:
         raise ConfirmationRequiredError("Destructive operation requires explicit user confirmation.")
 
-    return query_manager.handle_confirmation(confirmation_id)
+    if operation_type == "api":
+        api_manager = await SupabaseApiManager.get_manager()
+        return await api_manager.handle_confirmation(confirmation_id)
+    elif operation_type == "database":
+        return await query_manager.handle_confirmation(confirmation_id)
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.RETRIEVE_MIGRATIONS))  # type: ignore
 async def retrieve_migrations() -> QueryResult:
     """Get all migrations from the supabase_migrations schema."""
     query = query_manager.get_migrations_query()
-    return query_manager.handle_query(query)
+    return await query_manager.handle_query(query)
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.SEND_MANAGEMENT_API_REQUEST))  # type: ignore
@@ -149,9 +156,6 @@ def run():
         logger.info("Personal access token detected - using for Management API")
     if settings.supabase_service_role_key:
         logger.info("Service role key detected - using for Python SDK")
-
-    # Register safety configurations
-    register_safety_configs()
 
     mcp.run()
 

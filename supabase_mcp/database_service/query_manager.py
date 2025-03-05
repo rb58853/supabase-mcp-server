@@ -1,13 +1,13 @@
 from pathlib import Path
 from typing import Any
 
-from supabase_mcp.database_service.database_client import QueryResult, SupabaseClient
+from supabase_mcp.database_service.database_client import AsyncSupabaseClient, QueryResult
 from supabase_mcp.database_service.migration_manager import MigrationManager
 from supabase_mcp.exceptions import OperationNotAllowedError
 from supabase_mcp.logger import logger
 from supabase_mcp.safety.core import ClientType
 from supabase_mcp.safety.safety_manager import SafetyManager
-from supabase_mcp.sql_validator.models import SQLBatchValidationResult
+from supabase_mcp.sql_validator.models import QueryValidationResults
 from supabase_mcp.sql_validator.validator import SQLValidator
 
 
@@ -28,7 +28,7 @@ class QueryManager:
     # Path to SQL files directory
     SQL_DIR = Path(__file__).parent.parent / "sql"
 
-    def __init__(self, db_client: SupabaseClient):
+    def __init__(self, db_client: AsyncSupabaseClient):
         """
         Initialize the QueryManager.
 
@@ -40,7 +40,7 @@ class QueryManager:
         self.migration_manager = MigrationManager()
         self.safety_manager = SafetyManager.get_instance()
 
-    def handle_query(
+    async def handle_query(
         self, query: str, params: tuple[Any, ...] | None = None, has_confirmation: bool = False
     ) -> QueryResult:
         """
@@ -74,14 +74,14 @@ class QueryManager:
         # Check if migration is needed
         if operation_to_execute.needs_migration():
             logger.debug("Query requires migration, handling...")
-            self.handle_migration(operation_to_execute, query)
+            await self.handle_migration(operation_to_execute, query)
         else:
             logger.debug("No migration needed for this query")
 
         # Execute the query
-        return self.db_client.execute_query(query, params)
+        return await self.db_client.execute_query_async(query, params)
 
-    def handle_migration(self, validation_result: SQLBatchValidationResult, query: str) -> None:
+    async def handle_migration(self, validation_result: QueryValidationResults, query: str) -> None:
         """
         Handle migration for a query that requires it.
 
@@ -98,13 +98,13 @@ class QueryManager:
             logger.debug(f"Migration query prepared with {len(migration_params[2])} statements")
 
             # Execute the migration query
-            self.db_client.execute_query(migration_query, migration_params)
+            await self.db_client.execute_query_async(migration_query, migration_params)
             logger.info(f"Created migration for query: {migration_name}")
         except Exception as e:
             logger.debug(f"Migration failure details: {str(e)}")
             raise e
 
-    def handle_confirmation(self, confirmation_id: str) -> QueryResult:
+    async def handle_confirmation(self, confirmation_id: str) -> QueryResult:
         """
         Handle a confirmed operation using its confirmation ID.
 
@@ -126,7 +126,7 @@ class QueryManager:
         logger.debug(f"Processing confirmed operation with ID {confirmation_id}")
 
         # Call handle_query with the query and has_confirmation=True
-        return self.handle_query(query, has_confirmation=True)
+        return await self.handle_query(query, has_confirmation=True)
 
     @classmethod
     def load_sql(cls, filename: str) -> str:

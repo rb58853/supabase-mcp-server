@@ -5,7 +5,9 @@ mapping API operations to risk levels and providing methods to check if operatio
 are allowed based on the current safety mode.
 """
 
+import re
 from enum import Enum
+from typing import Any
 
 from supabase_mcp.safety.core import OperationRiskLevel, SafetyConfigBase
 
@@ -22,7 +24,7 @@ class HTTPMethod(str, Enum):
     OPTIONS = "OPTIONS"
 
 
-class APISafetyConfig(SafetyConfigBase[tuple[str, str]]):
+class APISafetyConfig(SafetyConfigBase[tuple[str, str, dict[str, Any], dict[str, Any], dict[str, Any]]]):
     """Safety configuration for API operations.
 
     The operation type is a tuple of (method, path).
@@ -103,7 +105,9 @@ class APISafetyConfig(SafetyConfigBase[tuple[str, str]]):
         },
     }
 
-    def get_risk_level(self, operation: tuple[str, str]) -> OperationRiskLevel:
+    def get_risk_level(
+        self, operation: tuple[str, str, dict[str, Any], dict[str, Any], dict[str, Any]]
+    ) -> OperationRiskLevel:
         """Get the risk level for an API operation.
 
         Args:
@@ -112,7 +116,7 @@ class APISafetyConfig(SafetyConfigBase[tuple[str, str]]):
         Returns:
             The risk level for the operation
         """
-        method, path = operation
+        method, path, _, _, _ = operation
 
         # Check each risk level from highest to lowest
         for risk_level in sorted(self.PATH_SAFETY_CONFIG.keys(), reverse=True):

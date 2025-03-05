@@ -1,32 +1,12 @@
 from __future__ import annotations
 
-import logging
-from json import JSONDecodeError
-from typing import Literal
+from typing import Any
 
-import httpx
-from httpx import HTTPStatusError
-from tenacity import (
-    after_log,
-    before_log,
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
-
+from supabase_mcp.api_service.api_client import APIClient
 from supabase_mcp.api_service.api_spec_manager import ApiSpecManager
-from supabase_mcp.exceptions import (
-    APIClientError,
-    APIConnectionError,
-    APIError,
-    APIResponseError,
-    SafetyError,
-    UnexpectedError,
-)
 from supabase_mcp.logger import logger
-from supabase_mcp.safety.core import SafetyConfig SafetyMode
-from supabase_mcp.settings import settings
+from supabase_mcp.safety.core import ClientType
+from supabase_mcp.safety.safety_manager import SafetyManager
 
 
 class SupabaseApiManager:
@@ -37,16 +17,17 @@ class SupabaseApiManager:
     _instance: SupabaseApiManager | None = None
 
     def __init__(self):
-        self._mode: Literal[SafetyMode.SAFE, SafetyMode.UNSAFE] = SafetyMode.SAFE  # Start in safe mode
-        self.safety_config = SafetyConfig()
+        """Initialize the API manager."""
         self.spec_manager = None
-        self.client = self.create_httpx_client()
+        self.client: APIClient = None  # Type hint to fix linter error
+        self.safety_manager = SafetyManager.get_instance()
 
     @classmethod
     async def create(cls) -> SupabaseApiManager:
-        """Factory method to create and initialize an API manager"""
+        """Create a new API manager instance."""
         manager = cls()
         manager.spec_manager = await ApiSpecManager.create()  # Use the running event loop
+        manager.client = APIClient()  # This is now properly typed
         return manager
 
     @classmethod
@@ -55,25 +36,6 @@ class SupabaseApiManager:
         if cls._instance is None:
             cls._instance = await cls.create()
         return cls._instance
-
-    def create_httpx_client(self) -> httpx.AsyncClient:
-        """Creates a new httpx client"""
-        client = httpx.AsyncClient(
-            base_url="https://api.supabase.com",
-            headers={"Authorization": f"Bearer {settings.supabase_access_token}", "Content-Type": "application/json"},
-        )
-        logger.info("Initialized Supabase Management API client")
-        return client
-
-    @property
-    def mode(self) -> SafetyLevel:
-        """Current operation mode"""
-        return self._mode
-
-    def switch_mode(self, mode: Literal[SafetyLevel.SAFE, SafetyLevel.UNSAFE]) -> None:
-        """Switch between safe and unsafe operation modes"""
-        self._mode = mode
-        logger.info(f"Switched to {self._mode.value} mode")
 
     def get_spec(self) -> dict:
         """Retrieves enriched spec from spec manager"""
@@ -86,128 +48,126 @@ class SupabaseApiManager:
         Returns:
             str: Human readable safety rules explanation
         """
-        blocked_ops = self.safety_config.BLOCKED_OPERATIONS
-        unsafe_ops = self.safety_config.UNSAFE_OPERATIONS
+        # Get safety configuration from the safety manager
+        safety_manager = self.safety_manager
+
+        # Get risk levels and operations by risk level
+        extreme_risk_ops = safety_manager.get_operations_by_risk_level("extreme", ClientType.API)
+        high_risk_ops = safety_manager.get_operations_by_risk_level("high", ClientType.API)
+        medium_risk_ops = safety_manager.get_operations_by_risk_level("medium", ClientType.API)
 
         # Create human-readable explanations
-        blocked_summary = "\n".join([f"- {method} {path}" for method, paths in blocked_ops.items() for path in paths])
+        extreme_risk_summary = (
+            "\n".join([f"- {method} {path}" for method, paths in extreme_risk_ops.items() for path in paths])
+            if extreme_risk_ops
+            else "None"
+        )
 
-        unsafe_summary = "\n".join([f"- {method} {path}" for method, paths in unsafe_ops.items() for path in paths])
+        high_risk_summary = (
+            "\n".join([f"- {method} {path}" for method, paths in high_risk_ops.items() for path in paths])
+            if high_risk_ops
+            else "None"
+        )
+
+        medium_risk_summary = (
+            "\n".join([f"- {method} {path}" for method, paths in medium_risk_ops.items() for path in paths])
+            if medium_risk_ops
+            else "None"
+        )
+
+        current_mode = safety_manager.get_current_mode(ClientType.API)
 
         return f"""MCP Server Safety Rules:
 
-            BLOCKED Operations (never allowed by the server):
-            {blocked_summary}
+            EXTREME RISK Operations (never allowed by the server):
+            {extreme_risk_summary}
+            
+            HIGH RISK Operations (require unsafe mode):
+            {high_risk_summary}
+            
+            MEDIUM RISK Operations (require unsafe mode):
+            {medium_risk_summary}
+            
+            All other operations are LOW RISK (always allowed).
 
-            UNSAFE Operations (require unsafe mode):
-            {unsafe_summary}
-
-            Current mode: {self.mode}
-            In safe mode, only read operations are allowed.
-            Use live_dangerously() to enable unsafe mode for write operations.
+            Current mode: {current_mode}
+            In safe mode, only low risk operations are allowed.
+            Use live_dangerously() to enable unsafe mode for medium and high risk operations.
             """
 
-    @retry(
-        retry=retry_if_exception_type(APIConnectionError),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=15),
-        before=before_log(logger, logging.DEBUG),
-        after=after_log(logger, logging.DEBUG),
-    )
+    def replace_path_params(self, path: str, path_params: dict[str, Any] | None = None) -> str:
+        """
+        Replace path parameters in the path string with actual values.
+        """
+        if path_params:
+            for key, value in path_params.items():
+                path = path.replace("{" + key + "}", str(value))
+        return path
+
     async def execute_request(
         self,
         method: str,
         path: str,
-        request_params: dict | None = None,
-        request_body: dict | None = None,
-    ) -> dict:
+        path_params: dict[str, Any] | None = None,
+        request_params: dict[str, Any] | None = None,
+        request_body: dict[str, Any] | None = None,
+        has_confirmation: bool = False,
+    ) -> dict[str, Any]:
         """
         Execute Management API request with safety validation.
 
         Args:
-            method: HTTP method (GET, POST, etc)
-            path: API path (/v1/projects etc)
-            request_params: Optional query parameters as dict
-            request_body: Optional request body as dict
-
+            method: HTTP method to use
+            path: API path to call
+            request_params: Query parameters to include
+            request_body: Request body to send
+            has_confirmation: Whether the operation has been confirmed by the user
         Returns:
-            API response as dict
+            API response as a dictionary
 
         Raises:
-            SafetyError: If operation not allowed
-            APIError: If request fails
+            APIConnectionError: If there's a connection error
+            APIResponseError: If the API returns an error
+            SafetyError: If the operation is not allowed by safety rules
         """
-        # Replace project ref
-        if "{ref}" in path:
-            path = path.replace("{ref}", settings.supabase_project_ref)
-
-        # Safety check
-        allowed, reason, level = self.safety_config.is_operation_allowed(method, path)
-
-        if level == SafetyLevel.BLOCKED:
-            logger.warning(f"Blocked operation attempted: {method} {path}")
-            raise SafetyError(
-                f"Operation blocked: {reason}, check all safety rules here: {self.safety_config.list_all_rules()}"
-            )
-
-        if level == SafetyLevel.UNSAFE and self.mode == SafetyLevel.SAFE:
-            logger.warning(f"Unsafe operation attempted in safe mode: {method} {path}")
-            raise SafetyError(
-                f"Operation requires YOLO mode: {reason}. Use live_dangerously() to enable YOLO mode. Check all safety rules here: {self.safety_config.list_all_rules()}"
-            )
-
-        # Execute request
+        # Log the request
         logger.info(
-            "Executing API request: method=%s, url=%s, params=%s, request_body=%s",
+            "Executing API request: %s %s",
             method,
             path,
             request_params,
             request_body,
         )
+
+        # Create an operation object for validation
+        operation = (method, path, path_params, request_params, request_body)
+
+        # Use the safety manager to validate the operation
+        self.safety_manager.validate_operation(ClientType.API, operation, has_confirmation=has_confirmation)
+
+        # Replace path parameters in the path string with actual values
+        path = self.replace_path_params(path, path_params)
+
         try:
-            # Build and send request
-            request = self.client.build_request(method=method, url=path, params=request_params, json=request_body)
-            response = await self.client.send(request)
-
-            # Try to parse error response body if available
-            error_body = None
-            try:
-                error_body = response.json() if response.content else None
-            except JSONDecodeError:
-                error_body = {"raw_content": response.text} if response.text else None
-
-            # Handle API errors (4xx, 5xx)
-            try:
-                response.raise_for_status()
-            except HTTPStatusError as e:
-                error_message = f"API request failed: {e.response.status_code}"
-                if error_body and isinstance(error_body, dict):
-                    error_message = error_body.get("message", error_message)
-
-                if 400 <= e.response.status_code < 500:
-                    raise APIClientError(
-                        message=error_message,
-                        status_code=e.response.status_code,
-                        response_body=error_body,
-                    ) from e
-            # Parse successful response
-            try:
-                return response.json()
-            except JSONDecodeError as e:
-                raise APIResponseError(
-                    message=f"Failed to parse API response as JSON: {str(e)}",
-                    status_code=response.status_code,
-                    response_body={"raw_content": response.text},
-                ) from e
-
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as e:
-            raise APIConnectionError(message=f"Connection error: {str(e)}") from e
+            # Execute the request using the API client
+            return await self.client.execute_request(method, path, request_params, request_body)
         except Exception as e:
-            if isinstance(e, (APIError, SafetyError)):
-                raise
-            logger.exception("Unexpected error during API request")
-            raise UnexpectedError(message=f"Unexpected error during API request: {str(e)}") from e
+            logger.error(f"Error executing API request: {str(e)}")
+            raise
 
-    async def close(self):
-        """Close HTTP client"""
-        await self.client.aclose()
+    async def handle_confirmation(self, confirmation_id: str) -> dict[str, Any]:
+        """Handle a confirmation request."""
+        # retrieve the operation from the confirmation id
+        operation = self.safety_manager.get_stored_operation(confirmation_id)
+        if not operation:
+            raise ValueError("No operation found for confirmation id")
+
+        # execute the operation
+        return await self.execute_request(
+            method=operation[0],
+            path=operation[1],
+            path_params=operation[2],
+            request_params=operation[3],
+            request_body=operation[4],
+            has_confirmation=True,
+        )

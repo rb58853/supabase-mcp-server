@@ -97,7 +97,8 @@ def integration_client() -> Generator[SupabaseClient, None, None]:
     SupabaseClient.reset()
 
     # Create client using default settings
-    client = SupabaseClient.create()
+    settings = Settings()
+    client = SupabaseClient.create(settings_instance=settings)
 
     # Log connection details (without credentials)
     db_url_parts = client.db_url.split("@")

@@ -62,7 +62,7 @@ class SQLQueryCommand(str, Enum):
     UNKNOWN = "UNKNOWN"
 
 
-class QueryValidationResult(BaseModel):
+class ValidatedStatement(BaseModel):
     """Result of the query validation."""
 
     category: SQLQueryCategory
@@ -73,10 +73,10 @@ class QueryValidationResult(BaseModel):
     needs_migration: bool
 
 
-class SQLBatchValidationResult(BaseModel):
+class QueryValidationResults(BaseModel):
     """Result of the batch validation."""
 
-    statements: list[QueryValidationResult] = []
+    statements: list[ValidatedStatement] = []
     highest_risk_level: OperationRiskLevel = OperationRiskLevel.LOW
     has_transaction_control: bool = False
     original_query: str

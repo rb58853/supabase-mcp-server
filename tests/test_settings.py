@@ -7,7 +7,7 @@ from supabase_mcp.settings import SUPPORTED_REGIONS, Settings
 
 
 @pytest.fixture(autouse=True)
-def reset_settings_singleton():
+def reset_settings_singleton() -> Generator[None, None, None]:
     """Reset the Settings singleton before each test"""
     # Clear singleton instance if it exists
     if hasattr(Settings, "_instance"):

@@ -3,7 +3,7 @@ import random
 import re
 
 from supabase_mcp.logger import logger
-from supabase_mcp.sql_validator.models import SQLBatchValidationResult
+from supabase_mcp.sql_validator.models import QueryValidationResults
 
 # List of simple words to use for random uniqueness in migration names
 RANDOM_WORDS = [
@@ -98,7 +98,7 @@ class MigrationManager:
 
         return sanitized_name
 
-    def generate_descriptive_name(self, validation_result: SQLBatchValidationResult) -> str:
+    def generate_descriptive_name(self, validation_result: QueryValidationResults) -> str:
         """
         Generate a descriptive name for a migration based on the validation result.
 

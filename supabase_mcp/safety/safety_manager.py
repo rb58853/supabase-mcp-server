@@ -18,13 +18,13 @@ class SafetyManager:
 
     _instance: Optional["SafetyManager"] = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the safety manager with default safety modes."""
         self._safety_modes: dict[ClientType, SafetyMode] = {
             ClientType.DATABASE: SafetyMode.SAFE,
             ClientType.API: SafetyMode.SAFE,
         }
-        self._configs: dict[ClientType, SafetyConfigBase[Any]] = {}
+        self._safety_configs: dict[ClientType, SafetyConfigBase[Any]] = {}
         self._pending_confirmations: dict[str, dict[str, Any]] = {}
         self._confirmation_expiry = 300  # 5 minutes in seconds
 
@@ -42,7 +42,7 @@ class SafetyManager:
             client_type: The client type to register the configuration for
             config: The safety configuration for the client
         """
-        self._configs[client_type] = config
+        self._safety_configs[client_type] = config
         logger.debug(f"Registered safety configuration for {client_type}")
 
     def get_safety_mode(self, client_type: ClientType) -> SafetyMode:
@@ -91,7 +91,7 @@ class SafetyManager:
         """
         # Get the current safety mode and config
         mode = self.get_safety_mode(client_type)
-        config = self._configs.get(client_type)
+        config = self._safety_configs.get(client_type)
 
         if not config:
             message = f"No safety configuration registered for {client_type}"
@@ -188,13 +188,46 @@ class SafetyManager:
         """Get a stored operation by its confirmation ID.
 
         Args:
-            confirmation_id: The ID of the stored operation
+            confirmation_id: The confirmation ID to get the operation for
 
         Returns:
-            The stored operation or None if not found
+            The stored operation, or None if not found
         """
-        stored_data = self._get_confirmation(confirmation_id)
-        if not stored_data:
+        confirmation = self._get_confirmation(confirmation_id)
+        if confirmation is None:
             return None
+        return confirmation.get("operation")
 
-        return stored_data["operation"]
+    def get_operations_by_risk_level(
+        self, risk_level: str, client_type: ClientType = ClientType.DATABASE
+    ) -> dict[str, list[str]]:
+        """Get operations for a specific risk level.
+
+        Args:
+            risk_level: The risk level to get operations for
+            client_type: The client type to get operations for
+
+        Returns:
+            A dictionary mapping HTTP methods to lists of paths
+        """
+        # Get the config for the specified client type
+        config = self._safety_configs.get(client_type)
+        if not config or not hasattr(config, "PATH_SAFETY_CONFIG"):
+            return {}
+
+        # Get the operations for this risk level
+        risk_config = getattr(config, "PATH_SAFETY_CONFIG", {})
+        if risk_level in risk_config:
+            return risk_config[risk_level]
+
+    def get_current_mode(self, client_type: ClientType) -> str:
+        """Get the current safety mode as a string.
+
+        Args:
+            client_type: The client type to get the mode for
+
+        Returns:
+            The current safety mode as a string
+        """
+        mode = self.get_safety_mode(client_type)
+        return str(mode)

@@ -3,7 +3,7 @@ from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 
-from supabase_mcp.api_manager.api_manager import SupabaseApiManager
+from supabase_mcp.api_manager.api_manager_legacy import SupabaseApiManager
 from supabase_mcp.db_client.db_client import QueryResult, SupabaseClient
 from supabase_mcp.db_client.query_manager import QueryManager
 from supabase_mcp.exceptions import ConfirmationRequiredError
@@ -72,11 +72,11 @@ async def retrieve_migrations() -> QueryResult:
 
 @mcp.tool(description=tool_manager.get_description(ToolName.SEND_MANAGEMENT_API_REQUEST))  # type: ignore
 async def send_management_api_request(
-    method: str, path: str, request_params: dict[str, Any], request_body: dict[str, Any]
+    method: str, path: str, path_params: dict[str, str], request_params: dict[str, Any], request_body: dict[str, Any]
 ) -> dict[str, Any]:
     """Execute a Supabase Management API request."""
     api_manager = await SupabaseApiManager.get_manager()
-    return await api_manager.execute_request(method, path, request_params, request_body)
+    return await api_manager.execute_request(method, path, path_params, request_params, request_body)
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.LIVE_DANGEROUSLY))  # type: ignore

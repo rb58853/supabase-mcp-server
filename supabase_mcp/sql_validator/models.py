@@ -2,6 +2,8 @@ from enum import Enum
 
 from pydantic import BaseModel
 
+from supabase_mcp.safety.core import OperationRiskLevel
+
 
 class SQLQueryCategory(str, Enum):
     """Category of the SQL query tracked by the SQL validator"""
@@ -13,14 +15,6 @@ class SQLQueryCategory(str, Enum):
     DCL = "DCL"
     POSTGRES_SPECIFIC = "POSTGRES_SPECIFIC"
     OTHER = "OTHER"
-
-
-class SQLQuerySafetyLevel(str, Enum):
-    """Safety level of the SQL query tracked by the SQL validator"""
-
-    SAFE = "SAFE"
-    WRITE = "WRITE"
-    DESTRUCTIVE = "DESTRUCTIVE"
 
 
 class SQLQueryCommand(str, Enum):
@@ -72,9 +66,10 @@ class QueryValidationResult(BaseModel):
     """Result of the query validation."""
 
     category: SQLQueryCategory
-    safety_level: SQLQuerySafetyLevel
+    risk_level: OperationRiskLevel
     command: SQLQueryCommand
     object_type: str | None = None
+    schema_name: str | None = None
     needs_migration: bool
 
 
@@ -82,8 +77,9 @@ class SQLBatchValidationResult(BaseModel):
     """Result of the batch validation."""
 
     statements: list[QueryValidationResult] = []
-    highest_safety_level: SQLQuerySafetyLevel = SQLQuerySafetyLevel.SAFE
+    highest_risk_level: OperationRiskLevel = OperationRiskLevel.LOW
     has_transaction_control: bool = False
+    original_query: str
 
     def needs_migration(self) -> bool:
         """Check if any statement in the batch needs migration."""

@@ -345,8 +345,8 @@ async def test_live_dangerously_tool():
     2. Works for both API and database services
     3. Returns the appropriate status information
     """
-    from supabase_mcp.api_manager.api_safety_config import SafetyLevel
     from supabase_mcp.main import live_dangerously
+    from supabase_mcp.safety.configs.api_safety_config import SafetyLevel
 
     # Test database service mode switching
     # Start with safe mode

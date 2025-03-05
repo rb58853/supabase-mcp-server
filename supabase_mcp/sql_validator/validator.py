@@ -4,13 +4,13 @@ from pglast.parser import ParseError, parse_sql
 
 from supabase_mcp.exceptions import ValidationError
 from supabase_mcp.logger import logger
+from supabase_mcp.safety.configs.sql_safety_config import classify_statement
 from supabase_mcp.sql_validator.models import (
     QueryValidationResult,
     SQLBatchValidationResult,
     SQLQueryCategory,
     SQLQueryCommand,
 )
-from supabase_mcp.sql_validator.safety_config import classify_statement
 
 
 class SQLValidator:
@@ -94,7 +94,7 @@ class SQLValidator:
             logger.debug(f"Parse tree generated with {parse_tree} statements")
 
             # Validate statements
-            result = self.validate_statements(parse_tree)
+            result = self.validate_statements(original_query=sql_query, parse_tree=parse_tree)
 
             # Check if the query contains transaction control statements
             for statement in result.statements:
@@ -149,8 +149,21 @@ class SQLValidator:
         # Try to map the statement type, default to UNKNOWN
         return mapping.get(stmt_type, SQLQueryCommand.UNKNOWN)
 
-    def validate_statements(self, parse_tree: Any) -> SQLBatchValidationResult:
-        result = SQLBatchValidationResult()
+    def validate_statements(self, original_query: str, parse_tree: Any) -> SQLBatchValidationResult:
+        """Validate the statements in the parse tree.
+
+        Args:
+            parse_tree: The parse tree to validate
+
+        Returns:
+            SQLBatchValidationResult: A validation result object containing information about the SQL statements
+        Raises:
+            ValidationError: If the query is not valid
+        """
+        result = SQLBatchValidationResult(original_query=original_query)
+
+        if parse_tree is None:
+            return result
 
         try:
             for stmt in parse_tree:
@@ -163,40 +176,59 @@ class SQLValidator:
 
                 # Extract the object type if available
                 object_type = None
+                schema_name = None
                 if hasattr(stmt_node, "relation") and stmt_node.relation is not None:
                     if hasattr(stmt_node.relation, "relname"):
                         object_type = stmt_node.relation.relname
+                    if hasattr(stmt_node.relation, "schemaname"):
+                        schema_name = stmt_node.relation.schemaname
+                # For statements with 'relations' list (like TRUNCATE)
+                elif hasattr(stmt_node, "relations") and stmt_node.relations:
+                    for relation in stmt_node.relations:
+                        if hasattr(relation, "relname"):
+                            object_type = relation.relname
+                        if hasattr(relation, "schemaname"):
+                            schema_name = relation.schemaname
+                        break
 
                 # Get classification for this statement type
                 classification = classify_statement(stmt_type, stmt_node)
                 logger.debug(
-                    f"Statement classified as: {classification.get('category', 'UNKNOWN')} - {classification.get('command', 'UNKNOWN')}"
+                    f"Statement category classified as: {classification.get('category', 'UNKNOWN')} - risk level: {classification.get('risk_level', 'UNKNOWN')}"
                 )
 
                 # Create validation result
                 query_result = QueryValidationResult(
                     category=classification["category"],
                     command=self._map_to_command(stmt_type),
-                    safety_level=classification["safety_level"],
+                    risk_level=classification["risk_level"],
                     needs_migration=classification["needs_migration"],
                     object_type=object_type,
+                    schema_name=schema_name,
                 )
                 logger.debug(
-                    f"Identified statement with category: {query_result.category} and command {query_result.command}"
+                    "Query validation result:",
+                    {
+                        "statement_category": query_result.category,
+                        "risk_level": query_result.risk_level,
+                        "needs_migration": query_result.needs_migration,
+                        "object_type": query_result.object_type,
+                        "schema_name": query_result.schema_name,
+                    },
                 )
 
                 # Add result to the batch
                 result.statements.append(query_result)
 
-                # Update highest safety level
-                if query_result.safety_level.value > result.highest_safety_level.value:
-                    result.highest_safety_level = query_result.safety_level
-
+                # Update highest risk level
+                if query_result.risk_level > result.highest_risk_level:
+                    result.highest_risk_level = query_result.risk_level
+                    logger.debug(f"Updated batch validation result to: {query_result.risk_level}")
             if len(result.statements) == 0:
                 logger.debug("No valid statements found in the query")
                 raise ValidationError("No queries were parsed - please check correctness of your query")
             logger.debug(
-                f"Validated a total of {len(result.statements)} with the highest safety level of: {result.highest_safety_level}"
+                f"Validated a total of {len(result.statements)} with the highest risk level of: {result.highest_risk_level}"
             )
             return result
 

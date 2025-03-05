@@ -1,11 +1,13 @@
 from pathlib import Path
 from typing import Any
 
-from supabase_mcp.db_client.db_client import QueryResult, SafetyMode, SupabaseClient
+from supabase_mcp.db_client.db_client import QueryResult, SupabaseClient
 from supabase_mcp.db_client.migration_manager import MigrationManager
-from supabase_mcp.exceptions import ConfirmationRequiredError, OperationNotAllowedError
+from supabase_mcp.exceptions import OperationNotAllowedError
 from supabase_mcp.logger import logger
-from supabase_mcp.sql_validator.models import SQLBatchValidationResult, SQLQuerySafetyLevel
+from supabase_mcp.safety.core import ClientType
+from supabase_mcp.safety.safety_manager import SafetyManager
+from supabase_mcp.sql_validator.models import SQLBatchValidationResult
 from supabase_mcp.sql_validator.validator import SQLValidator
 
 
@@ -36,9 +38,11 @@ class QueryManager:
         self.db_client = db_client
         self.validator = SQLValidator()
         self.migration_manager = MigrationManager()
-        logger.debug(f"QueryManager initialized with db_client mode: {db_client.mode}")
+        self.safety_manager = SafetyManager.get_instance()
 
-    def handle_query(self, query: str, params: tuple[Any, ...] | None = None) -> QueryResult:
+    def handle_query(
+        self, query: str, params: tuple[Any, ...] | None = None, has_confirmation: bool = False
+    ) -> QueryResult:
         """
         Handle a SQL query with validation and potential migration.
 
@@ -51,78 +55,31 @@ class QueryManager:
         Args:
             query: SQL query to execute
             params: Query parameters
+            has_confirmation: Whether the operation has been confirmed by the user
 
         Returns:
             QueryResult: The result of the query execution
 
         Raises:
             OperationNotAllowedError: If the query is not allowed in the current safety mode
+            ConfirmationRequiredError: If the query requires confirmation and has_confirmation is False
         """
         # Validate the query
-        validation_result = self.validator.validate_query(query)
+        operation_to_execute = self.validator.validate_query(query)
 
-        # Check safety level
-        self.validate_safety_level(validation_result)
+        # Use the safety manager to validate the operation
+        self.safety_manager.validate_operation(ClientType.DATABASE, operation_to_execute, has_confirmation)
+        logger.debug(f"Operation with risk level {operation_to_execute.highest_risk_level} validated successfully")
 
         # Check if migration is needed
-        if validation_result.needs_migration():
+        if operation_to_execute.needs_migration():
             logger.debug("Query requires migration, handling...")
-            self.handle_migration(validation_result, query)
+            self.handle_migration(operation_to_execute, query)
         else:
             logger.debug("No migration needed for this query")
 
         # Execute the query
         return self.db_client.execute_query(query, params)
-
-    def validate_safety_level(self, validation_result: SQLBatchValidationResult) -> None:
-        """
-        Validate the safety level of a query.
-
-        Args:
-            validation_result: The validation result to check
-
-        Raises:
-            OperationNotAllowedError: If the query is not allowed in the current safety mode
-            ConfirmationRequiredError: If the query requires user confirmation
-        """
-        # Get the current safety mode from the database client
-        current_mode = self.db_client.mode
-        logger.debug(f"Db_client safety level: {current_mode}")
-        logger.debug(f"Query safety level: {validation_result.highest_safety_level}")
-
-        # Read operations are always allowed regardless of mode
-        if validation_result.highest_safety_level == SQLQuerySafetyLevel.SAFE:
-            logger.debug("Query is SAFE, allowing execution in any mode")
-            return
-
-        # Write operations require READWRITE mode
-        if validation_result.highest_safety_level == SQLQuerySafetyLevel.WRITE and current_mode == SafetyMode.READONLY:
-            logger.debug(f"WRITE operation rejected in {current_mode.value} mode")
-            raise OperationNotAllowedError(
-                f"Write operation with safety level {validation_result.highest_safety_level} "
-                f"is not allowed in {current_mode.value} mode"
-            )
-
-        # Destructive operations are rejected in non-READWRITE mode
-        if (
-            validation_result.highest_safety_level == SQLQuerySafetyLevel.DESTRUCTIVE
-            and current_mode != SafetyMode.READWRITE
-        ):
-            logger.debug(f"DESTRUCTIVE operation rejected in {current_mode.value} mode")
-            raise OperationNotAllowedError(
-                f"Destructive operation with safety level {validation_result.highest_safety_level} "
-                f"is not allowed in {current_mode.value} mode"
-            )
-
-        # Destructive operations require confirmation even in READWRITE mode
-        if validation_result.highest_safety_level == SQLQuerySafetyLevel.DESTRUCTIVE:
-            logger.debug("DESTRUCTIVE operation requires explicit confirmation")
-            raise ConfirmationRequiredError(
-                f"Destructive operation with safety level {validation_result.highest_safety_level} "
-                f"requires explicit user confirmation"
-            )
-
-        logger.debug(f"Safety level {validation_result.highest_safety_level} allowed in {current_mode.value} mode")
 
     def handle_migration(self, validation_result: SQLBatchValidationResult, query: str) -> None:
         """
@@ -146,6 +103,30 @@ class QueryManager:
         except Exception as e:
             logger.debug(f"Migration failure details: {str(e)}")
             raise e
+
+    def handle_confirmation(self, confirmation_id: str) -> QueryResult:
+        """
+        Handle a confirmed operation using its confirmation ID.
+
+        This method retrieves the stored operation and passes it to handle_query.
+
+        Args:
+            confirmation_id: The unique ID of the confirmation to process
+
+        Returns:
+            QueryResult: The result of the query execution
+        """
+        # Get the stored operation
+        operation = self.safety_manager.get_stored_operation(confirmation_id)
+        if not operation:
+            raise OperationNotAllowedError(f"Invalid or expired confirmation ID: {confirmation_id}")
+
+        # Get the query from the operation
+        query = operation.original_query
+        logger.debug(f"Processing confirmed operation with ID {confirmation_id}")
+
+        # Call handle_query with the query and has_confirmation=True
+        return self.handle_query(query, has_confirmation=True)
 
     @classmethod
     def load_sql(cls, filename: str) -> str:

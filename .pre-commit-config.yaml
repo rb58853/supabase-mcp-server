@@ -39,7 +39,7 @@ repos:
         types: [sql]
         args: [
           "--dialect", "postgres",
-          "--exclude-rules", "L016,L031",  # Exclude some opinionated rules
+          "--exclude-rules", "L016,L031,LT02",  # Exclude some opinionated rules
         ]
         files: ^(supabase_mcp/sql|tests/sql)/
       - id: sqlfluff-fix
@@ -48,7 +48,7 @@ repos:
         types: [sql]
         args: [
           "--dialect", "postgres",
-          "--exclude-rules", "L016,L031",  # Exclude some opinionated rules
+          "--exclude-rules", "L016,L031,LT02",  # Exclude some opinionated rules
         ]
         files: ^(supabase_mcp/sql|tests/sql)/
 

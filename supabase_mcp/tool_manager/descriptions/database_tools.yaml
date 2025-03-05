@@ -73,6 +73,12 @@ execute_postgresql: |
   - WRITE and SCHEMA operations without transaction blocks will be rejected
   - This ensures atomicity and provides rollback capability for data modifications
 
+  CONFIRMATION FLOW FOR HIGH-RISK OPERATIONS:
+  - High-risk operations (DROP TABLE, TRUNCATE, etc.) will be rejected with a confirmation ID
+  - The error message will explain what happened and provide a confirmation ID
+  - Review the risks with the user before proceeding
+  - Use the confirm_destructive_postgresql tool with the provided ID to execute the operation
+
   IMPORTANT GUIDELINES:
   - The database client starts in READONLY mode by default for safety
   - Only enable READWRITE mode when you need to modify data or schema
@@ -90,5 +96,21 @@ execute_postgresql: |
 confirm_destructive_postgresql: |
   Execute a destructive database operation after confirmation. Use this only after reviewing the risks with the user.
 
+  HOW IT WORKS:
+  - This tool executes a previously rejected high-risk operation using its confirmation ID
+  - The operation will be exactly the same as the one that generated the ID
+  - No need to retype the query - the system remembers it
+
+  STEPS:
+  1. Explain the risks to the user and get their approval
+  2. Use this tool with the confirmation ID from the error message
+  3. The original query will be executed as-is
+
+  PARAMETERS:
+  - confirmation_id: The ID provided in the error message (required)
+  - user_confirmation: Set to true to confirm execution (default: false)
+
+  NOTE: Confirmation IDs expire after 5 minutes for security
+
 retrieve_migrations: |
-  Retrieve a list of all migrations a user has from Supabase. 
+  Retrieve a list of all migrations a user has from Supabase.

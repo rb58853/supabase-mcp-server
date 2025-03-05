@@ -81,7 +81,7 @@ def custom_connection_settings() -> Generator[Settings, None, None]:
 @pytest.fixture
 def custom_connection_client(custom_connection_settings):
     """Fixture providing a client connected to test database"""
-    client = SupabaseClient(settings_instance=custom_connection_settings)
+    client = SupabaseClient(settings=custom_connection_settings)
     yield client
     client.close()  # Ensure connection is closed after test
 

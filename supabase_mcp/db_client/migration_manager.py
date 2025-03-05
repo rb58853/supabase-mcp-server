@@ -105,8 +105,8 @@ class MigrationManager:
         Skips transaction control statements and finds the first non-TCL statement
         that requires migration.
 
-        Format: command_objecttype_category_randomword
-        Example: create_users_ddl_banana
+        Format: command_schema_object
+        Example: create_public_users
 
         Args:
             validation_result: Validation result for a batch of SQL statements
@@ -132,19 +132,17 @@ class MigrationManager:
         # 1. Command (always available)
         command = statement.command.value.lower()
 
-        # 2. Object type (if available)
-        object_part = statement.object_type.lower() if statement.object_type else "unknown"
+        # 2. Schema name (if available)
+        schema_name = statement.schema_name.lower() if statement.schema_name else "public"
 
-        # 3. Category (always available)
-        category = statement.category.value.lower()
-
-        # 4. Random word for uniqueness
-        random_word = random.choice(RANDOM_WORDS)
+        # 3. Object name (if available)
+        object_name = statement.object_type.lower() if statement.object_type else "unknown"
 
         # Combine all parts
-        name = f"{command}_{object_part}_{category}_{random_word}"
+        name = f"{command}_{schema_name}_{object_name}"
 
-        return name
+        # Sanitize the name (remove special characters, etc.)
+        return self.generate_name(name)
 
     def generate_date(self) -> str:
         """

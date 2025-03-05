@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import urllib.parse
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Literal
+from typing import Any
 
 import psycopg2
 from psycopg2 import errors as psycopg2_errors
@@ -11,7 +12,9 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from supabase_mcp.exceptions import ConnectionError, PermissionError, QueryError
 from supabase_mcp.logger import logger
-from supabase_mcp.settings import Settings, settings
+from supabase_mcp.safety.core import ClientType, SafetyMode
+from supabase_mcp.safety.safety_manager import SafetyManager
+from supabase_mcp.settings import Settings
 from supabase_mcp.sql_validator.validator import SQLValidator
 
 
@@ -24,38 +27,29 @@ class QueryResult:
     status: str
 
 
-class SafetyMode(str, Enum):
-    """Safety mode for the database connection."""
-
-    READONLY = "readonly"  # only safe operations are allowed
-    READWRITE = "readwrite"  # write operations are allowed
-
-
 class SupabaseClient:
     """Connects to Supabase PostgreSQL database directly."""
 
-    _instance = None  # Singleton instance
+    _instance: SupabaseClient | None = None  # Singleton instance
 
     def __init__(
         self,
+        settings_instance: Settings,
         project_ref: str | None = None,
         db_password: str | None = None,
-        settings_instance: Settings | None = None,
-        _mode: Literal[SafetyMode.READONLY, SafetyMode.READWRITE] = SafetyMode.READONLY,  # Start
     ):
         """Initialize the PostgreSQL connection pool.
 
         Args:
+            settings_instance: Settings instance to use for configuration.
             project_ref: Optional Supabase project reference. If not provided, will be taken from settings.
             db_password: Optional database password. If not provided, will be taken from settings.
-            settings_instance: Optional Settings instance. If not provided, will use global settings.
         """
         self._pool = None
-        self._settings = settings_instance or settings
+        self._settings = settings_instance
         self.project_ref = project_ref or self._settings.supabase_project_ref
         self.db_password = db_password or self._settings.supabase_db_password
         self.db_url = self._get_db_url_from_supabase()
-        self._mode = _mode
         self.sql_validator = SQLValidator()
 
     def _get_db_url_from_supabase(self) -> str:
@@ -72,6 +66,8 @@ class SupabaseClient:
             f"@aws-0-{self._settings.supabase_region}.pooler.supabase.com:6543/postgres"
         )
 
+    # TODO: specifically define exceptions to retry
+    # TODO: improve which exceptions are caught and how are they re-raised
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=15),
@@ -102,22 +98,22 @@ class SupabaseClient:
     @classmethod
     def create(
         cls,
+        settings_instance: Settings,
         project_ref: str | None = None,
         db_password: str | None = None,
-        settings_instance: Settings | None = None,
-    ) -> "SupabaseClient":
+    ) -> SupabaseClient:
         """Create and return a configured SupabaseClient instance.
 
         Args:
+            settings_instance: Settings instance to use for configuration
             project_ref: Optional Supabase project reference
             db_password: Optional database password
-            settings_instance: Optional Settings instance
         """
         if cls._instance is None:
             cls._instance = cls(
+                settings_instance=settings_instance,
                 project_ref=project_ref,
                 db_password=db_password,
-                settings_instance=settings_instance,
             )
         return cls._instance
 
@@ -140,16 +136,6 @@ class SupabaseClient:
                 logger.info("Closed PostgreSQL connection pool")
             except Exception as e:
                 logger.error(f"Error closing connection pool: {e}")
-
-    @property
-    def mode(self) -> SafetyMode:
-        """Current operation mode"""
-        return self._mode
-
-    def switch_mode(self, mode: Literal[SafetyMode.READONLY, SafetyMode.READWRITE]) -> None:
-        """Switch the database connection mode."""
-        self._mode = mode
-        logger.info(f"Switched to {self.mode.value} mode")
 
     def execute_query(self, query: str, params: tuple[Any, ...] | None = None) -> QueryResult:
         """Execute a SQL query and return structured results.
@@ -180,7 +166,8 @@ class SupabaseClient:
             logger.debug(f"Has transaction control: {has_transaction_control}")
 
             # Define readonly once at the top so it's available throughout the function
-            readonly = self.mode == SafetyMode.READONLY
+            safety_manager = SafetyManager.get_instance()
+            readonly = safety_manager.get_safety_mode(ClientType.DATABASE) == SafetyMode.SAFE
 
             # Set session only if not in transaction mode
             if not in_transaction:

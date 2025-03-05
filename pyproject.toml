@@ -141,4 +141,10 @@ exclude_rules = [
     "L042",  # Join condition required
     "L047",  # DISTINCT used with parentheses
     "LT02",  # Layout indent
+    "LT12",  # Files must end with a single trailing newline
+    "LT14",  # Keyword newline
+    "AL01",  # Aliasing of table
+    "AM05",  # Join clauses should be fully qualified
+    "ST09",  # Join order
+    "CP03"   # Function name capitalization
 ]

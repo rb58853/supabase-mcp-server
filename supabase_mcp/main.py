@@ -4,18 +4,22 @@ from typing import Any, Literal
 from mcp.server.fastmcp import FastMCP
 
 from supabase_mcp.api_manager.api_manager import SupabaseApiManager
-from supabase_mcp.api_manager.api_safety_config import SafetyLevel
-from supabase_mcp.db_client.db_client import QueryResult, SafetyMode, SupabaseClient
+from supabase_mcp.db_client.db_client import QueryResult, SupabaseClient
 from supabase_mcp.db_client.query_manager import QueryManager
 from supabase_mcp.exceptions import ConfirmationRequiredError
 from supabase_mcp.logger import logger
+from supabase_mcp.safety.core import ClientType
+from supabase_mcp.safety.core import SafetyMode as UniversalSafetyMode
+from supabase_mcp.safety.safety_manager import SafetyManager
 from supabase_mcp.sdk_client.python_client import SupabaseSDKClient
 from supabase_mcp.settings import settings
+from supabase_mcp.startup import register_safety_configs
 from supabase_mcp.tool_manager import ToolManager, ToolName
 
 try:
     mcp = FastMCP("supabase")
-    postgres_client = SupabaseClient.create()
+    postgres_client = SupabaseClient.create(settings_instance=settings)
+    safety_manager = SafetyManager.get_instance()
     query_manager = QueryManager(postgres_client)
     tool_manager = ToolManager.get_instance()
 except Exception as e:
@@ -47,16 +51,16 @@ async def get_table_schema(schema_name: str, table: str) -> QueryResult:
 @mcp.tool(description=tool_manager.get_description(ToolName.EXECUTE_POSTGRESQL))  # type: ignore
 async def execute_postgresql(query: str) -> QueryResult:
     """Execute PostgreSQL statements against your Supabase database."""
-    return query_manager.handle_query(query)
+    return query_manager.handle_query(query, has_confirmation=False)
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.CONFIRM_DESTRUCTIVE_POSTGRESQL))  # type: ignore
-async def confirm_destructive_postgresql(query: str, user_confirmation: bool = False) -> QueryResult:
+async def confirm_destructive_postgresql(confirmation_id: str, user_confirmation: bool = False) -> QueryResult:
     """Execute a destructive database operation after confirmation. Use this only after reviewing the risks with the user."""
     if not user_confirmation:
         raise ConfirmationRequiredError("Destructive operation requires explicit user confirmation.")
 
-    return query_manager.handle_query(query)
+    return query_manager.handle_confirmation(confirmation_id)
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.RETRIEVE_MIGRATIONS))  # type: ignore
@@ -84,13 +88,20 @@ async def live_dangerously(service: Literal["api", "database"], enable: bool = F
     - Enable write operations for the database (INSERT, UPDATE, DELETE, schema changes)
     - Enable state-changing operations for the Management API
     """
+    safety_manager = SafetyManager.get_instance()
+
     if service == "api":
-        api_manager = await SupabaseApiManager.get_manager()
-        api_manager.switch_mode(SafetyLevel.UNSAFE if enable else SafetyLevel.SAFE)
-        return {"service": "api", "mode": api_manager.mode}
+        # Set the safety mode in the safety manager
+        new_mode = UniversalSafetyMode.UNSAFE if enable else UniversalSafetyMode.SAFE
+        safety_manager.set_safety_mode(ClientType.API, new_mode)
+
+        return {"service": "api", "mode": "unsafe" if enable else "safe"}
     elif service == "database":
-        postgres_client.switch_mode(SafetyMode.READWRITE if enable else SafetyMode.READONLY)
-        return {"service": "database", "mode": postgres_client.mode}
+        # Set the safety mode in the safety manager
+        new_mode = UniversalSafetyMode.UNSAFE if enable else UniversalSafetyMode.SAFE
+        safety_manager.set_safety_mode(ClientType.DATABASE, new_mode)
+
+        return {"service": ClientType.DATABASE, "mode": safety_manager.get_safety_mode(ClientType.DATABASE)}
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.GET_MANAGEMENT_API_SPEC))  # type: ignore
@@ -138,6 +149,10 @@ def run():
         logger.info("Personal access token detected - using for Management API")
     if settings.supabase_service_role_key:
         logger.info("Service role key detected - using for Python SDK")
+
+    # Register safety configurations
+    register_safety_configs()
+
     mcp.run()
 
 

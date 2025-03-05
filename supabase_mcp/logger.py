@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 
-def setup_logger():
+def setup_logger() -> logging.Logger:
     """Configure logging for the MCP server."""
     logger = logging.getLogger("supabase-mcp")
 
@@ -30,7 +30,7 @@ def setup_logger():
     logger.addHandler(file_handler)
 
     # Set level
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
     return logger
 

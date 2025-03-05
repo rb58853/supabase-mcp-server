@@ -2,58 +2,58 @@
 
 live_dangerously: |
   Toggle unsafe mode for either Management API or Database operations.
-  
+
   WHAT THIS TOOL DOES:
   This tool switches between safe (default) and unsafe operation modes for either the Management API or Database operations.
-  
+
   SAFETY MODES EXPLAINED:
   1. Database Safety Modes:
      - READONLY mode (safe, default): Only SELECT queries and other read operations are allowed
      - READWRITE mode (unsafe): All SQL operations including INSERT, UPDATE, DELETE, and schema changes are permitted
-  
+
   2. API Safety Modes:
      - SAFE mode (default): Only read operations that don't modify state are allowed
      - UNSAFE mode: State-changing operations are permitted (except those explicitly blocked for safety)
-  
+
   WHEN TO USE THIS TOOL:
   - Use this tool BEFORE attempting write operations or schema changes
   - Enable unsafe mode only when you need to perform data modifications
   - Always return to safe mode after completing write operations
-  
+
   USAGE GUIDELINES:
   - Start in safe mode by default for exploration and analysis
   - Switch to unsafe mode only when you need to make changes
   - Be specific about which service you're enabling unsafe mode for
   - Consider the risks before enabling unsafe mode, especially for database operations
   - For database operations requiring schema changes, you'll need to enable unsafe mode first
-  
+
   Parameters:
   - service: Which service to toggle ("api" or "database")
   - enable: True to enable unsafe mode, False for safe mode (default: False)
-  
+
   Examples:
   1. Enable database write mode:
      live_dangerously(service="database", enable=True)
-  
+
   2. Return to safe mode after operations:
      live_dangerously(service="database", enable=False)
-  
+
   3. Enable API write operations:
      live_dangerously(service="api", enable=True)
-  
+
   Note: This tool affects ALL subsequent operations for the specified service until changed again.
 
 get_management_api_safety_rules: |
   Get all safety rules for the Supabase Management API.
-  
+
   Returns a comprehensive overview of all safety rules applied to the Management API, including:
   - Blocked operations (never allowed)
   - Unsafe operations (allowed only in unsafe mode)
   - Safe operations (always allowed)
-  
+
   Each rule includes:
   - The HTTP method and path pattern
   - A human-readable explanation of why the operation has its safety designation
   - The safety level assigned to the operation
-  
-  This information helps you understand which operations require unsafe mode and why certain operations might be completely blocked for safety reasons. 
+
+  This information helps you understand which operations require unsafe mode and why certain operations might be completely blocked for safety reasons.

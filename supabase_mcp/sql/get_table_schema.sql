@@ -39,7 +39,10 @@ FROM information_schema.columns AS c
 INNER JOIN pg_class AS pc
     ON
         pc.relname = '{table}'
-        AND pc.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = '{schema_name}')
+        AND pc.relnamespace = (
+            SELECT oid FROM pg_namespace
+            WHERE nspname = '{schema_name}'
+        )
 LEFT JOIN pk ON c.column_name = pk.column_name
 LEFT JOIN fk ON c.column_name = fk.column_name
 WHERE

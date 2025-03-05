@@ -15,7 +15,6 @@ from tenacity import (
     wait_exponential,
 )
 
-from supabase_mcp.api_manager.api_safety_config import SafetyConfig, SafetyLevel
 from supabase_mcp.api_manager.api_spec_manager import ApiSpecManager
 from supabase_mcp.exceptions import (
     APIClientError,
@@ -26,6 +25,7 @@ from supabase_mcp.exceptions import (
     UnexpectedError,
 )
 from supabase_mcp.logger import logger
+from supabase_mcp.safety.configs.api_safety_config import SafetyConfig, SafetyLevel
 from supabase_mcp.settings import settings
 
 

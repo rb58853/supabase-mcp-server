@@ -10,7 +10,7 @@ from supabase_mcp.api_service.api_client import APIClient
 from supabase_mcp.exceptions import APIClientError, APIConnectionError
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="class")
 @pytest.mark.integration
 class TestAPIClient:
     """Integration tests for the API client."""

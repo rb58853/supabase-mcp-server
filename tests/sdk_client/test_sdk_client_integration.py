@@ -1,13 +1,10 @@
-import os
 import time
 import uuid
 from datetime import datetime
 
 import pytest
-import pytest_asyncio
 
 from supabase_mcp.exceptions import PythonSDKError
-from supabase_mcp.sdk_client.sdk_client import SupabaseSDKClient
 
 # Unique identifier for test users to avoid conflicts
 TEST_ID = f"test-{int(time.time())}-{uuid.uuid4().hex[:6]}"
@@ -19,43 +16,20 @@ def get_test_email(prefix="user"):
     return f"a.zuev+{prefix}-{TEST_ID}@outlook.com"
 
 
-@pytest_asyncio.fixture
-async def sdk_client():
-    """
-    Create a SupabaseSDKClient instance for integration testing.
-    Uses environment variables directly.
-    """
-    # Reset the singleton to ensure we get a fresh instance
-    SupabaseSDKClient._instance = None
-
-    # Get Supabase credentials from environment variables
-    project_ref = os.environ.get("SUPABASE_PROJECT_REF")
-    service_role_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-
-    if not project_ref or not service_role_key:
-        pytest.skip("SUPABASE_PROJECT_REF or SUPABASE_SERVICE_ROLE_KEY environment variables not set")
-
-    client = await SupabaseSDKClient.create(project_ref, service_role_key)
-    yield client
-
-    # Cleanup after tests
-    SupabaseSDKClient._instance = None
-
-
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestSDKClientIntegration:
     """
     Integration tests for the SupabaseSDKClient.
     These tests make actual API calls to the Supabase Auth service.
     """
 
-    async def test_list_users(self, sdk_client):
+    async def test_list_users(self, sdk_client_integration):
         """Test listing users with pagination"""
         # Create test parameters
         list_params = {"page": 1, "per_page": 10}
 
         # List users
-        result = await sdk_client.call_auth_admin_method("list_users", list_params)
+        result = await sdk_client_integration.call_auth_admin_method("list_users", list_params)
 
         # Verify response format
         assert result is not None
@@ -77,7 +51,7 @@ class TestSDKClientIntegration:
         # The actual error message contains "Bad Pagination Parameters" instead of "Invalid parameters"
         assert "Bad Pagination Parameters" in str(excinfo.value)
 
-    async def test_get_user_by_id(self, sdk_client):
+    async def test_get_user_by_id(self, sdk_client_integration):
         """Test retrieving a user by ID"""
         # First create a user to get
         test_email = get_test_email("get")
@@ -89,7 +63,7 @@ class TestSDKClientIntegration:
         }
 
         # Create the user
-        create_result = await sdk_client.call_auth_admin_method("create_user", create_params)
+        create_result = await sdk_client_integration.call_auth_admin_method("create_user", create_params)
         assert create_result is not None
         assert hasattr(create_result, "user")
         user_id = create_result.user.id
@@ -97,7 +71,7 @@ class TestSDKClientIntegration:
         try:
             # Get the user by ID
             get_params = {"uid": user_id}
-            get_result = await sdk_client.call_auth_admin_method("get_user_by_id", get_params)
+            get_result = await sdk_client_integration.call_auth_admin_method("get_user_by_id", get_params)
 
             # Verify user data
             assert get_result is not None
@@ -121,9 +95,9 @@ class TestSDKClientIntegration:
         finally:
             # Clean up - delete the test user
             delete_params = {"id": user_id}
-            await sdk_client.call_auth_admin_method("delete_user", delete_params)
+            await sdk_client_integration.call_auth_admin_method("delete_user", delete_params)
 
-    async def test_create_user(self, sdk_client):
+    async def test_create_user(self, sdk_client_integration):
         """Test creating a new user"""
         # Create a new test user
         test_email = get_test_email("create")
@@ -135,7 +109,7 @@ class TestSDKClientIntegration:
         }
 
         # Create the user
-        create_result = await sdk_client.call_auth_admin_method("create_user", create_params)
+        create_result = await sdk_client_integration.call_auth_admin_method("create_user", create_params)
         assert create_result is not None
         assert hasattr(create_result, "user")
         assert hasattr(create_result.user, "id")
@@ -144,7 +118,7 @@ class TestSDKClientIntegration:
         try:
             # Verify user was created
             get_params = {"uid": user_id}
-            get_result = await sdk_client.call_auth_admin_method("get_user_by_id", get_params)
+            get_result = await sdk_client_integration.call_auth_admin_method("get_user_by_id", get_params)
             assert get_result is not None
             assert hasattr(get_result, "user")
             assert get_result.user.email == test_email

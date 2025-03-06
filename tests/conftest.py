@@ -46,7 +46,7 @@ def load_test_env() -> dict[str, str | None]:
     }
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def settings_integration() -> Settings:
     """Fixture providing settings for integration tests.
 
@@ -93,16 +93,20 @@ async def postgres_client_custom_connection(settings_integration_custom_env: Set
     await client.close()  # Use await instead of asyncio.run()
 
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True, scope="class")
 async def postgres_client_integration(settings_integration: Settings) -> AsyncGenerator[AsyncSupabaseClient, None]:
     """Fixture providing a database client connected to a database for integration tests.
 
-    This fixture uses the default settings for connecting to the database,
-    which makes it work automatically with local Supabase or CI environments.
+    This fixture creates an AsyncSupabaseClient connected to the test database
+    for integration tests. The client is automatically used for all tests.
+    It is scoped to the class level to avoid teardown issues with event loops.
     """
-    # Reset the SupabaseClient singleton to ensure we get a fresh instance
+    # BEFORE TEST: Reset all global singletons to ensure fresh clients
+
+    # Reset the Postgres client singleton
     await AsyncSupabaseClient.reset()
 
+    # Create a new client
     client = AsyncSupabaseClient(settings_instance=settings_integration)
 
     # Log connection details (without credentials)
@@ -113,10 +117,11 @@ async def postgres_client_integration(settings_integration: Settings) -> AsyncGe
         safe_conn_info = "unknown"
     logger.info(f"Integration client connecting to: {safe_conn_info}")
 
-    yield client
-
-    # Clean up
-    await client.close()
+    try:
+        # Yield the client for the tests to use
+        yield client
+    finally:
+        await client.close()
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -145,16 +150,12 @@ async def api_client_integration() -> AsyncGenerator[APIClient, None]:
         await client.close()
 
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True, scope="class")
 async def sdk_client_integration(settings_integration: Settings) -> AsyncGenerator[SupabaseSDKClient, None]:
     """Fixture providing a function-scoped SDK client for integration tests.
 
     This ensures the SDK client is created once per test function and properly closed at the end.
     """
-    # BEFORE TEST: Reset all global singletons to ensure fresh clients
-
-    # Reset the Postgres client singleton
-    await AsyncSupabaseClient.reset()
 
     # Reset the SDK client singleton
     SupabaseSDKClient._instance = None
@@ -164,12 +165,4 @@ async def sdk_client_integration(settings_integration: Settings) -> AsyncGenerat
         project_ref=settings_integration.supabase_project_ref,
         service_role_key=settings_integration.supabase_service_role_key,
     )
-
-    try:
-        # Yield the client for the tests to use
-        yield client
-    finally:
-        # Clean up by closing the client's connections
-        if client.client:
-            await client.client.auth.sign_out()
-            await client.client.close()
+    return client

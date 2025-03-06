@@ -19,7 +19,7 @@ from supabase_mcp.sql_validator.models import (
 )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="class")
 @pytest.mark.integration
 class TestPostgresClient:
     """Integration tests for the Postgres client."""

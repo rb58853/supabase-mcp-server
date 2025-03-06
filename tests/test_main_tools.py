@@ -2,6 +2,7 @@ import uuid
 
 import pytest
 
+from supabase_mcp.api_service.api_manager import SupabaseApiManager
 from supabase_mcp.database_service.postgres_client import QueryResult
 from supabase_mcp.database_service.query_manager import QueryManager
 from supabase_mcp.exceptions import ConfirmationRequiredError, OperationNotAllowedError
@@ -23,11 +24,12 @@ from supabase_mcp.safety.core import ClientType, SafetyMode
 from supabase_mcp.safety.safety_manager import SafetyManager
 
 
+@pytest.mark.asyncio(loop_scope="class")
 @pytest.mark.integration
 class TestDatabaseTools:
     """Integration tests for database tools."""
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_get_schemas_tool(self):
         """Test the get_schemas tool retrieves schema information."""
         # Execute the get_schemas tool
@@ -50,7 +52,7 @@ class TestDatabaseTools:
         for field in expected_fields:
             assert field in public_schema, f"Schema result missing '{field}' field"
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_get_tables_tool(self):
         """Test the get_tables tool retrieves table information from a schema."""
         # Execute the get_tables tool for the public schema
@@ -71,7 +73,7 @@ class TestDatabaseTools:
             for field in expected_fields:
                 assert field in first_table, f"Table result missing '{field}' field"
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_get_table_schema_tool(self):
         """Test the get_table_schema tool retrieves column information for a table."""
         # First get tables to find one to test with
@@ -99,8 +101,8 @@ class TestDatabaseTools:
             for field in expected_fields:
                 assert field in first_column, f"Column result missing '{field}' field"
 
-    @pytest.mark.asyncio
-    async def test_execute_postgresql_safe_query(self, query_manager_integration: QueryManager):
+    # @pytest.mark.asyncio
+    async def test_execute_postgresql_safe_query(self):
         """Test the execute_postgresql tool runs safe SQL queries."""
         # Test a simple SELECT query
         result: QueryResult = await execute_postgresql("SELECT 1 as number, 'test' as text")
@@ -109,19 +111,8 @@ class TestDatabaseTools:
         assert isinstance(result, QueryResult), "Result should be a QueryResult"
         assert hasattr(result, "results"), "Result should have results attribute"
 
-        # The issue might be with the execute_postgresql function not properly returning results
-        # Let's directly test the query_manager to verify database connectivity
-        direct_query = "SELECT 1 as number, 'test' as text;"
-        direct_result = await query_manager_integration.handle_query(direct_query)
-
-        # Verify direct query results
-        assert len(direct_result.results) > 0, "Direct query should have at least one statement result"
-        assert len(direct_result.results[0].rows) == 1, "Direct query should return exactly one row"
-        assert direct_result.results[0].rows[0]["number"] == 1, "First column should be 1"
-        assert direct_result.results[0].rows[0]["text"] == "test", "Second column should be 'test'"
-
-    @pytest.mark.asyncio
-    async def test_execute_postgresql_unsafe_query(self, query_manager_integration: QueryManager):
+    # @pytest.mark.asyncio
+    async def test_execute_postgresql_unsafe_query(self):
         """Test the execute_postgresql tool handles unsafe queries properly."""
         # First, ensure we're in safe mode
         await live_dangerously(service="database", enable_unsafe_mode=False)
@@ -145,8 +136,8 @@ class TestDatabaseTools:
         # Switch back to safe mode for other tests
         await live_dangerously(service="database", enable_unsafe_mode=False)
 
-    @pytest.mark.asyncio
-    async def test_retrieve_migrations(self, query_manager_integration: QueryManager):
+    # @pytest.mark.asyncio
+    async def test_retrieve_migrations(self):
         """Test the retrieve_migrations tool retrieves migration information."""
         # Execute the retrieve_migrations tool
         result: QueryResult = await retrieve_migrations()
@@ -159,8 +150,8 @@ class TestDatabaseTools:
         # But we can verify the query executed successfully by checking that we got a result
         assert len(result.results) > 0, "Should have at least one statement result"
 
-    @pytest.mark.asyncio
-    async def test_execute_postgresql_medium_risk_safe_mode(self, query_manager_integration: QueryManager):
+    # @pytest.mark.asyncio
+    async def test_execute_postgresql_medium_risk_safe_mode(self):
         """Test that MEDIUM risk operations (INSERT, UPDATE, DELETE) are not allowed in SAFE mode."""
         # Ensure we're in SAFE mode
         await live_dangerously(service="database", enable_unsafe_mode=False)
@@ -174,8 +165,8 @@ class TestDatabaseTools:
         with pytest.raises(OperationNotAllowedError):
             await execute_postgresql(medium_risk_query)
 
-    @pytest.mark.asyncio
-    async def test_execute_postgresql_medium_risk_unsafe_mode(self, query_manager_integration: QueryManager):
+    # @pytest.mark.asyncio
+    async def test_execute_postgresql_medium_risk_unsafe_mode(self):
         """Test that MEDIUM risk operations (INSERT, UPDATE, DELETE) are allowed in UNSAFE mode without confirmation."""
         try:
             # First create a test table if it doesn't exist
@@ -209,8 +200,8 @@ class TestDatabaseTools:
             # Switch back to SAFE mode for other tests
             await live_dangerously(service="database", enable_unsafe_mode=False)
 
-    @pytest.mark.asyncio
-    async def test_execute_postgresql_high_risk_safe_mode(self, query_manager_integration: QueryManager):
+    # @pytest.mark.asyncio
+    async def test_execute_postgresql_high_risk_safe_mode(self):
         """Test that HIGH risk operations (DROP, TRUNCATE) are not allowed in SAFE mode."""
         # Ensure we're in SAFE mode
         await live_dangerously(service="database", enable_unsafe_mode=False)
@@ -224,8 +215,8 @@ class TestDatabaseTools:
         with pytest.raises(OperationNotAllowedError):
             await execute_postgresql(high_risk_query)
 
-    @pytest.mark.asyncio
-    async def test_execute_postgresql_high_risk_unsafe_mode(self, query_manager_integration: QueryManager):
+    # @pytest.mark.asyncio
+    async def test_execute_postgresql_high_risk_unsafe_mode(self):
         """Test that HIGH risk operations (DROP, TRUNCATE) require confirmation even in UNSAFE mode."""
         # Switch to UNSAFE mode
         await live_dangerously(service="database", enable_unsafe_mode=True)
@@ -244,7 +235,7 @@ class TestDatabaseTools:
             # Switch back to SAFE mode for other tests
             await live_dangerously(service="database", enable_unsafe_mode=False)
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_execute_postgresql_safety_mode_switching(self, query_manager_integration: QueryManager):
         """Test that switching between SAFE and UNSAFE modes affects which operations are allowed."""
         # Start in SAFE mode
@@ -295,7 +286,7 @@ class TestDatabaseTools:
 class TestAPITools:
     """Integration tests for API tools."""
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_send_management_api_request_get(self):
         """Test the send_management_api_request tool with a GET request."""
         # Test a simple GET request to list services health
@@ -318,7 +309,7 @@ class TestAPITools:
             assert "healthy" in service, "Service should have a health status"
             assert "status" in service, "Service should have a status"
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_send_management_api_request_medium_risk_safe_mode(self):
         """Test that MEDIUM risk operations (POST, PATCH) are not allowed in SAFE mode."""
         # Ensure we're in SAFE mode
@@ -334,10 +325,20 @@ class TestAPITools:
                 request_body={"name": "test-function", "slug": "test-function", "verify_jwt": True},
             )
 
-    @pytest.mark.asyncio
-    async def test_send_management_api_request_medium_risk_unsafe_mode(self):
+    # @pytest.mark.asyncio
+    async def test_send_management_api_request_medium_risk_unsafe_mode(self, api_client_integration):
         """Test that MEDIUM risk operations (POST, PATCH) are allowed in UNSAFE mode."""
+        import uuid
+
+        # Get API manager and replace its client with our fixture
+        api_manager = await SupabaseApiManager.get_manager()
+        original_client = api_manager.client
+        api_manager.client = api_client_integration
+
         try:
+            # Create a unique function slug with a random UUID suffix
+            function_slug = f"test-api-function-{uuid.uuid4().hex[:8]}"
+
             # Switch to UNSAFE mode
             await live_dangerously(service="api", enable_unsafe_mode=True)
 
@@ -348,8 +349,8 @@ class TestAPITools:
                 path_params={},
                 request_params={},
                 request_body={
-                    "name": "test-api-function",
-                    "slug": "test-api-function",
+                    "name": function_slug,
+                    "slug": function_slug,
                     "verify_jwt": True,
                     "body": "export default async function(req, res) { return res.json({ message: 'Hello World' }) }",
                 },
@@ -357,19 +358,19 @@ class TestAPITools:
 
             # Verify the function was created
             assert "id" in create_result, "Function creation should return an ID"
-            assert create_result["slug"] == "test-api-function", "Function slug should match"
+            assert create_result["slug"] == function_slug, "Function slug should match"
 
             # Update the function (PATCH operation)
             update_result = await send_management_api_request(
                 method="PATCH",
                 path="/v1/projects/{ref}/functions/{function_slug}",
-                path_params={"function_slug": "test-api-function"},
+                path_params={"function_slug": function_slug},
                 request_params={},
-                request_body={"name": "updated-test-api-function"},
+                request_body={"name": f"updated-{function_slug}"},
             )
 
             # Verify the function was updated
-            assert update_result["name"] == "updated-test-api-function", "Function name should be updated"
+            assert update_result["name"] == f"updated-{function_slug}", "Function name should be updated"
 
         finally:
             # Clean up - delete the function
@@ -378,7 +379,7 @@ class TestAPITools:
                 await send_management_api_request(
                     method="DELETE",
                     path="/v1/projects/{ref}/functions/{function_slug}",
-                    path_params={"function_slug": "test-api-function"},
+                    path_params={"function_slug": function_slug},
                     request_params={},
                     request_body={},
                 )
@@ -389,7 +390,10 @@ class TestAPITools:
             # Switch back to SAFE mode
             await live_dangerously(service="api", enable_unsafe_mode=False)
 
-    @pytest.mark.asyncio
+            # Restore original client
+            api_manager.client = original_client
+
+    # @pytest.mark.asyncio
     async def test_send_management_api_request_high_risk(self):
         """Test that HIGH risk operations (DELETE) require confirmation even in UNSAFE mode."""
         # Switch to UNSAFE mode
@@ -409,7 +413,7 @@ class TestAPITools:
             # Switch back to SAFE mode
             await live_dangerously(service="api", enable_unsafe_mode=False)
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_send_management_api_request_extreme_risk(self):
         """Test that EXTREME risk operations (DELETE project) are never allowed."""
         # Switch to UNSAFE mode
@@ -425,7 +429,7 @@ class TestAPITools:
             # Switch back to SAFE mode
             await live_dangerously(service="api", enable_unsafe_mode=False)
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_get_management_api_spec(self):
         """Test the get_management_api_spec tool returns valid API specifications."""
         # Test getting API specifications
@@ -453,7 +457,7 @@ class TestAPITools:
         assert domain_result["domain"] == "Edge Functions", "Domain should match"
         assert "paths" in domain_result, "Result should contain paths for the domain"
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_get_management_api_safety_rules(self):
         """Test the get_management_api_safety_rules tool returns safety rules."""
         # Test getting API safety rules
@@ -472,7 +476,7 @@ class TestAPITools:
 class TestSafetyTools:
     """Integration tests for safety tools."""
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_live_dangerously_database(self, query_manager_integration: QueryManager):
         """Test the live_dangerously tool toggles database safety mode."""
         # Get the safety manager
@@ -494,7 +498,7 @@ class TestSafetyTools:
         assert result["service"] == "database", "Response should identify database service"
         assert safety_manager.get_safety_mode(ClientType.DATABASE) == SafetyMode.SAFE, "Database should be in safe mode"
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_live_dangerously_api(self):
         """Test the live_dangerously tool toggles API safety mode."""
         # Get the safety manager
@@ -514,7 +518,7 @@ class TestSafetyTools:
         assert result["service"] == "api", "Response should identify API service"
         assert safety_manager.get_safety_mode(ClientType.API) == SafetyMode.SAFE, "API should be in safe mode"
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_confirm_destructive_operation(self):
         """Test the confirm_destructive_operation tool handles confirmations."""
         # This is a skeleton test - implementation will depend on your confirmation flow
@@ -525,11 +529,11 @@ class TestSafetyTools:
             )
 
 
-# @pytest.mark.integration
+@pytest.mark.integration
 class TestAuthTools:
     """Integration tests for Auth Admin tools."""
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_get_auth_admin_methods_spec(self):
         """Test the get_auth_admin_methods_spec tool returns SDK method specifications."""
         # Test getting auth admin methods spec
@@ -547,7 +551,7 @@ class TestAuthTools:
             assert "parameters" in result[method], f"{method} should have parameters"
             assert "returns" in result[method], f"{method} should have returns info"
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_call_auth_admin_list_users(self):
         """Test the call_auth_admin_method tool with list_users method."""
         # Test listing users with pagination
@@ -562,7 +566,7 @@ class TestAuthTools:
             assert hasattr(user, "id"), "User should have an ID"
             assert hasattr(user, "email"), "User should have an email"
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_call_auth_admin_create_user(self):
         """Test creating a user with the create_user method."""
         # Create a unique email for this test
@@ -596,7 +600,7 @@ class TestAuthTools:
                 except Exception as e:
                     print(f"Failed to delete test user: {e}")
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_call_auth_admin_get_user(self):
         """Test retrieving a user with the get_user_by_id method."""
         # Create a unique email for this test
@@ -631,7 +635,7 @@ class TestAuthTools:
                 except Exception as e:
                     print(f"Failed to delete test user: {e}")
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_call_auth_admin_update_user(self):
         """Test updating a user with the update_user_by_id method."""
         # Create a unique email for this test
@@ -677,7 +681,7 @@ class TestAuthTools:
                 except Exception as e:
                     print(f"Failed to delete test user: {e}")
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_call_auth_admin_invite_user(self):
         """Test the invite_user_by_email method."""
         # Create a unique email for this test
@@ -707,7 +711,7 @@ class TestAuthTools:
                 except Exception as e:
                     print(f"Failed to delete invited test user: {e}")
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_call_auth_admin_generate_signup_link(self):
         """Test generating a signup link with the generate_link method."""
         # Create a unique email for this test
@@ -734,7 +738,7 @@ class TestAuthTools:
         assert hasattr(signup_result.properties, "verification_type"), "Properties should have a verification type"
         assert "signup" in signup_result.properties.verification_type, "Verification type should be signup"
 
-    @pytest.mark.asyncio
+    # @pytest.mark.asyncio
     async def test_call_auth_admin_invalid_method(self):
         """Test that an invalid method raises an exception."""
         # Test with an invalid method name

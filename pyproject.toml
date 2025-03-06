@@ -113,13 +113,13 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --no-header --tb=short --showlocals --log-cli-level=INFO"
-asyncio_mode = "auto"
 
 [tool.pytest.ini_options]
 log_cli = true
 log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
-asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "class"
 markers = [
     "unit: marks a test as a unit test",
     "integration: marks a test as an integration test that requires database access"

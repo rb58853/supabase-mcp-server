@@ -228,9 +228,9 @@ class ApiSpecManager:
 # Example usage (assuming you have an instance of ApiSpecManager called 'spec_manager'):
 async def main():
     spec_manager = await ApiSpecManager.create()
-    # spec_manager = ApiSpecManager()
-    # spec_manager.spec = json.loads(YOUR_JSON_STRING)  # Load your JSON here for testing
-    # spec_manager._build_caches()
+    spec_manager = ApiSpecManager()
+    spec_manager.spec = json.loads(LOCAL_SPEC_PATH)  # Load your JSON here for testing
+    spec_manager._build_caches()
 
     # 1. Get all paths and methods
     all_paths = spec_manager.get_all_paths_and_methods()

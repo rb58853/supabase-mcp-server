@@ -177,7 +177,7 @@ class SQLValidator:
                 stmt_node = stmt.stmt
                 stmt_type = stmt_node.__class__.__name__
                 logger.debug(f"Processing statement node type: {stmt_type}")
-                logger.debug(f"DEBUGGING stmt_node: {stmt_node}")
+                # logger.debug(f"DEBUGGING stmt_node: {stmt_node}")
                 logger.debug(f"DEBUGGING stmt_node.stmt_location: {stmt.stmt_location}")
 
                 # Extract the object type if available
@@ -202,10 +202,7 @@ class SQLValidator:
                 logger.debug(
                     f"Statement category classified as: {classification.get('category', 'UNKNOWN')} - risk level: {classification.get('risk_level', 'UNKNOWN')}"
                 )
-                logger.debug(f"DEBUGGING QUERY EXTRACTION: {stmt.stmt_location} - {stmt.stmt_len}")
-                logger.debug(
-                    f"DEBUGGING QUERY EXTRACTION: {original_query[stmt.stmt_location : stmt.stmt_location + stmt.stmt_len]}"
-                )
+                logger.debug(f"DEBUGGING QUERY EXTRACTION LOCATION: {stmt.stmt_location} - {stmt.stmt_len}")
 
                 # Create validation result
                 query_result = ValidatedStatement(

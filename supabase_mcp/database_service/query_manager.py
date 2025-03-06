@@ -88,7 +88,9 @@ class QueryManager:
         readonly = self.check_readonly()
 
         # Execute the query
-        return await self.db_client.execute_query_async(validated_query, readonly)
+        result = await self.db_client.execute_query_async(validated_query, readonly)
+        logger.debug(f"Query result: {result}")
+        return result
 
     async def handle_migration(self, validation_result: QueryValidationResults, query: str) -> None:
         """

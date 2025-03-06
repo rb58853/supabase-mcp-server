@@ -91,7 +91,7 @@ class SQLValidator:
             parse_tree = parse_sql(sql_query)
             if parse_tree is None:
                 logger.debug("No statements found in the query")
-            logger.debug(f"Parse tree generated with {parse_tree} statements")
+            # logger.debug(f"Parse tree generated with {parse_tree} statements")
 
             # Validate statements
             result = self.validate_statements(original_query=sql_query, parse_tree=parse_tree)
@@ -176,7 +176,9 @@ class SQLValidator:
 
                 stmt_node = stmt.stmt
                 stmt_type = stmt_node.__class__.__name__
-                logger.debug(f"Processing statement node {stmt_node} of type: {stmt_type}")
+                logger.debug(f"Processing statement node type: {stmt_type}")
+                logger.debug(f"DEBUGGING stmt_node: {stmt_node}")
+                logger.debug(f"DEBUGGING stmt_node.stmt_location: {stmt.stmt_location}")
 
                 # Extract the object type if available
                 object_type = None
@@ -199,6 +201,10 @@ class SQLValidator:
                 classification = classify_statement(stmt_type, stmt_node)
                 logger.debug(
                     f"Statement category classified as: {classification.get('category', 'UNKNOWN')} - risk level: {classification.get('risk_level', 'UNKNOWN')}"
+                )
+                logger.debug(f"DEBUGGING QUERY EXTRACTION: {stmt.stmt_location} - {stmt.stmt_len}")
+                logger.debug(
+                    f"DEBUGGING QUERY EXTRACTION: {original_query[stmt.stmt_location : stmt.stmt_location + stmt.stmt_len]}"
                 )
 
                 # Create validation result

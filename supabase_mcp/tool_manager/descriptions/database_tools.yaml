@@ -50,6 +50,8 @@ get_table_schema: |
 execute_postgresql: |
   Execute PostgreSQL statements against your Supabase database.
 
+  IMPORTANT: All SQL statements must end with a semicolon (;).
+
   OPERATION TYPES AND REQUIREMENTS:
   1. READ Operations (SELECT, EXPLAIN, etc.):
      - Can be executed directly without special requirements

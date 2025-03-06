@@ -123,8 +123,8 @@ class APISafetyConfig(SafetyConfigBase[tuple[str, str, dict[str, Any], dict[str,
             if self._path_matches_risk_level(method, path, risk_level):
                 return risk_level
 
-        # Default to medium risk
-        return OperationRiskLevel.MEDIUM
+        # Default to low risk
+        return OperationRiskLevel.LOW
 
     def _path_matches_risk_level(self, method: str, path: str, risk_level: OperationRiskLevel) -> bool:
         """Check if the method and path match any pattern for the given risk level."""

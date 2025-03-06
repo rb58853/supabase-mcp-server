@@ -323,6 +323,8 @@ class AsyncSupabaseClient:
                     if statement.query:  # Skip statements with no query
                         result = await self.execute_statement(conn, statement.query)
                         results.append(result)
+                    else:
+                        logger.warning(f"Statement has no query, statement: {statement}")
                 return results
 
             # Execute the operation within a transaction

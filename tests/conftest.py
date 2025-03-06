@@ -1,9 +1,10 @@
 import asyncio
 import os
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 
 import pytest
+import pytest_asyncio
 from dotenv import load_dotenv
 
 from supabase_mcp.database_service.postgres_client import AsyncSupabaseClient
@@ -11,6 +12,33 @@ from supabase_mcp.database_service.query_manager import QueryManager
 from supabase_mcp.logger import logger
 from supabase_mcp.settings import Settings, find_config_file
 from supabase_mcp.tool_manager import ToolManager
+
+
+@pytest.fixture
+def clean_environment() -> Generator[None, None, None]:
+    """Fixture to provide a clean environment without any Supabase-related env vars."""
+    # Save original environment
+    original_env = dict(os.environ)
+
+    # Remove all Supabase-related environment variables
+    for key in list(os.environ.keys()):
+        if key.startswith("SUPABASE_"):
+            del os.environ[key]
+
+    yield
+
+    # Restore original environment
+    os.environ.clear()
+    os.environ.update(original_env)
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """Create an instance of the default event loop for each test case."""
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    yield loop
+    loop.close()
 
 
 def load_test_env() -> dict[str, str | None]:
@@ -27,10 +55,12 @@ def load_test_env() -> dict[str, str | None]:
 
 
 @pytest.fixture
-def settings_integration() -> Generator[Settings, None, None]:
-    """Fixture to provide a clean Settings instance without any environment variables"""
+def settings_integration() -> Settings:
+    """Fixture providing settings for integration tests.
 
-    yield Settings.with_config(find_config_file(".env.test"))
+    This fixture loads settings from environment variables or .env.test file.
+    """
+    return Settings.with_config(find_config_file(".env.test"))
 
 
 @pytest.fixture
@@ -57,23 +87,23 @@ def settings_integration_custom_env() -> Generator[Settings, None, None]:
     os.environ.update(original_env)
 
 
-@pytest.fixture
-def postgres_client_custom_connection(settings_integration_custom_env: Settings):
+@pytest_asyncio.fixture
+async def postgres_client_custom_connection(settings_integration_custom_env: Settings):
     """Fixture providing a client connected to test database"""
     client = AsyncSupabaseClient(settings_instance=settings_integration_custom_env)
     yield client
-    asyncio.run(client.close())  # Ensure connection is closed after test
+    await client.close()  # Use await instead of asyncio.run()
 
 
-@pytest.fixture
-def postgres_client_integration(settings_integration: Settings) -> Generator[AsyncSupabaseClient, None, None]:
+@pytest_asyncio.fixture
+async def postgres_client_integration(settings_integration: Settings) -> AsyncGenerator[AsyncSupabaseClient, None]:
     """Fixture providing a database client connected to a database for integration tests.
 
     This fixture uses the default settings for connecting to the database,
     which makes it work automatically with local Supabase or CI environments.
     """
     # Reset the SupabaseClient singleton to ensure we get a fresh instance
-    asyncio.run(AsyncSupabaseClient.reset())
+    await AsyncSupabaseClient.reset()
 
     client = AsyncSupabaseClient(settings_instance=settings_integration)
 
@@ -88,13 +118,16 @@ def postgres_client_integration(settings_integration: Settings) -> Generator[Asy
     yield client
 
     # Clean up
-    asyncio.run(client.close())
+    await client.close()
 
 
-@pytest.fixture()
-def query_manager_integration(postgres_client_integration: AsyncSupabaseClient) -> QueryManager:
-    """Fixture providing a query manager connected to a database for integration tests."""
-    return QueryManager(postgres_client_integration)
+@pytest_asyncio.fixture
+async def query_manager_integration(
+    postgres_client_integration: AsyncSupabaseClient,
+) -> AsyncGenerator[QueryManager, None]:
+    """Fixture providing a query manager for integration tests."""
+    query_manager = QueryManager(postgres_client_integration)
+    yield query_manager
 
 
 @pytest.fixture()

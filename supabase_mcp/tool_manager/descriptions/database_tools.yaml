@@ -11,6 +11,8 @@ get_db_schemas: |
 
   This is useful for getting a high-level understanding of the database structure.
 
+  SAFETY: This is a low-risk read operation that can be executed in SAFE mode.
+
 get_tables: |
   List all tables, foreign tables, and views in a schema with their sizes, row counts, and metadata.
 
@@ -25,6 +27,8 @@ get_tables: |
 
   Parameters:
   - schema_name: Name of the schema to inspect (e.g., 'public', 'auth', etc.)
+
+  SAFETY: This is a low-risk read operation that can be executed in SAFE mode.
 
 get_table_schema: |
   Get detailed table structure including columns, keys, and relationships.
@@ -41,6 +45,8 @@ get_table_schema: |
   - schema_name: Name of the schema (e.g., 'public', 'auth')
   - table: Name of the table to inspect
 
+  SAFETY: This is a low-risk read operation that can be executed in SAFE mode.
+
 execute_postgresql: |
   Execute PostgreSQL statements against your Supabase database.
 
@@ -50,40 +56,47 @@ execute_postgresql: |
      - Example: SELECT * FROM public.users LIMIT 10;
 
   2. WRITE Operations (INSERT, UPDATE, DELETE):
-     - Require READWRITE mode (use live_dangerously('database', True) first)
-     - MUST use explicit transaction blocks (BEGIN/COMMIT)
+     - Require UNSAFE mode (use live_dangerously('database', True) first)
      - Example:
-       BEGIN;
        INSERT INTO public.users (email) VALUES ('user@example.com');
-       COMMIT;
 
   3. SCHEMA Operations (CREATE, ALTER, DROP):
-     - Require READWRITE mode (use live_dangerously('database', True) first)
-     - MUST use explicit transaction blocks (BEGIN/COMMIT)
+     - Require UNSAFE mode (use live_dangerously('database', True) first)
      - Destructive operations (DROP, TRUNCATE) require additional confirmation
      - Example:
-       BEGIN;
        CREATE TABLE public.test_table (id SERIAL PRIMARY KEY, name TEXT);
-       COMMIT;
+
+  SAFETY SYSTEM:
+  Operations are categorized by risk level:
+  - LOW RISK: Read operations (SELECT, EXPLAIN) - allowed in SAFE mode
+  - MEDIUM RISK: Write operations (INSERT, UPDATE, DELETE) - require UNSAFE mode
+  - HIGH RISK: Schema operations (CREATE, ALTER) - require UNSAFE mode
+  - EXTREME RISK: Destructive operations (DROP, TRUNCATE) - require UNSAFE mode and confirmation
 
   TRANSACTION HANDLING:
-  - The server detects BEGIN/COMMIT/ROLLBACK keywords to respect your transaction control
-  - When you use these keywords, the server will not interfere with your transactions
-  - For queries without transaction control, the server will auto-commit in read mode only
-  - WRITE and SCHEMA operations without transaction blocks will be rejected
+  - DO NOT use transaction control statements (BEGIN, COMMIT, ROLLBACK)
+  - The database client automatically wraps queries in transactions
+  - The SQL validator will reject queries containing transaction control statements
   - This ensures atomicity and provides rollback capability for data modifications
+
+  MULTIPLE STATEMENTS:
+  - You can send multiple SQL statements in a single query
+  - Each statement will be executed in order within the same transaction
+  - Example:
+    CREATE TABLE public.test_table (id SERIAL PRIMARY KEY, name TEXT);
+    INSERT INTO public.test_table (name) VALUES ('test');
 
   CONFIRMATION FLOW FOR HIGH-RISK OPERATIONS:
   - High-risk operations (DROP TABLE, TRUNCATE, etc.) will be rejected with a confirmation ID
   - The error message will explain what happened and provide a confirmation ID
   - Review the risks with the user before proceeding
-  - Use the confirm_destructive_postgresql tool with the provided ID to execute the operation
+  - Use the confirm_destructive_operation tool with the provided ID to execute the operation
 
   IMPORTANT GUIDELINES:
-  - The database client starts in READONLY mode by default for safety
-  - Only enable READWRITE mode when you need to modify data or schema
+  - The database client starts in SAFE mode by default for safety
+  - Only enable UNSAFE mode when you need to modify data or schema
   - Never mix READ and WRITE operations in the same transaction
-  - For destructive operations, be prepared to confirm with the confirm_destructive_postgresql tool
+  - For destructive operations, be prepared to confirm with the confirm_destructive_operation tool
 
   WHEN TO USE OTHER TOOLS INSTEAD:
   - For Auth operations (users, authentication, etc.): Use call_auth_admin_method instead of direct SQL
@@ -93,24 +106,7 @@ execute_postgresql: |
 
   Note: This tool operates on the PostgreSQL database only. API operations use separate safety controls.
 
-confirm_destructive_postgresql: |
-  Execute a destructive database operation after confirmation. Use this only after reviewing the risks with the user.
-
-  HOW IT WORKS:
-  - This tool executes a previously rejected high-risk operation using its confirmation ID
-  - The operation will be exactly the same as the one that generated the ID
-  - No need to retype the query - the system remembers it
-
-  STEPS:
-  1. Explain the risks to the user and get their approval
-  2. Use this tool with the confirmation ID from the error message
-  3. The original query will be executed as-is
-
-  PARAMETERS:
-  - confirmation_id: The ID provided in the error message (required)
-  - user_confirmation: Set to true to confirm execution (default: false)
-
-  NOTE: Confirmation IDs expire after 5 minutes for security
-
 retrieve_migrations: |
   Retrieve a list of all migrations a user has from Supabase.
+
+  SAFETY: This is a low-risk read operation that can be executed in SAFE mode.

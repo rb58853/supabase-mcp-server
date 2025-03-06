@@ -1,26 +1,38 @@
 from __future__ import annotations
 
 import urllib.parse
-from dataclasses import dataclass
-from typing import Any
+from collections.abc import Awaitable, Callable
+from typing import Any, TypeVar
 
-# Add asyncpg import
 import asyncpg
+from pydantic import BaseModel, Field
 from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from supabase_mcp.exceptions import ConnectionError, PermissionError, QueryError
 from supabase_mcp.logger import logger
 from supabase_mcp.settings import Settings
+from supabase_mcp.sql_validator.models import QueryValidationResults
 from supabase_mcp.sql_validator.validator import SQLValidator
 
+# Define a type variable for generic return types
+T = TypeVar("T")
 
-@dataclass
-class QueryResult:
-    """Represents a query result with metadata."""
 
-    rows: list[dict[str, Any]]
-    count: int
-    status: str
+class StatementResult(BaseModel):
+    """Represents the result of a single SQL statement."""
+
+    rows: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="List of rows returned by the statement. Is empty if the statement is a DDL statement.",
+    )
+
+
+class QueryResult(BaseModel):
+    """Represents results of query execution, consisting of one or more statements."""
+
+    results: list[StatementResult] = Field(
+        description="List of results from the statements in the query.",
+    )
 
 
 # Helper function for retry decorator to safely log exceptions
@@ -38,7 +50,7 @@ def log_db_retry_attempt(retry_state: RetryCallState) -> None:
 
 # Add the new AsyncSupabaseClient class
 class AsyncSupabaseClient:
-    """Connects to Supabase PostgreSQL database using asyncpg for async operations."""
+    """Asynchronous client for interacting with Supabase PostgreSQL database."""
 
     _instance: AsyncSupabaseClient | None = None  # Singleton instance
 
@@ -97,7 +109,7 @@ class AsyncSupabaseClient:
         wait=wait_exponential(multiplier=1, min=2, max=10),
         before_sleep=log_db_retry_attempt,
     )
-    async def create_pool(self) -> asyncpg.Pool:
+    async def create_pool(self) -> asyncpg.Pool[asyncpg.Record]:
         """Create and configure a database connection pool.
 
         Returns:
@@ -193,122 +205,204 @@ class AsyncSupabaseClient:
             cls._instance = None
             logger.info("AsyncSupabaseClient instance reset complete")
 
+    async def with_connection(self, operation_func: Callable[[asyncpg.Connection[Any]], Awaitable[T]]) -> T:
+        """Execute an operation with a database connection.
+
+        Args:
+            operation_func: Async function that takes a connection and returns a result
+
+        Returns:
+            The result of the operation function
+
+        Raises:
+            ConnectionError: If a database connection issue occurs
+        """
+        # Ensure we have an active connection pool
+        await self.ensure_pool()
+
+        # Acquire a connection from the pool and execute the operation
+        async with self._pool.acquire() as conn:
+            return await operation_func(conn)
+
+    async def with_transaction(
+        self, conn: asyncpg.Connection[Any], operation_func: Callable[[], Awaitable[T]], readonly: bool = False
+    ) -> T:
+        """Execute an operation within a transaction.
+
+        Args:
+            conn: Database connection
+            operation_func: Async function that executes within the transaction
+            readonly: Whether the transaction is read-only
+
+        Returns:
+            The result of the operation function
+
+        Raises:
+            QueryError: If the query execution fails
+        """
+        # Execute the operation within a transaction
+        async with conn.transaction(readonly=readonly):
+            return await operation_func()
+
+    async def execute_statement(self, conn: asyncpg.Connection[Any], query: str) -> StatementResult:
+        """Execute a single SQL statement.
+
+        Args:
+            conn: Database connection
+            query: SQL query to execute
+
+        Returns:
+            StatementResult containing the rows returned by the statement
+
+        Raises:
+            QueryError: If the statement execution fails
+        """
+        try:
+            # Execute the query
+            result = await conn.fetch(query)
+
+            # Convert records to dictionaries
+            rows = [dict(record) for record in result]
+
+            # Log success
+            logger.debug(f"Statement executed successfully, rows: {len(rows)}")
+
+            # Return the result
+            return StatementResult(rows=rows)
+
+        except asyncpg.PostgresError:
+            # Let the transaction handler deal with this
+            raise
+
+    @retry(
+        retry=retry_if_exception_type(
+            (
+                asyncpg.exceptions.ConnectionDoesNotExistError,  # Connection lost
+                asyncpg.exceptions.InterfaceError,  # Connection disruption
+                asyncpg.exceptions.TooManyConnectionsError,  # Temporary connection limit
+                OSError,  # Network issues
+            )
+        ),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        before_sleep=log_db_retry_attempt,
+    )
     async def execute_query_async(
         self,
-        query: str,
-        params: list[Any] | tuple[Any, ...] | None = None,
+        validated_query: QueryValidationResults,
         readonly: bool = True,  # Default to read-only for safety
     ) -> QueryResult:
         """Execute a SQL query asynchronously with proper transaction management.
 
         Args:
-            query: SQL query to execute
-            params: Optional query parameters (list or tuple)
-            readonly: Whether the query is read-only (defaults to True for safety)
+            validated_query: Validated query containing statements to execute
+            readonly: Whether to execute in read-only mode
 
         Returns:
-            QueryResult containing rows and metadata
+            QueryResult containing the results of all statements
 
         Raises:
-            ConnectionError: When database connection fails
-            QueryError: When query execution fails (schema or general errors)
+            ConnectionError: If a database connection issue occurs
+            QueryError: If the query execution fails
             PermissionError: When user lacks required privileges
         """
-        # Ensure pool exists
-        await self.ensure_pool()
-
-        # Check if query contains transaction control statements
-        has_transaction_control = self.sql_validator.validate_transaction_control(query)
-
         # Log query execution (truncate long queries for readability)
-        truncated_query = query[:100] + "..." if len(query) > 100 else query
-        logger.debug(
-            f"Executing query (readonly={readonly}, has_transaction_control={has_transaction_control}): {truncated_query}"
+        truncated_query = (
+            validated_query.original_query[:100] + "..."
+            if len(validated_query.original_query) > 100
+            else validated_query.original_query
         )
+        logger.debug(f"Executing query (readonly={readonly}): {truncated_query}")
 
-        # Execute with appropriate transaction handling
-        return await self._execute_with_transaction_control(query, params, readonly, has_transaction_control)
+        # Define the operation to execute all statements within a transaction
+        async def execute_all_statements(conn):
+            async def transaction_operation():
+                results = []
+                for statement in validated_query.statements:
+                    if statement.query:  # Skip statements with no query
+                        result = await self.execute_statement(conn, statement.query)
+                        results.append(result)
+                return results
 
-    async def _execute_with_transaction_control(
+            # Execute the operation within a transaction
+            results = await self.with_transaction(conn, transaction_operation, readonly)
+            return QueryResult(results=results)
+
+        # Execute the operation with a connection
+        return await self.with_connection(execute_all_statements)
+
+    # Keep the original methods but mark them as deprecated
+
+    # TODO: This method is now deprecated, use execute_query_async instead
+    async def _execute_statements(
         self,
-        query: str,
-        params: list[Any] | tuple[Any, ...] | None = None,
+        validated_query: QueryValidationResults,
         readonly: bool = False,
-        has_transaction_control: bool = False,
     ) -> QueryResult:
-        """Execute query with appropriate transaction control.
+        """Executes one or more statements in a transaction.
+
+        DEPRECATED: Use execute_query_async instead.
 
         Args:
-            query: SQL query to execute
-            params: Optional query parameters (list or tuple)
-            readonly: Whether the query is read-only
-            has_transaction_control: Whether the query contains transaction control statements
+            validated_query: QueryValidationResults containing parsed statements
+            readonly: Read-only mode override
 
         Returns:
-            QueryResult containing rows and metadata
+            QueryResult containing combined rows from all statements
         """
+        # This implementation is kept for backward compatibility
+        # but will be removed in a future version
         async with self._pool.acquire() as conn:
-            try:
-                # Case 1: Query has its own transaction control statements
-                if has_transaction_control:
-                    logger.debug("Executing query with its own transaction control")
-                    # Execute directly without transaction wrapper
-                    return await self._execute_raw_query(conn, query, params)
+            logger.debug(f"Wrapping query in transaction (readonly={readonly})")
+            # Initialize results list
+            results: list[StatementResult] = []
 
-                # Case 2: Query needs to be wrapped in a transaction
-                else:
-                    logger.debug(f"Wrapping query in transaction (readonly={readonly})")
-                    # Use transaction context manager
-                    async with conn.transaction(readonly=readonly):
-                        return await self._execute_raw_query(conn, query, params)
+            async with conn.transaction(readonly=readonly):
+                for statement in validated_query.statements:
+                    if statement.query:
+                        result = await self._execute_raw_query(conn, statement.query)
+                        # Append each result inside the loop
+                        results.append(result)
 
-            except asyncpg.PostgresError as e:
-                logger.error(f"PostgreSQL error during query execution: {e}")
-                # Handle and convert exceptions - this will raise appropriate exceptions
-                await self._handle_postgres_error(e)
+            # Return combined results
+            return QueryResult(results=results)
 
-                # This line will never be reached as _handle_postgres_error always raises an exception
-                # But we need it to satisfy the type checker
-                raise QueryError("Unexpected error occurred")
-
+    # TODO: This method is now deprecated, use execute_statement instead
     async def _execute_raw_query(
         self,
         conn: asyncpg.Connection[Any],
         query: str,
-        params: list[Any] | tuple[Any, ...] | None = None,
-    ) -> QueryResult:
+    ) -> StatementResult:
         """Execute the raw query and process results.
+
+        DEPRECATED: Use execute_statement instead.
 
         Args:
             conn: Database connection
             query: SQL query to execute
-            params: Optional query parameters (list or tuple)
 
         Returns:
-            QueryResult containing rows and metadata
+            StatementResult containing rows and metadata
         """
-        # Execute with parameters if provided
-        if params:
-            logger.debug(f"Executing query with {len(params)} parameters")
-            # Handle both list and tuple types for parameters
-            if isinstance(params, tuple):
-                # Unpack tuple parameters
-                result = await conn.fetch(query, *params)
-            else:
-                # Use list parameters directly
-                result = await conn.fetch(query, *params)
-        else:
-            logger.debug("Executing query without parameters")
+        # This implementation is kept for backward compatibility
+        # but will be removed in a future version
+        try:
             result = await conn.fetch(query)
+            logger.debug(f"Query executed successfully: {result}")
 
-        # Convert records to dictionaries
-        rows = [dict(record) for record in result]
+            # Convert records to dictionaries
+            rows = [dict(record) for record in result]
 
-        # Determine status message
-        status = self._get_query_status(query)
+            return StatementResult(rows=rows)
 
-        logger.debug(f"Query executed successfully: {status}, rows: {len(rows)}")
-        return QueryResult(rows=rows, count=len(rows), status=status)
+        except asyncpg.PostgresError as e:
+            logger.error(f"PostgreSQL error during query execution: {e}")
+            # Handle and convert exceptions - this will raise appropriate exceptions
+            await self._handle_postgres_error(e)
+
+            # This line will never be reached as _handle_postgres_error always raises an exception
+            # But we need it to satisfy the type checker
+            raise QueryError("Unexpected error occurred")
 
     async def _handle_postgres_error(self, error: asyncpg.PostgresError) -> None:
         """Handle PostgreSQL errors and convert to appropriate exceptions.
@@ -337,31 +431,3 @@ class AsyncSupabaseClient:
         else:
             logger.error(f"Database error: {error}")
             raise QueryError(f"Query failed: {str(error)}") from error
-
-    def _get_query_status(self, query: str) -> str:
-        """Determine a status message based on the query type.
-
-        Args:
-            query: SQL query
-
-        Returns:
-            Status message string
-        """
-        query_upper = query.strip().upper()
-
-        if query_upper.startswith("SELECT"):
-            return "SELECT"
-        elif query_upper.startswith("INSERT"):
-            return "INSERT"
-        elif query_upper.startswith("UPDATE"):
-            return "UPDATE"
-        elif query_upper.startswith("DELETE"):
-            return "DELETE"
-        elif query_upper.startswith("CREATE"):
-            return "CREATE"
-        elif query_upper.startswith("ALTER"):
-            return "ALTER"
-        elif query_upper.startswith("DROP"):
-            return "DROP"
-        else:
-            return "OK"

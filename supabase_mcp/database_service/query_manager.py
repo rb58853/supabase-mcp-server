@@ -65,21 +65,21 @@ class QueryManager:
             ConfirmationRequiredError: If the query requires confirmation and has_confirmation is False
         """
         # Validate the query
-        operation_to_execute = self.validator.validate_query(query)
+        validated_query = self.validator.validate_query(query)
 
         # Use the safety manager to validate the operation
-        self.safety_manager.validate_operation(ClientType.DATABASE, operation_to_execute, has_confirmation)
-        logger.debug(f"Operation with risk level {operation_to_execute.highest_risk_level} validated successfully")
+        self.safety_manager.validate_operation(ClientType.DATABASE, validated_query, has_confirmation)
+        logger.debug(f"Operation with risk level {validated_query.highest_risk_level} validated successfully")
 
         # Check if migration is needed
-        if operation_to_execute.needs_migration():
+        if validated_query.needs_migration():
             logger.debug("Query requires migration, handling...")
-            await self.handle_migration(operation_to_execute, query)
+            await self.handle_migration(validated_query, query)
         else:
             logger.debug("No migration needed for this query")
 
         # Execute the query
-        return await self.db_client.execute_query_async(query, params)
+        return await self.db_client.execute_query_async(validated_query)
 
     async def handle_migration(self, validation_result: QueryValidationResults, query: str) -> None:
         """
@@ -94,11 +94,14 @@ class QueryManager:
 
         try:
             # Prepare the migration with the original query
-            migration_query, migration_params = self.migration_manager.prepare_migration(migration_name, query)
-            logger.debug(f"Migration query prepared with {len(migration_params[2])} statements")
+            migration_query = self.migration_manager.prepare_migration(migration_name, query)
+            logger.debug("Migration query prepared")
+
+            # Validate migration query
+            validated_query = self.validator.validate_query(migration_query)
 
             # Execute the migration query
-            await self.db_client.execute_query_async(migration_query, migration_params)
+            await self.db_client.execute_query_async(validated_query)
             logger.info(f"Created migration for query: {migration_name}")
         except Exception as e:
             logger.debug(f"Migration failure details: {str(e)}")

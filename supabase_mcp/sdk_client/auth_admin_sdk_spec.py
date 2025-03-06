@@ -55,49 +55,32 @@ def get_auth_admin_methods_spec() -> dict:
         "create_user": {
             "description": "Create a new user. Does not send a confirmation email by default.",
             "parameters": {
-                "email": {"type": "string", "description": "The user's email address", "required": False},
-                "password": {"type": "string", "description": "The user's password", "required": False},
+                "email": {"type": "string", "description": "The user's email address"},
+                "password": {"type": "string", "description": "The user's password"},
                 "email_confirm": {
                     "type": "boolean",
                     "description": "Confirms the user's email address if set to true",
-                    "required": False,
                     "default": False,
                 },
-                "phone": {
-                    "type": "string",
-                    "description": "The user's phone number with country code",
-                    "required": False,
-                },
+                "phone": {"type": "string", "description": "The user's phone number with country code"},
                 "phone_confirm": {
                     "type": "boolean",
                     "description": "Confirms the user's phone number if set to true",
-                    "required": False,
                     "default": False,
                 },
                 "user_metadata": {
                     "type": "object",
                     "description": "A custom data object to store the user's metadata",
-                    "required": False,
                 },
                 "app_metadata": {
                     "type": "object",
                     "description": "A custom data object to store the user's application specific metadata",
-                    "required": False,
                 },
-                "role": {
-                    "type": "string",
-                    "description": "The role claim set in the user's access token JWT",
-                    "required": False,
-                },
-                "ban_duration": {
-                    "type": "string",
-                    "description": "Determines how long a user is banned for",
-                    "required": False,
-                },
+                "role": {"type": "string", "description": "The role claim set in the user's access token JWT"},
+                "ban_duration": {"type": "string", "description": "Determines how long a user is banned for"},
                 "nonce": {
                     "type": "string",
-                    "description": "The nonce sent for reauthentication if the user's password is to be updated",
-                    "required": False,
+                    "description": "The nonce (required for reauthentication if updating password)",
                 },
             },
             "returns": {"type": "object", "description": "Created user object"},
@@ -241,51 +224,50 @@ def get_auth_admin_methods_spec() -> dict:
             "description": "Update user attributes by ID. Requires a service_role key.",
             "parameters": {
                 "uid": {"type": "string", "description": "The user's UUID", "required": True},
-                "email": {"type": "string", "description": "The user's email", "required": False},
-                "phone": {"type": "string", "description": "The user's phone", "required": False},
-                "password": {"type": "string", "description": "The user's password", "required": False},
-                "email_confirm": {
-                    "type": "boolean",
-                    "description": "Confirms the user's email address if set to true",
-                    "required": False,
-                },
-                "phone_confirm": {
-                    "type": "boolean",
-                    "description": "Confirms the user's phone number if set to true",
-                    "required": False,
-                },
-                "user_metadata": {
+                "attributes": {
                     "type": "object",
-                    "description": "A custom data object to store the user's metadata. Maps to auth.users.raw_user_meta_data column",
-                    "required": False,
-                },
-                "app_metadata": {
-                    "type": "object",
-                    "description": "A custom data object to store the user's application specific metadata. Maps to auth.users.app_metadata column",
-                    "required": False,
-                },
-                "role": {
-                    "type": "string",
-                    "description": "The role claim set in the user's access token JWT",
-                    "required": False,
-                },
-                "ban_duration": {
-                    "type": "string",
-                    "description": "Determines how long a user is banned for",
-                    "required": False,
-                },
-                "nonce": {
-                    "type": "string",
-                    "description": "The nonce sent for reauthentication if the user's password is to be updated",
-                    "required": False,
+                    "description": "The user attributes to update.",
+                    "required": True,
+                    "properties": {
+                        "email": {"type": "string", "description": "The user's email"},
+                        "phone": {"type": "string", "description": "The user's phone"},
+                        "password": {"type": "string", "description": "The user's password"},
+                        "email_confirm": {
+                            "type": "boolean",
+                            "description": "Confirms the user's email address if set to true",
+                        },
+                        "phone_confirm": {
+                            "type": "boolean",
+                            "description": "Confirms the user's phone number if set to true",
+                        },
+                        "user_metadata": {
+                            "type": "object",
+                            "description": "A custom data object to store the user's metadata.",
+                        },
+                        "app_metadata": {
+                            "type": "object",
+                            "description": "A custom data object to store the user's application specific metadata.",
+                        },
+                        "role": {
+                            "type": "string",
+                            "description": "The role claim set in the user's access token JWT",
+                        },
+                        "ban_duration": {
+                            "type": "string",
+                            "description": "Determines how long a user is banned for",
+                        },
+                        "nonce": {
+                            "type": "string",
+                            "description": "The nonce sent for reauthentication if the user's password is to be updated",
+                        },
+                    },
                 },
             },
             "returns": {"type": "object", "description": "Updated user object"},
             "example": {
                 "request": {
                     "uid": "d0e8c69f-e0c3-4a1c-b6d6-9a6c756a6a4b",
-                    "email": "updated@example.com",
-                    "user_metadata": {"name": "Updated Name"},
+                    "attributes": {"email": "updated@example.com", "user_metadata": {"name": "Updated Name"}},
                 },
                 "response": {
                     "id": "d0e8c69f-e0c3-4a1c-b6d6-9a6c756a6a4b",

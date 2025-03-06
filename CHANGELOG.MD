@@ -17,6 +17,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 4. Exception
 5. More modern postgresql client - `asyncpg`
 6. Eliminated depenente on PostgreSQL client libary
+7. Documentation
+- Management API uses encrytpedHTTPS for connecting
+8. Reliability
+- Implemented retry logic for 
+  - Establishing connection to the database or API
+  - Sending requests / executing statements
+- Improved API management spec tool:
+  - return all domains
+  - return a specific path and method
+  - return all paths and emthods
 
 ## Changed
 - Updated README.md with detailed feature description.

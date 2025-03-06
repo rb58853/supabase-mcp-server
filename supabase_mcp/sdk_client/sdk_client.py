@@ -147,8 +147,7 @@ class SupabaseSDKClient:
         """Update user by ID implementation"""
         admin_auth_client = self.client.auth.admin
         uid = params.uid
-        # Remove uid from attributes as it's passed separately
-        attributes = params.model_dump(exclude={"uid"}, exclude_none=True)
+        attributes = params.attributes.model_dump(exclude={"uid"}, exclude_none=True)
         result = await admin_auth_client.update_user_by_id(uid, attributes)
         return result
 
@@ -157,7 +156,7 @@ class SupabaseSDKClient:
         # This method is not implemented in the Supabase SDK yet
         raise NotImplementedError("The delete_factor method is not implemented in the Supabase SDK yet")
 
-    async def call_auth_admin_method(self, method: str, params: dict) -> Any:
+    async def call_auth_admin_method(self, method: str, params: dict[str, Any]) -> Any:
         """Calls a method of the Python SDK client"""
         if not self.client:
             raise PythonSDKError("Python SDK client not initialized")
@@ -189,6 +188,7 @@ class SupabaseSDKClient:
             if not handler:
                 raise PythonSDKError(f"Method {method} is not implemented")
 
+            logger.debug(f"Python SDK request params: {validated_params}")
             return await handler(validated_params)
         except Exception as e:
             if isinstance(e, IncorrectSDKParamsError):

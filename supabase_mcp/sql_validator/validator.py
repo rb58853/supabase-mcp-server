@@ -79,9 +79,9 @@ class SQLValidator:
             sql_query: A SQL query string to parse
 
         Returns:
-            SQLBatchValidationResult: A validation result object containing information about the SQL statements
+            QueryValidationResults: A validation result object containing information about the SQL statements
         Raises:
-            ValidationError: If the query is not valid
+            ValidationError: If the query is not valid or contains TCL statements
         """
         try:
             # Validate raw input
@@ -96,10 +96,14 @@ class SQLValidator:
             # Validate statements
             result = self.validate_statements(original_query=sql_query, parse_tree=parse_tree)
 
-            # Check if the query contains transaction control statements
+            # Check if the query contains transaction control statements and reject them
             for statement in result.statements:
                 if statement.category == SQLQueryCategory.TCL:
-                    result.has_transaction_control = True
+                    logger.warning(f"Transaction control statement detected: {statement.command}")
+                    raise ValidationError(
+                        "Transaction control statements (BEGIN, COMMIT, ROLLBACK) are not allowed. "
+                        "Queries will be automatically wrapped in transactions by the system."
+                    )
 
             return result
         except ParseError as e:
@@ -205,7 +209,11 @@ class SQLValidator:
                     needs_migration=classification["needs_migration"],
                     object_type=object_type,
                     schema_name=schema_name,
+                    query=original_query[stmt.stmt_location : stmt.stmt_location + stmt.stmt_len]
+                    if hasattr(stmt, "stmt_location") and hasattr(stmt, "stmt_len")
+                    else None,
                 )
+                logger.debug(f"Isolated query: {query_result.query}")
                 logger.debug(
                     "Query validation result:",
                     {
@@ -214,6 +222,7 @@ class SQLValidator:
                         "needs_migration": query_result.needs_migration,
                         "object_type": query_result.object_type,
                         "schema_name": query_result.schema_name,
+                        "query": query_result.query,
                     },
                 )
 

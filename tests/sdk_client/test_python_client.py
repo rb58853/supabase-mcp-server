@@ -5,7 +5,7 @@ import pytest_asyncio
 
 from supabase_mcp.exceptions import PythonSDKError
 from supabase_mcp.sdk_client.auth_admin_models import PARAM_MODELS
-from supabase_mcp.sdk_client.python_client import SupabaseSDKClient
+from supabase_mcp.sdk_client.sdk_client import SupabaseSDKClient
 
 
 @pytest_asyncio.fixture

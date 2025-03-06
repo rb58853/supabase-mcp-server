@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any
 
 from supabase_mcp.api_service.api_client import APIClient
@@ -7,6 +8,19 @@ from supabase_mcp.api_service.api_spec_manager import ApiSpecManager
 from supabase_mcp.logger import logger
 from supabase_mcp.safety.core import ClientType
 from supabase_mcp.safety.safety_manager import SafetyManager
+from supabase_mcp.settings import settings
+
+
+class PathPlaceholder(str, Enum):
+    """Enum of all possible path placeholders in the Supabase Management API."""
+
+    REF = "ref"
+    FUNCTION_SLUG = "function_slug"
+    ID = "id"
+    SLUG = "slug"
+    BRANCH_ID = "branch_id"
+    PROVIDER_ID = "provider_id"
+    TPA_ID = "tpa_id"
 
 
 class SupabaseApiManager:
@@ -16,10 +30,10 @@ class SupabaseApiManager:
 
     _instance: SupabaseApiManager | None = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the API manager."""
-        self.spec_manager = None
-        self.client: APIClient = None  # Type hint to fix linter error
+        self.spec_manager: ApiSpecManager | None = None
+        self.client: APIClient | None = None  # Type hint to fix linter error
         self.safety_manager = SafetyManager.get_instance()
 
     @classmethod
@@ -37,7 +51,7 @@ class SupabaseApiManager:
             cls._instance = await cls.create()
         return cls._instance
 
-    def get_spec(self) -> dict:
+    def get_spec(self) -> dict[str, Any]:
         """Retrieves enriched spec from spec manager"""
         return self.spec_manager.get_spec()
 
@@ -98,10 +112,65 @@ class SupabaseApiManager:
     def replace_path_params(self, path: str, path_params: dict[str, Any] | None = None) -> str:
         """
         Replace path parameters in the path string with actual values.
+
+        This method:
+        1. Automatically injects the project ref from settings
+        2. Replaces all placeholders in the path with values from path_params
+        3. Validates that all placeholders are replaced
+
+        Args:
+            path: The API path with placeholders (e.g., "/v1/projects/{ref}/functions/{function_slug}")
+            path_params: Dictionary of path parameters to replace (e.g., {"function_slug": "my-function"})
+
+        Returns:
+            The path with all placeholders replaced
+
+        Raises:
+            ValueError: If any placeholders remain after replacement or if invalid placeholders are provided
         """
-        if path_params:
-            for key, value in path_params.items():
-                path = path.replace("{" + key + "}", str(value))
+        # Create a working copy of path_params to avoid modifying the original
+        working_params = {} if path_params is None else path_params.copy()
+
+        # Check if user provided ref and raise an error
+        if working_params and PathPlaceholder.REF.value in working_params:
+            raise ValueError(
+                "Do not provide 'ref' in path_params. The project reference is automatically injected from settings. "
+                "If you need to change the project reference, modify the environment variables instead."
+            )
+
+        # Validate that all provided path parameters are known placeholders
+        if working_params:
+            for key in working_params:
+                try:
+                    PathPlaceholder(key)
+                except ValueError as e:
+                    raise ValueError(
+                        f"Unknown path parameter: '{key}'. Valid placeholders are: "
+                        f"{', '.join([p.value for p in PathPlaceholder])}"
+                    ) from e
+
+        # Get project ref from settings and add it to working_params
+        working_params[PathPlaceholder.REF.value] = settings.supabase_project_ref
+
+        logger.info(f"Replacing path parameters in path: {working_params}")
+
+        # Replace all placeholders in the path
+        for key, value in working_params.items():
+            placeholder = "{" + key + "}"
+            if placeholder in path:
+                path = path.replace(placeholder, str(value))
+                logger.debug(f"Replaced {placeholder} with {value}")
+
+        # Check if any placeholders remain
+        import re
+
+        remaining_placeholders = re.findall(r"\{([^}]+)\}", path)
+        if remaining_placeholders:
+            raise ValueError(
+                f"Missing path parameters: {', '.join(remaining_placeholders)}. "
+                f"Please provide values for these placeholders in the path_params dictionary."
+            )
+
         return path
 
     async def execute_request(
@@ -126,34 +195,25 @@ class SupabaseApiManager:
             API response as a dictionary
 
         Raises:
-            APIConnectionError: If there's a connection error
-            APIResponseError: If the API returns an error
             SafetyError: If the operation is not allowed by safety rules
         """
-        # Log the request
+        # Log the request with proper formatting
         logger.info(
-            "Executing API request: %s %s",
-            method,
-            path,
-            request_params,
-            request_body,
+            f"API Request: {method} {path} | Path params: {path_params or {}} | Query params: {request_params or {}} | Body: {request_body or {}}"
         )
 
         # Create an operation object for validation
         operation = (method, path, path_params, request_params, request_body)
 
         # Use the safety manager to validate the operation
+        logger.debug(f"Validating operation safety: {method} {path}")
         self.safety_manager.validate_operation(ClientType.API, operation, has_confirmation=has_confirmation)
 
         # Replace path parameters in the path string with actual values
         path = self.replace_path_params(path, path_params)
 
-        try:
-            # Execute the request using the API client
-            return await self.client.execute_request(method, path, request_params, request_body)
-        except Exception as e:
-            logger.error(f"Error executing API request: {str(e)}")
-            raise
+        # Execute the request using the API client
+        return await self.client.execute_request(method, path, request_params, request_body)
 
     async def handle_confirmation(self, confirmation_id: str) -> dict[str, Any]:
         """Handle a confirmation request."""
@@ -171,3 +231,52 @@ class SupabaseApiManager:
             request_body=operation[4],
             has_confirmation=True,
         )
+
+    def handle_spec_request(
+        self,
+        path: str | None = None,
+        method: str | None = None,
+        domain: str | None = None,
+        all_paths: bool | None = False,
+    ) -> dict[str, Any]:
+        """Handle a spec request.
+
+        Args:
+            path: Optional API path
+            method: Optional HTTP method
+            domain: Optional domain/tag name
+            all_paths: If True, returns all paths and methods
+
+        Returns:
+            API specification based on the provided parameters
+        """
+        spec_manager = self.spec_manager
+
+        if spec_manager is None:
+            raise RuntimeError("API spec manager is not initialized")
+
+        # Option 1: Get spec for specific path and method
+        if path and method:
+            method = method.lower()  # Normalize method to lowercase
+            result = spec_manager.get_spec_for_path_and_method(path, method)
+            if result is None:
+                return {"error": f"No specification found for {method.upper()} {path}"}
+            return result
+
+        # Option 2: Get all paths and methods for a specific domain
+        elif domain:
+            result = spec_manager.get_paths_and_methods_by_domain(domain)
+            if not result:
+                # Check if the domain exists
+                all_domains = spec_manager.get_all_domains()
+                if domain not in all_domains:
+                    return {"error": f"Domain '{domain}' not found", "available_domains": all_domains}
+            return {"domain": domain, "paths": result}
+
+        # Option 4: Get all paths and methods
+        elif all_paths:
+            return {"paths": spec_manager.get_all_paths_and_methods()}
+
+        # Option 3: Get all domains (default)
+        else:
+            return {"domains": spec_manager.get_all_domains()}

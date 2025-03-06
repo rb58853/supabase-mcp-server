@@ -38,7 +38,7 @@ RANDOM_WORDS = [
 class MigrationManager:
     """Responsible for preparing migration scripts without executing them."""
 
-    def prepare_migration(self, name: str, query: str) -> tuple[str, tuple[str, str, list[str]]]:
+    def prepare_migration(self, name: str, query: str) -> str:
         """
         Prepare a migration script without executing it.
 
@@ -47,9 +47,7 @@ class MigrationManager:
             query: The SQL query to include in the migration
 
         Returns:
-            Tuple containing:
-            - SQL query to create the migration
-            - Parameters for the query
+            Complete SQL query to create the migration
         """
         if not query:
             raise ValueError("Cannot create migration: No SQL query provided")
@@ -60,23 +58,22 @@ class MigrationManager:
         # Sanitize and format the migration name
         migration_name = self.generate_name(name)
 
-        # Create the migration query
-        migration_query = """
+        # Escape single quotes in the query for SQL safety
+        escaped_query = query.replace("'", "''")
+
+        # Create the complete migration query with values directly embedded
+        migration_query = f"""
         BEGIN;
         INSERT INTO supabase_migrations.schema_migrations
         (version, name, statements)
-        VALUES (%s, %s, %s);
+        VALUES ('{version}', '{migration_name}', ARRAY['{escaped_query}']);
         COMMIT;
         """
 
-        # For the migration, we store the original query as a single statement
-        # This preserves the transaction control and exact SQL
-        statements = [query]
-
         logger.info(f"Prepared migration: {version}_{migration_name}")
 
-        # Return the query and parameters
-        return migration_query, (version, migration_name, statements)
+        # Return the complete query
+        return migration_query
 
     def generate_name(self, name: str) -> str:
         """

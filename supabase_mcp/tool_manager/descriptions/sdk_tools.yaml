@@ -24,6 +24,12 @@ call_auth_admin_method: |
   - Manage multi-factor authentication
   - And more
 
+  IMPORTANT NOTES:
+  - Request bodies must adhere to the Python SDK specification
+  - Some methods may have nested parameter structures
+  - The tool validates all parameters against Pydantic models
+  - Extra fields not defined in the models will be rejected
+
   AVAILABLE METHODS:
   - get_user_by_id: Retrieve a user by their ID
   - list_users: List all users with pagination
@@ -34,9 +40,6 @@ call_auth_admin_method: |
   - update_user_by_id: Update user attributes by ID
   - delete_factor: Delete a factor on a user
 
-  PARAMETER STRUCTURE:
-  Each method requires specific parameters. For nested parameters, follow the structure exactly as shown in the examples.
-
   EXAMPLES:
   1. Get user by ID:
      method: "get_user_by_id"
@@ -46,22 +49,15 @@ call_auth_admin_method: |
      method: "create_user"
      params: {
        "email": "user@example.com",
-       "password": "secure-password",
-       "email_confirm": true,
-       "user_metadata": {"name": "John Doe"}
+       "password": "secure-password"
      }
 
-  3. Generate link:
-     method: "generate_link"
+  3. Update user by ID:
+     method: "update_user_by_id"
      params: {
-       "params": {
-         "type": "signup",
-         "email": "user@example.com",
-         "password": "secure-password",
-         "options": {
-           "data": {"name": "John Doe"},
-           "redirect_to": "https://example.com/welcome"
-         }
+       "uid": "user-uuid-here",
+       "attributes": {
+         "email": "new@email.com"
        }
      }
 

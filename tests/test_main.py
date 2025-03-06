@@ -350,34 +350,34 @@ async def test_live_dangerously_tool():
 
     # Test database service mode switching
     # Start with safe mode
-    result = await live_dangerously(service="database", enable=False)
+    result = await live_dangerously(service="database", enable_unsafe_mode=False)
     assert result["service"] == "database", "Response should identify database service"
     assert result["mode"] == "readonly", "Database should be in read-only mode"
 
     # Switch to unsafe mode
-    result = await live_dangerously(service="database", enable=True)
+    result = await live_dangerously(service="database", enable_unsafe_mode=True)
     assert result["service"] == "database", "Response should identify database service"
     assert result["mode"] == "readwrite", "Database should be in read-write mode"
 
     # Switch back to safe mode
-    result = await live_dangerously(service="database", enable=False)
+    result = await live_dangerously(service="database", enable_unsafe_mode=False)
     assert result["service"] == "database", "Response should identify database service"
     assert result["mode"] == "readonly", "Database should be in read-only mode"
 
     # Test API service mode switching
     # Start with safe mode
-    result = await live_dangerously(service="api", enable=False)
+    result = await live_dangerously(service="api", enable_unsafe_mode=False)
     assert result["service"] == "api", "Response should identify API service"
     # Compare with the Enum value or check its string value
     assert result["mode"] == SafetyLevel.SAFE or result["mode"].value == "safe", "API should be in safe mode"
 
     # Switch to unsafe mode
-    result = await live_dangerously(service="api", enable=True)
+    result = await live_dangerously(service="api", enable_unsafe_mode=True)
     assert result["service"] == "api", "Response should identify API service"
     assert result["mode"] == SafetyLevel.UNSAFE or result["mode"].value == "unsafe", "API should be in unsafe mode"
 
     # Switch back to safe mode
-    result = await live_dangerously(service="api", enable=False)
+    result = await live_dangerously(service="api", enable_unsafe_mode=False)
     assert result["service"] == "api", "Response should identify API service"
     assert result["mode"] == SafetyLevel.SAFE or result["mode"].value == "safe", "API should be in safe mode"
 
@@ -391,29 +391,43 @@ async def test_get_management_api_spec_tool():
     """Test the get_management_api_spec tool returns the API specification.
 
     This test checks:
-    1. The tool returns a valid OpenAPI specification
-    2. The specification contains the expected structure
+    1. Option 3 (default): Returns all domains
+    2. Option 4: Returns all paths and methods
+    3. Option 2: Returns paths and methods for a specific domain
+    4. Option 1: Returns the full specification for a specific endpoint
     """
     from supabase_mcp.main import get_management_api_spec
 
-    # Get the API spec
-    spec = await get_management_api_spec()
+    # Test Option 3: Get all domains (default)
+    domains_result = await get_management_api_spec()
+    assert isinstance(domains_result, dict), "Result should be a dictionary"
+    assert "domains" in domains_result, "Result should contain 'domains' key"
+    assert isinstance(domains_result["domains"], list), "Domains should be a list"
+    assert len(domains_result["domains"]) > 0, "Should have at least one domain"
 
-    # Verify result is a dictionary
-    assert isinstance(spec, dict), "API spec should be a dictionary"
+    # Test Option 4: Get all paths and methods
+    paths_result = await get_management_api_spec(all_paths=True)
+    assert isinstance(paths_result, dict), "Result should be a dictionary"
+    assert "paths" in paths_result, "Result should contain 'paths' key"
+    assert isinstance(paths_result["paths"], dict), "Paths should be a dictionary"
+    assert len(paths_result["paths"]) > 0, "Should have at least one path"
 
-    # Verify spec has standard OpenAPI fields
-    assert "openapi" in spec, "Spec should contain 'openapi' version field"
-    assert "paths" in spec, "Spec should contain 'paths' section"
-    assert "info" in spec, "Spec should contain 'info' section"
+    # Test Option 2: Get paths and methods for a specific domain
+    # Use the first domain from the domains list
+    domain = domains_result["domains"][0]
+    domain_result = await get_management_api_spec(domain=domain)
+    assert isinstance(domain_result, dict), "Result should be a dictionary"
+    assert "domain" in domain_result, "Result should contain 'domain' key"
+    assert "paths" in domain_result, "Result should contain 'paths' key"
+    assert domain_result["domain"] == domain, "Domain should match the requested domain"
 
-    # Verify paths contains API endpoints
-    assert isinstance(spec["paths"], dict), "Paths should be a dictionary"
-    assert len(spec["paths"]) > 0, "Spec should contain at least one path"
-
-    # Log some basic spec info
-    logger.info(f"API spec version: {spec.get('openapi')}")
-    logger.info(f"API contains {len(spec['paths'])} endpoints")
+    # Test Option 1: Get full specification for a specific endpoint
+    # Use the first path and method from the paths dictionary
+    first_path = next(iter(paths_result["paths"]))
+    first_method = next(iter(paths_result["paths"][first_path]))
+    endpoint_result = await get_management_api_spec(path=first_path, method=first_method)
+    assert isinstance(endpoint_result, dict), "Result should be a dictionary"
+    assert "operationId" in endpoint_result, "Result should contain 'operationId' key"
 
 
 @pytest.mark.unit

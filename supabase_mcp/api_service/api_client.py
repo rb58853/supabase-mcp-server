@@ -213,8 +213,12 @@ class APIClient:
             APIResponseError: For response parsing errors
             UnexpectedError: For unexpected errors
         """
-        # Log request (using string formatting instead of keyword args)
-        logger.info(f"Executing API request: {method} {path}")
+        # Log detailed request information
+        logger.info(f"API Client: Executing {method} request to {path}")
+        if request_params:
+            logger.debug(f"Request params: {request_params}")
+        if request_body:
+            logger.debug(f"Request body: {request_body}")
 
         # Prepare request
         request = self.prepare_request(method, path, request_params, request_body)
@@ -227,12 +231,14 @@ class APIClient:
 
         # Check if successful
         if not response.is_success:
+            logger.warning(f"Request failed: {method} {path} - Status {response.status_code}")
             self.handle_error_response(response, parsed_body)
 
-        # Return successful response
+        # Log success and return
+        logger.info(f"Request successful: {method} {path} - Status {response.status_code}")
         return parsed_body
 
-    async def close(self):
+    async def close(self) -> None:
         """Close the HTTP client and release resources."""
         if self.client:
             await self.client.aclose()

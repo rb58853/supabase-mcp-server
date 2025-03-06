@@ -8,12 +8,19 @@ live_dangerously: |
 
   SAFETY MODES EXPLAINED:
   1. Database Safety Modes:
-     - READONLY mode (safe, default): Only SELECT queries and other read operations are allowed
-     - READWRITE mode (unsafe): All SQL operations including INSERT, UPDATE, DELETE, and schema changes are permitted
+     - SAFE mode (default): Only low-risk operations like SELECT queries are allowed
+     - UNSAFE mode: Higher-risk operations including INSERT, UPDATE, DELETE, and schema changes are permitted
 
   2. API Safety Modes:
-     - SAFE mode (default): Only read operations that don't modify state are allowed
-     - UNSAFE mode: State-changing operations are permitted (except those explicitly blocked for safety)
+     - SAFE mode (default): Only low-risk operations that don't modify state are allowed
+     - UNSAFE mode: Higher-risk state-changing operations are permitted (except those explicitly blocked for safety)
+
+  OPERATION RISK LEVELS:
+  The system categorizes operations by risk level:
+  - LOW: Safe read operations with minimal impact
+  - MEDIUM: Write operations that modify data but don't change structure
+  - HIGH: Operations that modify database structure or important system settings
+  - EXTREME: Destructive operations that could cause data loss or service disruption
 
   WHEN TO USE THIS TOOL:
   - Use this tool BEFORE attempting write operations or schema changes
@@ -29,17 +36,17 @@ live_dangerously: |
 
   Parameters:
   - service: Which service to toggle ("api" or "database")
-  - enable: True to enable unsafe mode, False for safe mode (default: False)
+  - enable_unsafe_mode: True to enable unsafe mode, False for safe mode (default: False)
 
   Examples:
-  1. Enable database write mode:
-     live_dangerously(service="database", enable=True)
+  1. Enable database unsafe mode:
+     live_dangerously(service="database", enable_unsafe_mode=True)
 
   2. Return to safe mode after operations:
-     live_dangerously(service="database", enable=False)
+     live_dangerously(service="database", enable_unsafe_mode=False)
 
-  3. Enable API write operations:
-     live_dangerously(service="api", enable=True)
+  3. Enable API unsafe mode:
+     live_dangerously(service="api", enable_unsafe_mode=True)
 
   Note: This tool affects ALL subsequent operations for the specified service until changed again.
 
@@ -57,6 +64,7 @@ confirm_destructive_operation: |
   3. The original query will be executed as-is
 
   PARAMETERS:
+  - operation_type: Type of operation ("api" or "database")
   - confirmation_id: The ID provided in the error message (required)
   - user_confirmation: Set to true to confirm execution (default: false)
 

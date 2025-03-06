@@ -11,7 +11,7 @@ from supabase_mcp.logger import logger
 from supabase_mcp.safety.core import ClientType
 from supabase_mcp.safety.core import SafetyMode as UniversalSafetyMode
 from supabase_mcp.safety.safety_manager import SafetyManager
-from supabase_mcp.sdk_client.python_client import SupabaseSDKClient
+from supabase_mcp.sdk_client.sdk_client import SupabaseSDKClient
 from supabase_mcp.settings import settings
 from supabase_mcp.startup import register_safety_configs
 from supabase_mcp.tool_manager import ToolManager, ToolName
@@ -87,7 +87,7 @@ async def send_management_api_request(
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.LIVE_DANGEROUSLY))  # type: ignore
-async def live_dangerously(service: Literal["api", "database"], enable: bool = False) -> dict[str, Any]:
+async def live_dangerously(service: Literal["api", "database"], enable_unsafe_mode: bool = False) -> dict[str, Any]:
     """
     Toggle between safe and unsafe operation modes for API or Database services.
 
@@ -99,23 +99,44 @@ async def live_dangerously(service: Literal["api", "database"], enable: bool = F
 
     if service == "api":
         # Set the safety mode in the safety manager
-        new_mode = UniversalSafetyMode.UNSAFE if enable else UniversalSafetyMode.SAFE
+        new_mode = UniversalSafetyMode.UNSAFE if enable_unsafe_mode else UniversalSafetyMode.SAFE
         safety_manager.set_safety_mode(ClientType.API, new_mode)
 
-        return {"service": "api", "mode": "unsafe" if enable else "safe"}
+        return {"service": "api", "mode": "unsafe" if enable_unsafe_mode else "safe"}
     elif service == "database":
         # Set the safety mode in the safety manager
-        new_mode = UniversalSafetyMode.UNSAFE if enable else UniversalSafetyMode.SAFE
+        new_mode = UniversalSafetyMode.UNSAFE if enable_unsafe_mode else UniversalSafetyMode.SAFE
         safety_manager.set_safety_mode(ClientType.DATABASE, new_mode)
 
         return {"service": ClientType.DATABASE, "mode": safety_manager.get_safety_mode(ClientType.DATABASE)}
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.GET_MANAGEMENT_API_SPEC))  # type: ignore
-async def get_management_api_spec() -> dict[str, Any]:
-    """Get the latests complete Management API specification."""
+async def get_management_api_spec(
+    path: str | None = None, method: str | None = None, domain: str | None = None, all_paths: bool | None = False
+) -> dict[str, Any]:
+    """Get the Supabase Management API specification.
+
+    This tool can be used in four different ways (and then some ;)):
+    1. Without parameters: Returns all domains (default)
+    2. With path and method: Returns the full specification for a specific API endpoint
+    3. With domain only: Returns all paths and methods within that domain
+    4. With all_paths=True: Returns all paths and methods
+
+    Args:
+        path: Optional API path (e.g., "/v1/projects/{ref}/functions")
+        method: Optional HTTP method (e.g., "GET", "POST")
+        domain: Optional domain/tag name (e.g., "Auth", "Storage")
+        all_paths: If True, returns all paths and methods
+
+    Returns:
+        API specification based on the provided parameters
+    """
+    logger.debug(
+        f"Getting management API spec with path: {path}, method: {method}, domain: {domain}, all_paths: {all_paths}"
+    )
     api_manager = await SupabaseApiManager.get_manager()
-    return api_manager.get_spec()
+    return api_manager.handle_spec_request(path, method, domain, all_paths)
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.GET_MANAGEMENT_API_SAFETY_RULES))  # type: ignore

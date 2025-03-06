@@ -12,17 +12,28 @@ class ListUsersParams(BaseModel):
     per_page: int | None = 50
 
 
-class CreateUserParams(BaseModel):
+class UserMetadata(BaseModel):
+    email: str | None = None
+    email_verified: bool | None = None
+    phone_verified: bool | None = None
+    sub: str | None = None
+
+
+class AdminUserAttributes(BaseModel):
     email: str | None = None
     password: str | None = None
     email_confirm: bool | None = False
     phone: str | None = None
     phone_confirm: bool | None = False
-    user_metadata: dict[str, Any] | None = None
+    user_metadata: UserMetadata | None = None
     app_metadata: dict[str, Any] | None = None
     role: str | None = None
     ban_duration: str | None = None
     nonce: str | None = None
+
+
+class CreateUserParams(AdminUserAttributes):
+    pass
 
     @model_validator(mode="after")
     def check_email_or_phone(self) -> "CreateUserParams":
@@ -65,16 +76,7 @@ class GenerateLinkParams(BaseModel):
 
 class UpdateUserByIdParams(BaseModel):
     uid: str
-    email: str | None = None
-    password: str | None = None
-    email_confirm: bool | None = False
-    phone: str | None = None
-    phone_confirm: bool | None = False
-    user_metadata: dict[str, Any] | None = None
-    app_metadata: dict[str, Any] | None = None
-    role: str | None = None
-    ban_duration: str | None = None
-    nonce: str | None = None
+    attributes: AdminUserAttributes
 
 
 class DeleteFactorParams(BaseModel):

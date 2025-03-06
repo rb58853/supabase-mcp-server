@@ -7,7 +7,7 @@ coverage:
   precision: 1
   round: down
   range: "60...90"
-  
+
   status:
     # For overall project coverage
     project:
@@ -15,7 +15,7 @@ coverage:
         target: 80%       # Target coverage of 80%
         threshold: 5%     # Allow a 5% decrease without failing
         informational: true  # Start as informational until coverage improves
-    
+
     # For coverage of new/changed code in PRs
     patch:
       default:
@@ -38,4 +38,4 @@ comment:
 # Ignore certain paths
 ignore:
   - "tests/**/*"          # Don't count test files in coverage
-  - "supabase_mcp/_version.py"  # Auto-generated version file 
+  - "supabase_mcp/_version.py"  # Auto-generated version file

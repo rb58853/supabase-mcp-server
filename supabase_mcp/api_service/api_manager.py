@@ -95,13 +95,13 @@ class SupabaseApiManager:
 
             EXTREME RISK Operations (never allowed by the server):
             {extreme_risk_summary}
-            
+
             HIGH RISK Operations (require unsafe mode):
             {high_risk_summary}
-            
+
             MEDIUM RISK Operations (require unsafe mode):
             {medium_risk_summary}
-            
+
             All other operations are LOW RISK (always allowed).
 
             Current mode: {current_mode}

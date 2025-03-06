@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 7. Documentation
 - Management API uses encrytpedHTTPS for connecting
 8. Reliability
-- Implemented retry logic for 
+- Implemented retry logic for
   - Establishing connection to the database or API
   - Sending requests / executing statements
 - Improved API management spec tool:

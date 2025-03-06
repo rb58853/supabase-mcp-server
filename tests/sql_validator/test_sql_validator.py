@@ -66,7 +66,7 @@ class TestSQLValidator:
         """
         for name, query in sample_dql_queries.items():
             result = validator.validate_query(query)
-            assert result.highest_safety_level == OperationRiskLevel.LOW, f"Query '{name}' should be classified as SAFE"
+            assert result.highest_risk_level == OperationRiskLevel.LOW, f"Query '{name}' should be classified as SAFE"
             assert result.statements[0].category == SQLQueryCategory.DQL, f"Query '{name}' should be categorized as DQL"
             assert result.statements[0].command == SQLQueryCommand.SELECT, f"Query '{name}' should have command SELECT"
 
@@ -79,7 +79,7 @@ class TestSQLValidator:
         """
         for name, query in sample_dml_queries.items():
             result = validator.validate_query(query)
-            assert result.highest_safety_level == OperationRiskLevel.MEDIUM, (
+            assert result.highest_risk_level == OperationRiskLevel.MEDIUM, (
                 f"Query '{name}' should be classified as WRITE"
             )
             assert result.statements[0].category == SQLQueryCategory.DML, f"Query '{name}' should be categorized as DML"
@@ -130,26 +130,24 @@ class TestSQLValidator:
         must be properly detected regardless of case or formatting.
         """
         # Test BEGIN statement
-        begin_result = validator.validate_query(sample_tcl_queries["begin_transaction"])
-        assert begin_result.statements[0].category == SQLQueryCategory.TCL, "BEGIN should be categorized as TCL"
-        assert begin_result.has_transaction_control, "has_transaction_control should be True for BEGIN"
+        with pytest.raises(ValidationError) as excinfo:
+            validator.validate_query(sample_tcl_queries["begin_transaction"])
+        assert "Transaction control statements" in str(excinfo.value)
 
         # Test COMMIT statement
-        commit_result = validator.validate_query(sample_tcl_queries["commit_transaction"])
-        assert commit_result.statements[0].category == SQLQueryCategory.TCL, "COMMIT should be categorized as TCL"
-        assert commit_result.has_transaction_control, "has_transaction_control should be True for COMMIT"
+        with pytest.raises(ValidationError) as excinfo:
+            validator.validate_query(sample_tcl_queries["commit_transaction"])
+        assert "Transaction control statements" in str(excinfo.value)
 
         # Test ROLLBACK statement
-        rollback_result = validator.validate_query(sample_tcl_queries["rollback_transaction"])
-        assert rollback_result.statements[0].category == SQLQueryCategory.TCL, "ROLLBACK should be categorized as TCL"
-        assert rollback_result.has_transaction_control, "has_transaction_control should be True for ROLLBACK"
+        with pytest.raises(ValidationError) as excinfo:
+            validator.validate_query(sample_tcl_queries["rollback_transaction"])
+        assert "Transaction control statements" in str(excinfo.value)
 
         # Test mixed case transaction statement
-        mixed_case_result = validator.validate_query(sample_tcl_queries["mixed_case_transaction"])
-        assert mixed_case_result.statements[0].category == SQLQueryCategory.TCL, (
-            "Mixed case BEGIN should be categorized as TCL"
-        )
-        assert mixed_case_result.has_transaction_control, "has_transaction_control should be True for mixed case BEGIN"
+        with pytest.raises(ValidationError) as excinfo:
+            validator.validate_query(sample_tcl_queries["mixed_case_transaction"])
+        assert "Transaction control statements" in str(excinfo.value)
 
         # Test string-based detection method directly
         assert SQLValidator.validate_transaction_control("BEGIN"), "String-based detection should identify BEGIN"
@@ -193,9 +191,9 @@ class TestSQLValidator:
         assert destructive_result.statements[1].command == SQLQueryCommand.DROP, "Second command should be DROP"
 
         # Test transaction statements
-        transaction_result = validator.validate_query(sample_multiple_statements["with_transaction"])
-        assert len(transaction_result.statements) == 3, "Should identify three statements"
-        assert transaction_result.has_transaction_control, "Should detect transaction control"
+        with pytest.raises(ValidationError) as excinfo:
+            validator.validate_query(sample_multiple_statements["with_transaction"])
+        assert "Transaction control statements" in str(excinfo.value)
 
     # =========================================================================
     # Error Handling Tests
@@ -234,12 +232,12 @@ class TestSQLValidator:
         """
         # Test COPY TO (should be SAFE)
         copy_to_result = validator.validate_query(sample_postgres_specific_queries["copy_to"])
-        assert copy_to_result.highest_safety_level == SQLQuerySafetyLevel.SAFE, "COPY TO should be classified as SAFE"
+        assert copy_to_result.highest_risk_level == OperationRiskLevel.LOW, "COPY TO should be classified as SAFE"
         assert copy_to_result.statements[0].category == SQLQueryCategory.DQL, "COPY TO should be categorized as DQL"
 
         # Test COPY FROM (should be WRITE)
         copy_from_result = validator.validate_query(sample_postgres_specific_queries["copy_from"])
-        assert copy_from_result.highest_safety_level == SQLQuerySafetyLevel.WRITE, (
+        assert copy_from_result.highest_risk_level == OperationRiskLevel.MEDIUM, (
             "COPY FROM should be classified as WRITE"
         )
         assert copy_from_result.statements[0].category == SQLQueryCategory.DML, "COPY FROM should be categorized as DML"
@@ -259,12 +257,12 @@ class TestSQLValidator:
         """
         # Test query with subquery
         subquery_result = validator.validate_query(sample_dql_queries["select_with_subquery"])
-        assert subquery_result.highest_safety_level == SQLQuerySafetyLevel.SAFE, "Query with subquery should be SAFE"
+        assert subquery_result.highest_risk_level == OperationRiskLevel.LOW, "Query with subquery should be SAFE"
         assert subquery_result.statements[0].category == SQLQueryCategory.DQL, "Query with subquery should be DQL"
 
         # Test query with CTE (Common Table Expression)
         cte_result = validator.validate_query(sample_dql_queries["select_with_cte"])
-        assert cte_result.highest_safety_level == SQLQuerySafetyLevel.SAFE, "Query with CTE should be SAFE"
+        assert cte_result.highest_risk_level == OperationRiskLevel.LOW, "Query with CTE should be SAFE"
         assert cte_result.statements[0].category == SQLQueryCategory.DQL, "Query with CTE should be DQL"
 
     # =========================================================================
@@ -285,7 +283,7 @@ class TestSQLValidator:
         # Verify the query is parsed correctly despite comments
         assert result.statements[0].category == SQLQueryCategory.DQL, "Query with comments should be categorized as DQL"
         assert result.statements[0].command == SQLQueryCommand.SELECT, "Query with comments should have SELECT command"
-        assert result.highest_safety_level == OperationRiskLevel.LOW, "Query with comments should be SAFE"
+        assert result.highest_risk_level == OperationRiskLevel.LOW, "Query with comments should be SAFE"
 
     def test_valid_queries_with_quoted_identifiers(self, validator: SQLValidator, sample_edge_cases: dict[str, str]):
         """
@@ -305,7 +303,7 @@ class TestSQLValidator:
         assert result.statements[0].command == SQLQueryCommand.SELECT, (
             "Query with quoted identifiers should have SELECT command"
         )
-        assert result.highest_safety_level == OperationRiskLevel.LOW, "Query with quoted identifiers should be SAFE"
+        assert result.highest_risk_level == OperationRiskLevel.LOW, "Query with quoted identifiers should be SAFE"
 
     def test_valid_queries_with_special_characters(self, validator: SQLValidator, sample_edge_cases: dict[str, str]):
         """
@@ -325,7 +323,7 @@ class TestSQLValidator:
         assert result.statements[0].command == SQLQueryCommand.SELECT, (
             "Query with special characters should have SELECT command"
         )
-        assert result.highest_safety_level == OperationRiskLevel.LOW, "Query with special characters should be SAFE"
+        assert result.highest_risk_level == OperationRiskLevel.LOW, "Query with special characters should be SAFE"
 
     def test_valid_postgresql_specific_syntax(
         self,

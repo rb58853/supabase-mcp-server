@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from supabase_mcp.sdk_client.auth_admin_models import (
     PARAM_MODELS,
+    AdminUserAttributes,
     CreateUserParams,
     DeleteFactorParams,
     DeleteUserParams,
@@ -11,6 +12,7 @@ from supabase_mcp.sdk_client.auth_admin_models import (
     InviteUserByEmailParams,
     ListUsersParams,
     UpdateUserByIdParams,
+    UserMetadata,
 )
 
 
@@ -57,7 +59,7 @@ class TestModelConversion:
             "email": "test@example.com",
             "password": "secure-password",
             "email_confirm": True,
-            "user_metadata": {"name": "Test User"},
+            "user_metadata": UserMetadata(email="test@example.com"),
         }
         params = CreateUserParams.model_validate(valid_payload)
         assert params.email == valid_payload["email"]
@@ -183,15 +185,13 @@ class TestModelConversion:
         # Valid payload
         valid_payload = {
             "uid": "d0e8c69f-e0c3-4a1c-b6d6-9a6c756a6a4b",
-            "email": "updated@example.com",
-            "user_metadata": {"name": "Updated User"},
+            "attributes": AdminUserAttributes(email="updated@example.com", email_verified=True),
         }
         params = UpdateUserByIdParams.model_validate(valid_payload)
         assert params.uid == valid_payload["uid"]
-        assert params.email == valid_payload["email"]
-        assert params.user_metadata == valid_payload["user_metadata"]
+        assert params.attributes == valid_payload["attributes"]
 
-        # Invalid payload (missing uid)
+        # Invalid payload (incorrect metadata and missing uids)
         invalid_payload = {
             "email": "updated@example.com",
             "user_metadata": {"name": "Updated User"},

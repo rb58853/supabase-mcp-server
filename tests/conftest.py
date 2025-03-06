@@ -1,4 +1,3 @@
-import asyncio
 import os
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
@@ -7,6 +6,7 @@ import pytest
 import pytest_asyncio
 from dotenv import load_dotenv
 
+from supabase_mcp.api_service.api_client import APIClient
 from supabase_mcp.database_service.postgres_client import AsyncSupabaseClient
 from supabase_mcp.database_service.query_manager import QueryManager
 from supabase_mcp.logger import logger
@@ -30,15 +30,6 @@ def clean_environment() -> Generator[None, None, None]:
     # Restore original environment
     os.environ.clear()
     os.environ.update(original_env)
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for each test case."""
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
-    yield loop
-    loop.close()
 
 
 def load_test_env() -> dict[str, str | None]:
@@ -136,5 +127,18 @@ def tool_manager_integration() -> ToolManager:
     return ToolManager()
 
 
-# For backward compatibility
-integration_client = postgres_client_integration
+@pytest_asyncio.fixture
+async def api_client_integration() -> AsyncGenerator[APIClient, None]:
+    """Fixture providing an API client for integration tests.
+
+    This client is configured to make real API requests to the Supabase Management API.
+    """
+    # Create a new API client
+    client = APIClient()
+
+    try:
+        # Yield the client for the test to use
+        yield client
+    finally:
+        # Clean up by closing the client
+        await client.close()

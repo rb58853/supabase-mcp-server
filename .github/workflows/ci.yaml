@@ -41,7 +41,7 @@ jobs:
         run: |
           source .venv/bin/activate # necessary for pytest
           pytest --cov=supabase_mcp --cov-report=xml --cov-report=term
-      
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

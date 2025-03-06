@@ -125,11 +125,11 @@ class TestSafetyManager:
         manager.set_safety_mode(ClientType.DATABASE, SafetyMode.UNSAFE)
 
         # Validate medium risk operation (should be allowed in UNSAFE mode)
+        # This should not raise an exception
         manager.validate_operation(ClientType.DATABASE, "medium_risk")
 
-        # Validate high risk operation raises an exception
-        with pytest.raises(ConfirmationRequiredError):
-            manager.validate_operation(ClientType.DATABASE, "high_risk")
+        # High risk operations require confirmation, so we test with confirmation=True
+        manager.validate_operation(ClientType.DATABASE, "high_risk", has_confirmation=True)
 
     def test_validate_operation_not_allowed(self):
         """Test validating an operation that is not allowed."""
@@ -165,10 +165,18 @@ class TestSafetyManager:
         # Set safety mode to UNSAFE
         manager.set_safety_mode(ClientType.DATABASE, SafetyMode.UNSAFE)
 
-        # Validate extreme risk operation SHOULD NEVER BE ALLOWED
-        # Should raise OperationNotAllowedError
+        # Validate high risk operation without confirmation
+        # Should raise ConfirmationRequiredError
+        with pytest.raises(ConfirmationRequiredError):
+            manager.validate_operation(ClientType.DATABASE, "high_risk", has_confirmation=False)
+
+        # Extreme risk operations are not allowed even in UNSAFE mode
         with pytest.raises(OperationNotAllowedError):
             manager.validate_operation(ClientType.DATABASE, "extreme_risk", has_confirmation=False)
+
+        # Even with confirmation, extreme risk operations are not allowed
+        with pytest.raises(OperationNotAllowedError):
+            manager.validate_operation(ClientType.DATABASE, "extreme_risk", has_confirmation=True)
 
     def test_store_confirmation(self):
         """Test storing a confirmation for an operation."""
@@ -277,10 +285,10 @@ class TestSafetyManager:
         # Set safety mode to UNSAFE
         manager.set_safety_mode(ClientType.DATABASE, SafetyMode.UNSAFE)
 
-        # Try to validate an extreme risk operation and catch the ConfirmationRequiredError
+        # Try to validate a high risk operation and catch the ConfirmationRequiredError
         confirmation_id = None
         try:
-            manager.validate_operation(ClientType.DATABASE, "extreme_risk", has_confirmation=False)
+            manager.validate_operation(ClientType.DATABASE, "high_risk", has_confirmation=False)
         except ConfirmationRequiredError as e:
             # Extract the confirmation ID from the error message
             error_message = str(e)
@@ -296,4 +304,4 @@ class TestSafetyManager:
 
         # Now validate the operation again with the confirmation ID
         # This should not raise an exception
-        manager.validate_operation(ClientType.DATABASE, "extreme_risk", has_confirmation=True)
+        manager.validate_operation(ClientType.DATABASE, "high_risk", has_confirmation=True)

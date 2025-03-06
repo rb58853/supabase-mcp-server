@@ -42,9 +42,9 @@ def sample_edge_cases() -> dict[str, str]:
 def sample_multiple_statements() -> dict[str, str]:
     """Sample SQL with multiple statements for testing batch processing."""
     return {
-        "multiple_ddl": "BEGIN; CREATE TABLE users (id SERIAL PRIMARY KEY); CREATE TABLE posts (id SERIAL PRIMARY KEY); COMMIT;",
-        "mixed_with_migration": "BEGIN; SELECT * FROM users; CREATE TABLE logs (id SERIAL PRIMARY KEY); COMMIT;",
-        "only_tcl": "BEGIN; COMMIT;",
+        "multiple_ddl": "CREATE TABLE users (id SERIAL PRIMARY KEY); CREATE TABLE posts (id SERIAL PRIMARY KEY);",
+        "mixed_with_migration": "SELECT * FROM users; CREATE TABLE logs (id SERIAL PRIMARY KEY);",
+        "only_select": "SELECT * FROM users;",
     }
 
 
@@ -125,8 +125,8 @@ class TestMigrationManager:
         self, validator: SQLValidator, sample_multiple_statements: dict[str, str]
     ):
         """Test generating a descriptive name with no statements that need migration."""
-        # Use the only_tcl query from fixtures
-        result = validator.validate_query(sample_multiple_statements["only_tcl"])
+        # Use the only_select query from fixtures (renamed from only_tcl)
+        result = validator.validate_query(sample_multiple_statements["only_select"])
 
         # Create a migration manager and generate a name
         mm = MigrationManager()

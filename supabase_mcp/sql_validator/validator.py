@@ -213,7 +213,7 @@ class SQLValidator:
                     if hasattr(stmt, "stmt_location") and hasattr(stmt, "stmt_len")
                     else None,
                 )
-                logger.debug(f"Isolated query: {query_result.query}")
+                # logger.debug(f"Isolated query: {query_result.query}")
                 logger.debug(
                     "Query validation result:",
                     {

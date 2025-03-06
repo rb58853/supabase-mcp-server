@@ -126,6 +126,7 @@ class AsyncSupabaseClient:
                 self.db_url,
                 min_size=2,  # Minimum connections to keep ready
                 max_size=10,  # Maximum connections allowed (same as current)
+                statement_cache_size=0,
                 command_timeout=30.0,  # Command timeout in seconds
                 max_inactive_connection_lifetime=300.0,  # 5 minutes
             )

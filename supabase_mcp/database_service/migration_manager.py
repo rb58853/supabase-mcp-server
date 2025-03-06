@@ -63,11 +63,9 @@ class MigrationManager:
 
         # Create the complete migration query with values directly embedded
         migration_query = f"""
-        BEGIN;
         INSERT INTO supabase_migrations.schema_migrations
         (version, name, statements)
         VALUES ('{version}', '{migration_name}', ARRAY['{escaped_query}']);
-        COMMIT;
         """
 
         logger.info(f"Prepared migration: {version}_{migration_name}")

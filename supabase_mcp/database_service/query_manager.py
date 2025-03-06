@@ -5,7 +5,7 @@ from supabase_mcp.database_service.database_client import AsyncSupabaseClient, Q
 from supabase_mcp.database_service.migration_manager import MigrationManager
 from supabase_mcp.exceptions import OperationNotAllowedError
 from supabase_mcp.logger import logger
-from supabase_mcp.safety.core import ClientType
+from supabase_mcp.safety.core import ClientType, SafetyMode
 from supabase_mcp.safety.safety_manager import SafetyManager
 from supabase_mcp.sql_validator.models import QueryValidationResults
 from supabase_mcp.sql_validator.validator import SQLValidator
@@ -39,6 +39,12 @@ class QueryManager:
         self.validator = SQLValidator()
         self.migration_manager = MigrationManager()
         self.safety_manager = SafetyManager.get_instance()
+
+    def check_readonly(self) -> bool:
+        """Returns true if current safety mode is SAFE."""
+        result = self.safety_manager.get_safety_mode(ClientType.DATABASE) == SafetyMode.SAFE
+        logger.debug(f"Check readonly result: {result}")
+        return result
 
     async def handle_query(
         self, query: str, params: tuple[Any, ...] | None = None, has_confirmation: bool = False
@@ -78,8 +84,11 @@ class QueryManager:
         else:
             logger.debug("No migration needed for this query")
 
+        # Check readonly
+        readonly = self.check_readonly()
+
         # Execute the query
-        return await self.db_client.execute_query_async(validated_query)
+        return await self.db_client.execute_query_async(validated_query, readonly)
 
     async def handle_migration(self, validation_result: QueryValidationResults, query: str) -> None:
         """
@@ -100,8 +109,11 @@ class QueryManager:
             # Validate migration query
             validated_query = self.validator.validate_query(migration_query)
 
+            # Check readonly
+            readonly = self.check_readonly()
+
             # Execute the migration query
-            await self.db_client.execute_query_async(validated_query)
+            await self.db_client.execute_query_async(validated_query, readonly)
             logger.info(f"Created migration for query: {migration_name}")
         except Exception as e:
             logger.debug(f"Migration failure details: {str(e)}")

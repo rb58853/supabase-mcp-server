@@ -27,6 +27,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - return all domains
   - return a specific path and method
   - return all paths and emthods
+- Added code coverage
+
 
 ## Changed
 - Updated README.md with detailed feature description.

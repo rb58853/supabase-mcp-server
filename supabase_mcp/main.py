@@ -4,7 +4,7 @@ from typing import Any, Literal
 from mcp.server.fastmcp import FastMCP
 
 from supabase_mcp.api_service.api_manager import SupabaseApiManager
-from supabase_mcp.database_service.database_client import AsyncSupabaseClient, QueryResult
+from supabase_mcp.database_service.postgres_client import AsyncSupabaseClient, QueryResult
 from supabase_mcp.database_service.query_manager import QueryManager
 from supabase_mcp.exceptions import ConfirmationRequiredError
 from supabase_mcp.logger import logger
@@ -112,9 +112,7 @@ async def live_dangerously(service: Literal["api", "database"], enable_unsafe_mo
 
 
 @mcp.tool(description=tool_manager.get_description(ToolName.GET_MANAGEMENT_API_SPEC))  # type: ignore
-async def get_management_api_spec(
-    path: str | None = None, method: str | None = None, domain: str | None = None, all_paths: bool | None = False
-) -> dict[str, Any]:
+async def get_management_api_spec(params: dict[str, Any] = {}) -> dict[str, Any]:
     """Get the Supabase Management API specification.
 
     This tool can be used in four different ways (and then some ;)):
@@ -124,14 +122,20 @@ async def get_management_api_spec(
     4. With all_paths=True: Returns all paths and methods
 
     Args:
-        path: Optional API path (e.g., "/v1/projects/{ref}/functions")
-        method: Optional HTTP method (e.g., "GET", "POST")
-        domain: Optional domain/tag name (e.g., "Auth", "Storage")
-        all_paths: If True, returns all paths and methods
+        params: Dictionary containing optional parameters:
+            - path: Optional API path (e.g., "/v1/projects/{ref}/functions")
+            - method: Optional HTTP method (e.g., "GET", "POST")
+            - domain: Optional domain/tag name (e.g., "Auth", "Storage")
+            - all_paths: If True, returns all paths and methods
 
     Returns:
         API specification based on the provided parameters
     """
+    path = params.get("path")
+    method = params.get("method")
+    domain = params.get("domain")
+    all_paths = params.get("all_paths", False)
+
     logger.debug(
         f"Getting management API spec with path: {path}, method: {method}, domain: {domain}, all_paths: {all_paths}"
     )
@@ -162,22 +166,6 @@ async def call_auth_admin_method(method: str, params: dict[str, Any]) -> dict[st
 
 def run():
     """Run the Supabase MCP server."""
-    if settings.supabase_project_ref.startswith("127.0.0.1"):
-        logger.info(
-            "Starting Supabase MCP server to connect to local project: %s",
-            settings.supabase_project_ref,
-        )
-    else:
-        logger.info(
-            "Starting Supabase MCP server to connect to project ref: %s (region: %s)",
-            settings.supabase_project_ref,
-            settings.supabase_region,
-        )
-    if settings.supabase_access_token:
-        logger.info("Personal access token detected - using for Management API")
-    if settings.supabase_service_role_key:
-        logger.info("Service role key detected - using for Python SDK")
-
     mcp.run()
 
 

@@ -38,7 +38,7 @@ class ToolManager:
 
     _instance: Optional["ToolManager"] = None  # Singleton instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the tool manager."""
         self.descriptions: dict[str, str] = {}
         self._load_descriptions()

@@ -27,17 +27,24 @@ SUPPORTED_REGIONS = Literal[
 ]
 
 
-def find_config_file() -> str | None:
-    """Find the .env file in order of precedence:
+# TODO: allow it to easily switch the .env name, for example to .env.test for easier loading of variables
+def find_config_file(env_file: str = ".env") -> str | None:
+    """Find the specified env file in order of precedence:
     1. Current working directory (where command is run)
     2. Global config:
-       - Windows: %APPDATA%/supabase-mcp/.env
-       - macOS/Linux: ~/.config/supabase-mcp/.env
+       - Windows: %APPDATA%/supabase-mcp/{env_file}
+       - macOS/Linux: ~/.config/supabase-mcp/{env_file}
+
+    Args:
+        env_file: The name of the environment file to look for (default: ".env")
+
+    Returns:
+        The path to the found config file, or None if not found
     """
-    logger.info("Searching for configuration files...")
+    logger.info(f"Searching for configuration file: {env_file}")
 
     # 1. Check current directory
-    cwd_config = Path.cwd() / ".env"
+    cwd_config = Path.cwd() / env_file
     if cwd_config.exists():
         logger.info(f"Found local config file: {cwd_config}")
         return str(cwd_config)
@@ -53,7 +60,7 @@ def find_config_file() -> str | None:
         logger.info(f"Found global config file: {global_config}")
         return str(global_config)
 
-    logger.warning("No config files found, using default settings")
+    logger.info(f"No {env_file} file found")
     return None
 
 
@@ -97,7 +104,7 @@ class Settings(BaseSettings):
 
     @classmethod
     def with_config(cls, config_file: str | None = None) -> "Settings":
-        """Create Settings with specific config file.
+        """Create Settings with a specific config file.
 
         Args:
             config_file: Path to .env file to use, or None for no config file

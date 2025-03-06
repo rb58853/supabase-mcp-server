@@ -244,8 +244,8 @@ class SupabaseApiManager:
         Args:
             path: Optional API path
             method: Optional HTTP method
-            domain: Optional domain/tag name
-            all_paths: If True, returns all paths and methods
+            api_domain: Optional domain/tag name
+            full_spec: If True, returns all paths and methods
 
         Returns:
             API specification based on the provided parameters

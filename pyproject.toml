@@ -97,15 +97,28 @@ warn_unused_ignores = true
 warn_return_any = true
 warn_unreachable = true
 
+# Relaxed rules for tests
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+check_untyped_defs = false
+warn_return_any = false
+warn_unreachable = false
+
 [tool.pytest]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v -ra -q"
+addopts = "-v --no-header --tb=short --showlocals --log-cli-level=INFO"
 asyncio_mode = "strict"
 
 [tool.pytest.ini_options]
+log_cli = true
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
     "unit: marks a test as a unit test",
@@ -118,6 +131,7 @@ dev = [
     "mypy>=1.15.0",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.3",
+    "pytest-cov>=6.0.0",
     "pytest-mock>=3.14.0",
     "ruff>=0.9.9",
     "sqlfluff>=3.3.1",

@@ -1,3 +1,4 @@
+import asyncio
 import os
 from collections.abc import Generator
 from pathlib import Path
@@ -5,12 +6,14 @@ from pathlib import Path
 import pytest
 from dotenv import load_dotenv
 
-from supabase_mcp.database_service.database_client import SupabaseClient
+from supabase_mcp.database_service.postgres_client import AsyncSupabaseClient
+from supabase_mcp.database_service.query_manager import QueryManager
 from supabase_mcp.logger import logger
-from supabase_mcp.settings import Settings
+from supabase_mcp.settings import Settings, find_config_file
+from supabase_mcp.tool_manager import ToolManager
 
 
-def load_test_env() -> dict:
+def load_test_env() -> dict[str, str | None]:
     """Load test environment variables from .env.test file"""
     env_test_path = Path(__file__).parent.parent / ".env.test"
     if not env_test_path.exists():
@@ -24,48 +27,24 @@ def load_test_env() -> dict:
 
 
 @pytest.fixture
-def clean_environment() -> Generator[None, None, None]:
-    """Fixture to provide a clean environment without Supabase-related variables"""
-    # Store original environment
-    original_env = dict(os.environ)
-
-    # Remove Supabase-related environment variables
-    for key in ["SUPABASE_PROJECT_REF", "SUPABASE_DB_PASSWORD"]:
-        os.environ.pop(key, None)
-
-    yield
-
-    # Restore original environment
-    os.environ.clear()
-    os.environ.update(original_env)
-
-
-@pytest.fixture
-def clean_settings(clean_environment) -> Generator[Settings, None, None]:
+def settings_integration() -> Generator[Settings, None, None]:
     """Fixture to provide a clean Settings instance without any environment variables"""
 
-    # Clear SupabaseClient singleton
-    if hasattr(SupabaseClient, "_instance"):
-        delattr(SupabaseClient, "_instance")
-
-    settings = Settings()
-    logger.info(f"Clean settings initialized: {settings}")
-    yield settings
+    yield Settings.with_config(find_config_file(".env.test"))
 
 
 @pytest.fixture
-def custom_connection_settings() -> Generator[Settings, None, None]:
+def settings_integration_custom_env() -> Generator[Settings, None, None]:
     """Fixture that provides Settings instance for integration tests using .env.test"""
 
-    # Clear SupabaseClient singleton
-    SupabaseClient.reset()
-
-    # Load test environment
+    # Load custom environment variables
     test_env = load_test_env()
     original_env = dict(os.environ)
 
     # Set up test environment
-    os.environ.update(test_env)
+    for key, value in test_env.items():
+        if value is not None:
+            os.environ[key] = value
 
     # Create fresh settings instance
     settings = Settings()
@@ -79,26 +58,24 @@ def custom_connection_settings() -> Generator[Settings, None, None]:
 
 
 @pytest.fixture
-def custom_connection_client(custom_connection_settings):
+def postgres_client_custom_connection(settings_integration_custom_env: Settings):
     """Fixture providing a client connected to test database"""
-    client = SupabaseClient(settings=custom_connection_settings)
+    client = AsyncSupabaseClient(settings_instance=settings_integration_custom_env)
     yield client
-    client.close()  # Ensure connection is closed after test
+    asyncio.run(client.close())  # Ensure connection is closed after test
 
 
 @pytest.fixture
-def integration_client() -> Generator[SupabaseClient, None, None]:
-    """Fixture providing a client connected to a database for integration tests.
+def postgres_client_integration(settings_integration: Settings) -> Generator[AsyncSupabaseClient, None, None]:
+    """Fixture providing a database client connected to a database for integration tests.
 
     This fixture uses the default settings for connecting to the database,
     which makes it work automatically with local Supabase or CI environments.
     """
     # Reset the SupabaseClient singleton to ensure we get a fresh instance
-    SupabaseClient.reset()
+    asyncio.run(AsyncSupabaseClient.reset())
 
-    # Create client using default settings
-    settings = Settings()
-    client = SupabaseClient.create(settings_instance=settings)
+    client = AsyncSupabaseClient(settings_instance=settings_integration)
 
     # Log connection details (without credentials)
     db_url_parts = client.db_url.split("@")
@@ -111,4 +88,20 @@ def integration_client() -> Generator[SupabaseClient, None, None]:
     yield client
 
     # Clean up
-    client.close()
+    asyncio.run(client.close())
+
+
+@pytest.fixture()
+def query_manager_integration(postgres_client_integration: AsyncSupabaseClient) -> QueryManager:
+    """Fixture providing a query manager connected to a database for integration tests."""
+    return QueryManager(postgres_client_integration)
+
+
+@pytest.fixture()
+def tool_manager_integration() -> ToolManager:
+    """Fixture providing a tool manager for integration tests."""
+    return ToolManager()
+
+
+# For backward compatibility
+integration_client = postgres_client_integration

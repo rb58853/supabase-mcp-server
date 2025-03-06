@@ -40,7 +40,14 @@ jobs:
       - name: Run tests
         run: |
           source .venv/bin/activate # necessary for pytest
-          pytest
+          pytest --cov=supabase_mcp --cov-report=xml --cov-report=term
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: false
 
       - name: Build distribution packages
         run: |

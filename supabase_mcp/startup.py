@@ -5,8 +5,12 @@ from supabase_mcp.safety.core import ClientType
 from supabase_mcp.safety.safety_manager import SafetyManager
 
 
-def register_safety_configs():
-    """Register all safety configurations with the SafetyManager."""
+def register_safety_configs() -> bool:
+    """Register all safety configurations with the SafetyManager.
+
+    Returns:
+        bool: True if all configurations were registered successfully
+    """
     safety_manager = SafetyManager.get_instance()
 
     # Register SQL safety config
@@ -20,3 +24,4 @@ def register_safety_configs():
     logger.info("Registered API safety configuration")
 
     logger.info("✓ Safety configurations registered successfully")
+    return True

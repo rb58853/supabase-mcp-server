@@ -78,10 +78,11 @@ get_management_api_spec: |
   4. With all_paths=True: Returns all paths and methods
 
   Parameters:
-  - path: Optional API path (e.g., "/v1/projects/{ref}/functions")
-  - method: Optional HTTP method (e.g., "GET", "POST")
-  - domain: Optional domain/tag name (e.g., "Auth", "Storage")
-  - all_paths: Optional boolean, if True returns all paths and methods
+  - params: Dictionary containing optional parameters:
+      - path: Optional API path (e.g., "/v1/projects/{ref}/functions")
+      - method: Optional HTTP method (e.g., "GET", "POST")
+      - domain: Optional domain/tag name (e.g., "Auth", "Storage")
+      - all_paths: Optional boolean, if True returns all paths and methods
 
   Available domains:
   - Analytics: Analytics-related endpoints

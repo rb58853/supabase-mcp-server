@@ -27,7 +27,6 @@ SUPPORTED_REGIONS = Literal[
 ]
 
 
-# TODO: allow it to easily switch the .env name, for example to .env.test for easier loading of variables
 def find_config_file(env_file: str = ".env") -> str | None:
     """Find the specified env file in order of precedence:
     1. Current working directory (where command is run)
@@ -123,22 +122,10 @@ class Settings(BaseSettings):
             logger.warning("Using environment variables (highest precedence)")
             if config_file:
                 logger.warning(f"Note: Config file {config_file} exists but environment variables take precedence")
-            for var in ["SUPABASE_PROJECT_REF", "SUPABASE_DB_PASSWORD"]:
-                if var in os.environ:
-                    logger.info(f"Using {var} from environment")
         elif config_file:
             logger.info(f"Using settings from config file: {config_file}")
         else:
             logger.info("Using default settings (local development)")
-
-        # Log final configuration
-        logger.info("Final configuration:")
-        logger.info(f"  Project ref: {instance.supabase_project_ref}")
-        logger.info(f"  Password: {'*' * len(instance.supabase_db_password)}")
-        logger.info(f"  Region: {instance.supabase_region}")
-        logger.info(
-            f"  Service role key: {'*' * len(instance.supabase_service_role_key) if instance.supabase_service_role_key else 'Not set'}"
-        )
         return instance
 
 

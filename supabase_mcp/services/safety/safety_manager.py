@@ -4,7 +4,8 @@ from typing import Any, Optional
 
 from supabase_mcp.exceptions import ConfirmationRequiredError, OperationNotAllowedError
 from supabase_mcp.logger import logger
-from supabase_mcp.safety.core import ClientType, SafetyConfigBase, SafetyMode
+from supabase_mcp.services.safety.models import ClientType, SafetyMode
+from supabase_mcp.services.safety.safety_configs import APISafetyConfig, SafetyConfigBase, SQLSafetyConfig
 
 
 class SafetyManager:
@@ -34,6 +35,25 @@ class SafetyManager:
         if cls._instance is None:
             cls._instance = SafetyManager()
         return cls._instance
+
+    def register_safety_configs(self) -> bool:
+        """Register all safety configurations with the SafetyManager.
+
+        Returns:
+            bool: True if all configurations were registered successfully
+        """
+        # Register SQL safety config
+        sql_config = SQLSafetyConfig()
+        self.register_config(ClientType.DATABASE, sql_config)
+        logger.info("Registered SQL safety configuration")
+
+        # Register API safety config
+        api_config = APISafetyConfig()
+        self.register_config(ClientType.API, api_config)
+        logger.info("Registered API safety configuration")
+
+        logger.info("✓ Safety configurations registered successfully")
+        return True
 
     def register_config(self, client_type: ClientType, config: SafetyConfigBase[Any]) -> None:
         """Register a safety configuration for a client type.

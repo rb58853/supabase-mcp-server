@@ -3,8 +3,8 @@ import uuid
 import pytest
 
 from supabase_mcp.api_service.api_manager import SupabaseApiManager
-from supabase_mcp.database_service.postgres_client import QueryResult
-from supabase_mcp.database_service.query_manager import QueryManager
+from supabase_mcp.database.postgres_client import QueryResult
+from supabase_mcp.database.query_manager import QueryManager
 from supabase_mcp.exceptions import ConfirmationRequiredError, OperationNotAllowedError
 from supabase_mcp.main import (
     call_auth_admin_method,

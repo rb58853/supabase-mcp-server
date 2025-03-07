@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from supabase_mcp.database_service.migration_manager import MigrationManager
+from supabase_mcp.database.migration_manager import MigrationManager
 from supabase_mcp.sql_validator.validator import SQLValidator
 
 

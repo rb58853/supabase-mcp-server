@@ -2,7 +2,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
-from supabase_mcp.safety.core import OperationRiskLevel
+from supabase_mcp.services.safety.models import OperationRiskLevel
 
 
 class SQLQueryCategory(str, Enum):

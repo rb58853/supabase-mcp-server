@@ -7,12 +7,12 @@ import pytest_asyncio
 from dotenv import load_dotenv
 
 from supabase_mcp.api_service.api_client import APIClient
-from supabase_mcp.database_service.postgres_client import AsyncSupabaseClient
-from supabase_mcp.database_service.query_manager import QueryManager
+from supabase_mcp.database.postgres_client import AsyncSupabaseClient
+from supabase_mcp.database.query_manager import QueryManager
 from supabase_mcp.logger import logger
-from supabase_mcp.sdk_client.sdk_client import SupabaseSDKClient
+from supabase_mcp.sdk.sdk_client import SupabaseSDKClient
 from supabase_mcp.settings import Settings, find_config_file
-from supabase_mcp.tool_manager import ToolManager
+from supabase_mcp.tools import ToolManager
 
 
 @pytest.fixture
@@ -151,7 +151,7 @@ async def api_client_integration() -> AsyncGenerator[APIClient, None]:
 
 
 @pytest_asyncio.fixture(autouse=True, scope="class")
-async def sdk_client_integration(settings_integration: Settings) -> AsyncGenerator[SupabaseSDKClient, None]:
+async def sdk_client_integration(settings_integration: Settings) -> SupabaseSDKClient:
     """Fixture providing a function-scoped SDK client for integration tests.
 
     This ensures the SDK client is created once per test function and properly closed at the end.

@@ -46,7 +46,7 @@ class TestSDKClientIntegration:
         # Test with invalid parameters (negative page number)
         invalid_params = {"page": -1, "per_page": 10}
         with pytest.raises(PythonSDKError) as excinfo:
-            await sdk_client.call_auth_admin_method("list_users", invalid_params)
+            await sdk_client_integration.call_auth_admin_method("list_users", invalid_params)
 
         # The actual error message contains "Bad Pagination Parameters" instead of "Invalid parameters"
         assert "Bad Pagination Parameters" in str(excinfo.value)
@@ -87,7 +87,7 @@ class TestSDKClientIntegration:
             # Test with invalid parameters (non-existent user ID)
             invalid_params = {"uid": "non-existent-user-id"}
             with pytest.raises(PythonSDKError) as excinfo:
-                await sdk_client.call_auth_admin_method("get_user_by_id", invalid_params)
+                await sdk_client_integration.call_auth_admin_method("get_user_by_id", invalid_params)
 
             # The actual error message contains "user_id must be an UUID" instead of "user not found"
             assert "user_id must be an UUID" in str(excinfo.value)
@@ -126,16 +126,16 @@ class TestSDKClientIntegration:
             # Test with invalid parameters (missing required fields)
             invalid_params = {"user_metadata": {"name": "Invalid User"}}
             with pytest.raises(PythonSDKError) as excinfo:
-                await sdk_client.call_auth_admin_method("create_user", invalid_params)
+                await sdk_client_integration.call_auth_admin_method("create_user", invalid_params)
 
             assert "Invalid parameters" in str(excinfo.value)
 
         finally:
             # Clean up - delete the test user
             delete_params = {"id": user_id}
-            await sdk_client.call_auth_admin_method("delete_user", delete_params)
+            await sdk_client_integration.call_auth_admin_method("delete_user", delete_params)
 
-    async def test_update_user_by_id(self, sdk_client):
+    async def test_update_user_by_id(self, sdk_client_integration):
         """Test updating a user's attributes"""
         # Create a new test user
         test_email = get_test_email("update")
@@ -149,7 +149,7 @@ class TestSDKClientIntegration:
         }
 
         # Create the user
-        create_result = await sdk_client.call_auth_admin_method("create_user", create_params)
+        create_result = await sdk_client_integration.call_auth_admin_method("create_user", create_params)
         assert hasattr(create_result, "user")
         user_id = create_result.user.id
 
@@ -164,7 +164,7 @@ class TestSDKClientIntegration:
                 },
             }
 
-            update_result = await sdk_client.call_auth_admin_method("update_user_by_id", update_params)
+            update_result = await sdk_client_integration.call_auth_admin_method("update_user_by_id", update_params)
 
             # Verify user was updated
             assert update_result is not None
@@ -178,7 +178,7 @@ class TestSDKClientIntegration:
                 "attributes": {"user_metadata": {"name": "Invalid Update"}},
             }
             with pytest.raises(PythonSDKError) as excinfo:
-                await sdk_client.call_auth_admin_method("update_user_by_id", invalid_params)
+                await sdk_client_integration.call_auth_admin_method("update_user_by_id", invalid_params)
 
             # The actual error message contains "user_id must be an uuid" instead of "user not found"
             assert "user_id must be an uuid" in str(excinfo.value).lower()
@@ -186,9 +186,9 @@ class TestSDKClientIntegration:
         finally:
             # Clean up - delete the test user
             delete_params = {"id": user_id}
-            await sdk_client.call_auth_admin_method("delete_user", delete_params)
+            await sdk_client_integration.call_auth_admin_method("delete_user", delete_params)
 
-    async def test_delete_user(self, sdk_client):
+    async def test_delete_user(self, sdk_client_integration):
         """Test deleting a user"""
         # Create a new test user
         test_email = get_test_email("delete")
@@ -200,14 +200,14 @@ class TestSDKClientIntegration:
         }
 
         # Create the user
-        create_result = await sdk_client.call_auth_admin_method("create_user", create_params)
+        create_result = await sdk_client_integration.call_auth_admin_method("create_user", create_params)
         assert hasattr(create_result, "user")
         user_id = create_result.user.id
 
         # Delete the user
         delete_params = {"id": user_id}
         # The delete_user method returns None on success, so we just check that it doesn't raise an exception
-        await sdk_client.call_auth_admin_method("delete_user", delete_params)
+        await sdk_client_integration.call_auth_admin_method("delete_user", delete_params)
 
         # No need to assert on the result, as the API returns None on success
         # We'll verify deletion by trying to get the user and expecting an error
@@ -215,19 +215,19 @@ class TestSDKClientIntegration:
         # Verify user no longer exists
         get_params = {"uid": user_id}
         with pytest.raises(PythonSDKError) as excinfo:
-            await sdk_client.call_auth_admin_method("get_user_by_id", get_params)
+            await sdk_client_integration.call_auth_admin_method("get_user_by_id", get_params)
 
         assert "user not found" in str(excinfo.value).lower() or "not found" in str(excinfo.value).lower()
 
         # Test with invalid parameters (non-UUID format user ID)
         invalid_params = {"id": "non-existent-user-id"}
         with pytest.raises(PythonSDKError) as excinfo:
-            await sdk_client.call_auth_admin_method("delete_user", invalid_params)
+            await sdk_client_integration.call_auth_admin_method("delete_user", invalid_params)
 
         # The API validates UUID format before checking if user exists
         assert "user_id must be an uuid" in str(excinfo.value).lower()
 
-    async def test_invite_user_by_email(self, sdk_client):
+    async def test_invite_user_by_email(self, sdk_client_integration):
         """Test inviting a user by email"""
         # Create invite parameters
         test_email = get_test_email("invite")
@@ -238,7 +238,7 @@ class TestSDKClientIntegration:
 
         # Invite the user
         try:
-            result = await sdk_client.call_auth_admin_method("invite_user_by_email", invite_params)
+            result = await sdk_client_integration.call_auth_admin_method("invite_user_by_email", invite_params)
 
             # Verify response
             assert result is not None
@@ -249,12 +249,12 @@ class TestSDKClientIntegration:
             # Clean up - delete the invited user
             if hasattr(result.user, "id"):
                 delete_params = {"id": result.user.id}
-                await sdk_client.call_auth_admin_method("delete_user", delete_params)
+                await sdk_client_integration.call_auth_admin_method("delete_user", delete_params)
 
             # Test with invalid parameters (missing email)
             invalid_params = {"options": {"data": {"name": "Invalid Invite"}}}
             with pytest.raises(PythonSDKError) as excinfo:
-                await sdk_client.call_auth_admin_method("invite_user_by_email", invalid_params)
+                await sdk_client_integration.call_auth_admin_method("invite_user_by_email", invalid_params)
 
             assert "Invalid parameters" in str(excinfo.value)
 
@@ -266,7 +266,7 @@ class TestSDKClientIntegration:
             else:
                 raise
 
-    async def test_generate_link(self, sdk_client):
+    async def test_generate_link(self, sdk_client_integration):
         """Test generating authentication links"""
         # Test different link types
         link_types = ["signup", "magiclink", "recovery"]
@@ -286,7 +286,7 @@ class TestSDKClientIntegration:
                 }
 
                 try:
-                    create_result = await sdk_client.call_auth_admin_method("create_user", create_params)
+                    create_result = await sdk_client_integration.call_auth_admin_method("create_user", create_params)
                     if hasattr(create_result, "user") and hasattr(create_result.user, "id"):
                         created_user_ids.append(create_result.user.id)
                 except PythonSDKError as e:
@@ -316,7 +316,7 @@ class TestSDKClientIntegration:
 
             try:
                 # Generate link
-                result = await sdk_client.call_auth_admin_method("generate_link", link_params)
+                result = await sdk_client_integration.call_auth_admin_method("generate_link", link_params)
 
                 # Verify response
                 assert result is not None
@@ -337,7 +337,7 @@ class TestSDKClientIntegration:
         # Test with invalid parameters (invalid link type)
         invalid_params = {"type": "invalid_type", "email": get_test_email("invalid")}
         with pytest.raises(PythonSDKError) as excinfo:
-            await sdk_client.call_auth_admin_method("generate_link", invalid_params)
+            await sdk_client_integration.call_auth_admin_method("generate_link", invalid_params)
 
         assert "Invalid parameters" in str(excinfo.value) or "invalid type" in str(excinfo.value).lower()
 
@@ -345,11 +345,11 @@ class TestSDKClientIntegration:
         for user_id in created_user_ids:
             try:
                 delete_params = {"id": user_id}
-                await sdk_client.call_auth_admin_method("delete_user", delete_params)
+                await sdk_client_integration.call_auth_admin_method("delete_user", delete_params)
             except Exception:
                 pass
 
-    async def test_delete_factor(self, sdk_client):
+    async def test_delete_factor(self, sdk_client_integration):
         """Test deleting an MFA factor"""
         # Create a test user
         test_email = get_test_email("factor")
@@ -361,7 +361,7 @@ class TestSDKClientIntegration:
         }
 
         # Create the user
-        create_result = await sdk_client.call_auth_admin_method("create_user", create_params)
+        create_result = await sdk_client_integration.call_auth_admin_method("create_user", create_params)
         assert hasattr(create_result, "user")
         user_id = create_result.user.id
 
@@ -370,7 +370,7 @@ class TestSDKClientIntegration:
             delete_factor_params = {"user_id": user_id, "id": "non-existent-factor-id"}
 
             try:
-                await sdk_client.call_auth_admin_method("delete_factor", delete_factor_params)
+                await sdk_client_integration.call_auth_admin_method("delete_factor", delete_factor_params)
                 # If it succeeds (unlikely), we should assert something
                 assert False, "delete_factor should not succeed as it's not implemented"
             except PythonSDKError as e:
@@ -380,9 +380,9 @@ class TestSDKClientIntegration:
         finally:
             # Clean up - delete the test user
             delete_params = {"id": user_id}
-            await sdk_client.call_auth_admin_method("delete_user", delete_params)
+            await sdk_client_integration.call_auth_admin_method("delete_user", delete_params)
 
-    async def test_empty_parameters(self, sdk_client):
+    async def test_empty_parameters(self, sdk_client_integration):
         """Test validation errors with empty parameters for various methods"""
         # Test methods with empty parameters
         methods = ["get_user_by_id", "create_user", "update_user_by_id", "delete_user", "generate_link"]
@@ -392,7 +392,7 @@ class TestSDKClientIntegration:
 
             # Should raise PythonSDKError containing validation error details
             with pytest.raises(PythonSDKError) as excinfo:
-                await sdk_client.call_auth_admin_method(method, empty_params)
+                await sdk_client_integration.call_auth_admin_method(method, empty_params)
 
             # Verify error message contains validation info
             assert "Invalid parameters" in str(excinfo.value)

@@ -3,11 +3,11 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from supabase_mcp.api_service.api_client import APIClient
-from supabase_mcp.api_service.api_spec_manager import ApiSpecManager
 from supabase_mcp.logger import logger
-from supabase_mcp.safety.core import ClientType
-from supabase_mcp.safety.safety_manager import SafetyManager
+from supabase_mcp.services.api.api_client import ManagementAPIClient
+from supabase_mcp.services.api.spec_manager import ApiSpecManager
+from supabase_mcp.services.safety.models import ClientType
+from supabase_mcp.services.safety.safety_manager import SafetyManager
 from supabase_mcp.settings import settings
 
 
@@ -30,30 +30,32 @@ class SupabaseApiManager:
 
     _instance: SupabaseApiManager | None = None
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        api_client: ManagementAPIClient,
+        safety_manager: SafetyManager,
+        spec_manager: ApiSpecManager | None = None,
+    ) -> None:
         """Initialize the API manager."""
-        self.spec_manager: ApiSpecManager | None = None
-        self.client: APIClient | None = None  # Type hint to fix linter error
-        self.safety_manager = SafetyManager.get_instance()
+        self.spec_manager = spec_manager or ApiSpecManager()  # this is so that I don't have to pass it
+        self.client = api_client
+        self.safety_manager = safety_manager
 
     @classmethod
-    async def create(cls) -> SupabaseApiManager:
-        """Create a new API manager instance."""
-        manager = cls()
-        manager.spec_manager = await ApiSpecManager.create()  # Use the running event loop
-        manager.client = APIClient()  # This is now properly typed
-        return manager
-
-    @classmethod
-    async def get_manager(cls) -> SupabaseApiManager:
+    def get_instance(
+        cls,
+        api_client: ManagementAPIClient,
+        safety_manager: SafetyManager,
+        spec_manager: ApiSpecManager | None = None,
+    ) -> SupabaseApiManager:
         """Get the singleton instance"""
         if cls._instance is None:
-            cls._instance = await cls.create()
+            cls._instance = SupabaseApiManager(api_client, safety_manager, spec_manager)
         return cls._instance
 
-    def get_spec(self) -> dict[str, Any]:
-        """Retrieves enriched spec from spec manager"""
-        return self.spec_manager.get_spec()
+    async def get_spec(self) -> dict[str, Any]:
+        """Retrieves loaded spec from spec manager"""
+        return await self.spec_manager.get_spec()
 
     def get_safety_rules(self) -> str:
         """

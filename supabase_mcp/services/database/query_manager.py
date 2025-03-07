@@ -1,14 +1,14 @@
 from pathlib import Path
 from typing import Any
 
-from supabase_mcp.database_service.migration_manager import MigrationManager
-from supabase_mcp.database_service.postgres_client import AsyncSupabaseClient, QueryResult
 from supabase_mcp.exceptions import OperationNotAllowedError
 from supabase_mcp.logger import logger
-from supabase_mcp.safety.core import ClientType, SafetyMode
-from supabase_mcp.safety.safety_manager import SafetyManager
-from supabase_mcp.sql_validator.models import QueryValidationResults
-from supabase_mcp.sql_validator.validator import SQLValidator
+from supabase_mcp.services.database.migration_manager import MigrationManager
+from supabase_mcp.services.database.postgres_client import PostgresClient, QueryResult
+from supabase_mcp.services.database.sql.models import QueryValidationResults
+from supabase_mcp.services.database.sql.validator import SQLValidator
+from supabase_mcp.services.safety.models import ClientType, SafetyMode
+from supabase_mcp.services.safety.safety_manager import SafetyManager
 
 
 class QueryManager:
@@ -28,17 +28,23 @@ class QueryManager:
     # Path to SQL files directory
     SQL_DIR = Path(__file__).parent.parent / "sql"
 
-    def __init__(self, db_client: AsyncSupabaseClient):
+    def __init__(
+        self,
+        postgres_client: PostgresClient,
+        safety_manager: SafetyManager,
+        sql_validator: SQLValidator | None = None,
+        migration_manager: MigrationManager | None = None,
+    ):
         """
         Initialize the QueryManager.
 
         Args:
             db_client: The database client to use for executing queries
         """
-        self.db_client = db_client
-        self.validator = SQLValidator()
-        self.migration_manager = MigrationManager()
-        self.safety_manager = SafetyManager.get_instance()
+        self.db_client = postgres_client
+        self.safety_manager = safety_manager
+        self.validator = sql_validator or SQLValidator()
+        self.migration_manager = migration_manager or MigrationManager()
 
     def check_readonly(self) -> bool:
         """Returns true if current safety mode is SAFE."""

@@ -1,8 +1,4 @@
-"""API client for Supabase Management API.
-
-This module provides a client for interacting with the Supabase Management API.
-It handles the low-level HTTP requests and response parsing.
-"""
+from __future__ import annotations
 
 from json.decoder import JSONDecodeError
 from typing import Any
@@ -19,7 +15,7 @@ from supabase_mcp.exceptions import (
     UnexpectedError,
 )
 from supabase_mcp.logger import logger
-from supabase_mcp.settings import settings
+from supabase_mcp.settings import Settings
 
 SUPABASE_API_URL = "https://api.supabase.com"
 
@@ -32,18 +28,21 @@ def log_retry_attempt(retry_state: RetryCallState) -> None:
     logger.warning(f"Network error, retrying ({retry_state.attempt_number}/3): {exception_str}")
 
 
-class APIClient:
+class ManagementAPIClient:
     """
     Client for Supabase Management API.
 
     Handles low-level HTTP requests to the Supabase Management API.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, settings: Settings) -> None:
         """Initialize the API client with default settings."""
-        self.client = self.create_httpx_client()
+        self.settings = settings
+        self.client = self.create_httpx_client(settings)
 
-    def create_httpx_client(self) -> httpx.AsyncClient:
+        logger.info("Initilized Mangement API client successfully.")
+
+    def create_httpx_client(self, settings: Settings) -> httpx.AsyncClient:
         """Create and configure an httpx client for API requests."""
         headers = {
             "Authorization": f"Bearer {settings.supabase_access_token}",

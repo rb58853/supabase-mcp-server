@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, mock_open, patch
 
-from supabase_mcp.tool_manager.tool_manager import ToolManager, ToolName
+from supabase_mcp.tools.manager import ToolManager, ToolName
 
 
 class TestToolManager:

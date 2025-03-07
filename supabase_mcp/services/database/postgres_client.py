@@ -10,9 +10,9 @@ from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_
 
 from supabase_mcp.exceptions import ConnectionError, PermissionError, QueryError
 from supabase_mcp.logger import logger
+from supabase_mcp.services.database.postgres_client import QueryValidationResults
+from supabase_mcp.services.database.sql.validator import SQLValidator
 from supabase_mcp.settings import Settings
-from supabase_mcp.sql_validator.models import QueryValidationResults
-from supabase_mcp.sql_validator.validator import SQLValidator
 
 # Define a type variable for generic return types
 T = TypeVar("T")
@@ -49,16 +49,17 @@ def log_db_retry_attempt(retry_state: RetryCallState) -> None:
 
 
 # Add the new AsyncSupabaseClient class
-class AsyncSupabaseClient:
+class PostgresClient:
     """Asynchronous client for interacting with Supabase PostgreSQL database."""
 
-    _instance: AsyncSupabaseClient | None = None  # Singleton instance
+    _instance: PostgresClient | None = None  # Singleton instance
 
     def __init__(
         self,
-        settings_instance: Settings,
+        settings: Settings,
         project_ref: str | None = None,
         db_password: str | None = None,
+        db_region: str | None = None,
     ):
         """Initialize client configuration (but don't connect yet).
 
@@ -66,13 +67,45 @@ class AsyncSupabaseClient:
             settings_instance: Settings instance to use for configuration.
             project_ref: Optional Supabase project reference. If not provided, will be taken from settings.
             db_password: Optional database password. If not provided, will be taken from settings.
+            db_region: Optional database region. If not provided, will be taken from settings.
         """
         self._pool = None
-        self._settings = settings_instance
+        self._settings = settings
         self.project_ref = project_ref or self._settings.supabase_project_ref
         self.db_password = db_password or self._settings.supabase_db_password
+        self.db_region = db_region or self._settings.supabase_region
         self.db_url = self._build_connection_string()
-        self.sql_validator = SQLValidator()
+        self.sql_validator: SQLValidator = SQLValidator()
+
+        logger.info(f"Initialized PostgresClient with project ref: {self.project_ref}")
+
+    @classmethod
+    def get_instance(
+        cls,
+        settings: Settings,
+        project_ref: str | None = None,
+        db_password: str | None = None,
+    ) -> PostgresClient:
+        """Create and return a configured AsyncSupabaseClient instance.
+
+        This is the recommended way to create a client instance.
+
+        Args:
+            settings_instance: Settings instance to use for configuration
+            project_ref: Optional Supabase project reference
+            db_password: Optional database password
+
+        Returns:
+            Configured AsyncSupabaseClient instance
+        """
+        if cls._instance is None:
+            cls._instance = cls(
+                settings=settings,
+                project_ref=project_ref,
+                db_password=db_password,
+            )
+            # Doesn't connect yet - will connect lazily when needed
+        return cls._instance
 
     def _build_connection_string(self) -> str:
         """Build the database connection string for asyncpg.
@@ -166,34 +199,6 @@ class AsyncSupabaseClient:
             logger.info("Closed PostgreSQL connection pool")
         else:
             logger.debug("No connection pool to close")
-
-    @classmethod
-    def get_instance(
-        cls,
-        settings_instance: Settings,
-        project_ref: str | None = None,
-        db_password: str | None = None,
-    ) -> AsyncSupabaseClient:
-        """Create and return a configured AsyncSupabaseClient instance.
-
-        This is the recommended way to create a client instance.
-
-        Args:
-            settings_instance: Settings instance to use for configuration
-            project_ref: Optional Supabase project reference
-            db_password: Optional database password
-
-        Returns:
-            Configured AsyncSupabaseClient instance
-        """
-        if cls._instance is None:
-            cls._instance = cls(
-                settings_instance=settings_instance,
-                project_ref=project_ref,
-                db_password=db_password,
-            )
-            # Don't connect yet - will connect lazily when needed
-        return cls._instance
 
     @classmethod
     async def reset(cls) -> None:

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -36,7 +37,7 @@ class ToolManager:
     and providing them to the main application.
     """
 
-    _instance: Optional["ToolManager"] = None  # Singleton instance
+    _instance: ToolManager | None = None  # Singleton instance
 
     def __init__(self) -> None:
         """Initialize the tool manager."""
@@ -44,7 +45,7 @@ class ToolManager:
         self._load_descriptions()
 
     @classmethod
-    def get_instance(cls) -> "ToolManager":
+    def get_instance(cls) -> ToolManager:
         """Get or create the singleton instance of ToolManager."""
         if cls._instance is None:
             cls._instance = cls()

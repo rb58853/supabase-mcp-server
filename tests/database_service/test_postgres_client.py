@@ -8,7 +8,7 @@ import asyncpg
 import pytest
 from asyncpg.exceptions import PostgresError
 
-from supabase_mcp.database_service.postgres_client import AsyncSupabaseClient, QueryResult, StatementResult
+from supabase_mcp.database.postgres_client import AsyncSupabaseClient, QueryResult, StatementResult
 from supabase_mcp.exceptions import ConnectionError
 from supabase_mcp.safety.core import OperationRiskLevel
 from supabase_mcp.sql_validator.models import (

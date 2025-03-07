@@ -4,11 +4,11 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 from supabase import AsyncClient, create_async_client
-from supabase.lib.client_options import ClientOptions
+from supabase.lib.client_options import AsyncClientOptions
 
 from supabase_mcp.exceptions import PythonSDKError
 from supabase_mcp.logger import logger
-from supabase_mcp.sdk_client.auth_admin_models import (
+from supabase_mcp.services.sdk.auth_admin_models import (
     PARAM_MODELS,
     CreateUserParams,
     DeleteFactorParams,
@@ -19,8 +19,8 @@ from supabase_mcp.sdk_client.auth_admin_models import (
     ListUsersParams,
     UpdateUserByIdParams,
 )
-from supabase_mcp.sdk_client.auth_admin_sdk_spec import get_auth_admin_methods_spec
-from supabase_mcp.settings import settings
+from supabase_mcp.services.sdk.auth_admin_sdk_spec import get_auth_admin_methods_spec
+from supabase_mcp.settings import Settings
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -36,13 +36,23 @@ class SupabaseSDKClient:
 
     _instance: SupabaseSDKClient | None = None
 
-    def __init__(self, project_ref: str, service_role_key: str):
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        project_ref: str | None = None,
+        service_role_key: str | None = None,
+    ):
         self.client: AsyncClient | None = None
-        self.project_ref = project_ref
-        self.service_role_key = service_role_key
+        self.settings = settings
+        self.project_ref = settings.supabase_project_ref if settings else project_ref
+        self.service_role_key = settings.supabase_service_role_key if settings else service_role_key
+        self.supabase_url = self.get_supabase_url()
+        logger.info(f"Initialized Supabase SDK client for project {self.project_ref}")
 
     def get_supabase_url(self) -> str:
         """Returns the Supabase URL based on the project reference"""
+        if not self.project_ref:
+            raise PythonSDKError("Project reference is not set")
         if self.project_ref.startswith("127.0.0.1"):
             # Return the default Supabase API URL
             return "http://127.0.0.1:54321"
@@ -51,33 +61,48 @@ class SupabaseSDKClient:
     @classmethod
     async def create(
         cls,
-        project_ref: str = settings.supabase_project_ref,
-        service_role_key: str = settings.supabase_service_role_key,
+        settings: Settings | None = None,
+        project_ref: str | None = None,
+        service_role_key: str | None = None,
     ) -> SupabaseSDKClient:
         if cls._instance is None:
-            try:
-                cls._instance = cls(project_ref, service_role_key)
-                supabase_url = cls._instance.get_supabase_url()
-                cls._instance.client = await create_async_client(
-                    supabase_url,
-                    service_role_key,
-                    options=ClientOptions(
-                        auto_refresh_token=False,
-                        persist_session=False,
-                    ),
-                )
-                logger.info(f"Created Supabase SDK client for project {project_ref}")
-            except Exception as e:
-                logger.error(f"Error creating Supabase SDK client: {e}")
-                raise PythonSDKError(f"Error creating Supabase SDK client: {e}") from e
+            cls._instance = cls(settings, project_ref, service_role_key)
         return cls._instance
 
     @classmethod
-    async def get_instance(cls) -> SupabaseSDKClient:
+    async def get_instance(
+        cls,
+        settings: Settings | None = None,
+        project_ref: str | None = None,
+        service_role_key: str | None = None,
+    ) -> SupabaseSDKClient:
         """Returns the singleton instance"""
         if cls._instance is None:
-            await cls.create()
+            await cls.create(settings, project_ref, service_role_key)
         return cls._instance
+
+    async def create_client(self) -> AsyncClient:
+        """Creates a new Supabase client"""
+        try:
+            client = await create_async_client(
+                self.service_role_key,
+                self.supabase_url,
+                options=AsyncClientOptions(
+                    auto_refresh_token=False,
+                    persist_session=False,
+                ),
+            )
+            return client
+        except Exception as e:
+            logger.error(f"Error creating Supabase client: {e}")
+            raise PythonSDKError(f"Error creating Supabase client: {e}") from e
+
+    async def get_client(self) -> AsyncClient:
+        """Returns the Supabase client"""
+        if not self.client:
+            self.client = await self.create_client()
+            logger.info(f"Created Supabase SDK client for project {self.project_ref}")
+        return self.client
 
     def return_python_sdk_spec(self) -> dict:
         """Returns the Python SDK spec"""
@@ -92,18 +117,21 @@ class SupabaseSDKClient:
 
     async def _get_user_by_id(self, params: GetUserByIdParams) -> dict:
         """Get user by ID implementation"""
+        self.client = await self.get_client()
         admin_auth_client = self.client.auth.admin
         result = await admin_auth_client.get_user_by_id(params.uid)
         return result
 
     async def _list_users(self, params: ListUsersParams) -> dict:
         """List users implementation"""
+        self.client = await self.get_client()
         admin_auth_client = self.client.auth.admin
         result = await admin_auth_client.list_users(page=params.page, per_page=params.per_page)
         return result
 
     async def _create_user(self, params: CreateUserParams) -> dict:
         """Create user implementation"""
+        self.client = await self.get_client()
         admin_auth_client = self.client.auth.admin
         user_data = params.model_dump(exclude_none=True)
         result = await admin_auth_client.create_user(user_data)
@@ -111,12 +139,14 @@ class SupabaseSDKClient:
 
     async def _delete_user(self, params: DeleteUserParams) -> dict:
         """Delete user implementation"""
+        self.client = await self.get_client()
         admin_auth_client = self.client.auth.admin
         result = await admin_auth_client.delete_user(params.id, should_soft_delete=params.should_soft_delete)
         return result
 
     async def _invite_user_by_email(self, params: InviteUserByEmailParams) -> dict:
         """Invite user by email implementation"""
+        self.client = await self.get_client()
         admin_auth_client = self.client.auth.admin
         options = params.options if params.options else {}
         result = await admin_auth_client.invite_user_by_email(params.email, options)
@@ -124,6 +154,7 @@ class SupabaseSDKClient:
 
     async def _generate_link(self, params: GenerateLinkParams) -> dict:
         """Generate link implementation"""
+        self.client = await self.get_client()
         admin_auth_client = self.client.auth.admin
 
         # Create a params dictionary as expected by the SDK
@@ -145,6 +176,7 @@ class SupabaseSDKClient:
 
     async def _update_user_by_id(self, params: UpdateUserByIdParams) -> dict:
         """Update user by ID implementation"""
+        self.client = await self.get_client()
         admin_auth_client = self.client.auth.admin
         uid = params.uid
         attributes = params.attributes.model_dump(exclude={"uid"}, exclude_none=True)
@@ -159,7 +191,9 @@ class SupabaseSDKClient:
     async def call_auth_admin_method(self, method: str, params: dict[str, Any]) -> Any:
         """Calls a method of the Python SDK client"""
         if not self.client:
-            raise PythonSDKError("Python SDK client not initialized")
+            self.client = await self.get_client()
+            if not self.client:
+                raise PythonSDKError("Python SDK client not initialized")
 
         # Validate method exists
         if method not in PARAM_MODELS:

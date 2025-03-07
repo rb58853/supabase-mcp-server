@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from supabase_mcp.database_service.query_manager import QueryManager
+from supabase_mcp.database.query_manager import QueryManager
 from supabase_mcp.exceptions import SafetyError
 from supabase_mcp.safety.core import OperationRiskLevel
 from supabase_mcp.sql_validator.models import (

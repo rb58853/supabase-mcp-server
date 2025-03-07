@@ -45,25 +45,6 @@ class ApiSpecManager:
         self._paths_cache: dict[str, dict[str, str]] | None = None
         self._domains_cache: list[str] | None = None
 
-    @classmethod
-    async def create(cls) -> "ApiSpecManager":
-        """Async factory method to create and initialize a ApiSpecManager"""
-        manager = cls()
-        await manager.on_startup()
-        return manager
-
-    async def on_startup(self) -> None:
-        """Load and enrich spec on startup"""
-        # Try to fetch latest spec
-        raw_spec = await self._fetch_remote_spec()
-
-        if not raw_spec:
-            # If remote fetch fails, use our fallback spec
-            logger.info("Using fallback API spec")
-            raw_spec = self._load_local_spec()
-
-        self.spec = raw_spec
-
     async def _fetch_remote_spec(self) -> dict[str, Any] | None:
         """
         Fetch latest OpenAPI spec from Supabase API.
@@ -95,11 +76,16 @@ class ApiSpecManager:
             logger.error(f"Invalid JSON in local spec: {e}")
             raise
 
-    def get_spec(self) -> dict[str, Any]:
+    async def get_spec(self) -> dict[str, Any]:
         """Retrieve the enriched spec."""
         if self.spec is None:
-            logger.error("OpenAPI spec not loaded by spec manager")
-            raise ValueError("OpenAPI spec not loaded")
+            raw_spec = await self._fetch_remote_spec()
+            if not raw_spec:
+                # If remote fetch fails, use our fallback spec
+                logger.info("Using fallback API spec")
+                raw_spec = self._load_local_spec()
+            self.spec = raw_spec
+
         return self.spec
 
     def get_all_paths_and_methods(self) -> dict[str, dict[str, str]]:

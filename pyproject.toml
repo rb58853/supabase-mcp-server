@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "supabase-mcp-server"
 dynamic = ["version"]
-description = "Unofficial Supabase MCP server that enables Cursor and Windsurf to manage your database and execute SQL queries"
+description = "Community Supabase MCP server that enables Cursor and Windsurf to end-to-end manage your Supabase project, execute SQL queries, and more."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -52,8 +52,8 @@ raw-options = { version_scheme = "no-guess-dev" }
 version-file = "supabase_mcp/_version.py"
 
 [project.scripts]
-supabase-mcp-server = "supabase_mcp.main:run"
-supabase-mcp-inspector = "supabase_mcp.main:inspector"
+supabase-mcp-server = "supabase_mcp.main:run_server"
+supabase-mcp-inspector = "supabase_mcp.main:run_inspector"
 
 
 # Configure PyPI publishing
@@ -121,7 +121,7 @@ addopts = "-v --no-header --tb=short"
 # log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 # log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "class"
+asyncio_default_fixture_loop_scope = "function"
 markers = [
     "unit: marks a test as a unit test",
     "integration: marks a test as an integration test that requires database access"

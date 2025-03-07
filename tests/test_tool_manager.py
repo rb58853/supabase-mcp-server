@@ -20,8 +20,8 @@ class TestToolManager:
         # We need to reset the singleton for test isolation
         ToolManager._instance = None  # type: ignore
 
-    @patch("supabase_mcp.tool_manager.tool_manager.Path")
-    @patch("supabase_mcp.tool_manager.tool_manager.yaml.safe_load")
+    @patch("supabase_mcp.tools.manager.Path")
+    @patch("supabase_mcp.tools.manager.yaml.safe_load")
     def test_load_descriptions(self, mock_yaml_load: MagicMock, mock_path: MagicMock):
         """Test that descriptions are loaded correctly from YAML files."""
         # Setup mock directory structure

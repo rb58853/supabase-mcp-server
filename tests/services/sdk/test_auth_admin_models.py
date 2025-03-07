@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from supabase_mcp.sdk.auth_admin_models import (
+from supabase_mcp.services.sdk.auth_admin_models import (
     PARAM_MODELS,
     AdminUserAttributes,
     CreateUserParams,

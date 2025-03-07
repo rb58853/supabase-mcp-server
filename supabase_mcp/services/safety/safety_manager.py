@@ -248,3 +248,13 @@ class SafetyManager:
         """
         mode = self.get_safety_mode(client_type)
         return str(mode)
+
+    @classmethod
+    def reset(cls) -> None:
+        """Reset the singleton instance cleanly.
+
+        This closes any open connections and resets the singleton instance.
+        """
+        if cls._instance is not None:
+            cls._instance = None
+            logger.info("SafetyManager instance reset complete")

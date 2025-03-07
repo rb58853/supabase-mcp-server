@@ -1,21 +1,16 @@
-"""Integration tests for the API client.
-
-These tests use a real API client to make requests to the Supabase Management API.
-"""
-
 import httpx
 import pytest
 
-from supabase_mcp.api_service.api_client import APIClient
 from supabase_mcp.exceptions import APIClientError, APIConnectionError
+from supabase_mcp.services.api.api_client import ManagementAPIClient
 
 
-@pytest.mark.asyncio(loop_scope="class")
+@pytest.mark.asyncio(loop_scope="module")
 @pytest.mark.integration
 class TestAPIClient:
     """Integration tests for the API client."""
 
-    async def test_execute_get_request(self, api_client_integration: APIClient):
+    async def test_execute_get_request(self, api_client_integration: ManagementAPIClient):
         """Test executing a GET request to the API."""
         # Make a simple GET request to a public endpoint
         # Since /v1/health returns 404, we'll test the error handling instead
@@ -32,7 +27,8 @@ class TestAPIClient:
         assert exc_info.value.status_code == 404
         assert "Cannot GET /v1/health" in str(exc_info.value)
 
-    async def test_request_preparation(self, api_client_integration: APIClient):
+    # @pytest.mark.asyncio(loop_scope="function")
+    async def test_request_preparation(self, api_client_integration: ManagementAPIClient):
         """Test that requests are properly prepared with headers and parameters."""
         # Prepare a request with parameters
         method = "GET"
@@ -54,7 +50,8 @@ class TestAPIClient:
         assert "Content-Type" in request.headers
         assert request.headers["Content-Type"] == "application/json"
 
-    async def test_error_handling(self, api_client_integration: APIClient):
+    # @pytest.mark.asyncio(loop_scope="function")
+    async def test_error_handling(self, api_client_integration: ManagementAPIClient):
         """Test handling of API errors."""
         # Make a request to a non-existent endpoint
         path = "/v1/nonexistent-endpoint"
@@ -70,7 +67,8 @@ class TestAPIClient:
         assert exc_info.value.status_code == 404
         assert "Cannot GET /v1/nonexistent-endpoint" in str(exc_info.value)
 
-    async def test_request_with_body(self, api_client_integration: APIClient):
+    # @pytest.mark.asyncio(loop_scope="function")
+    async def test_request_with_body(self, api_client_integration: ManagementAPIClient):
         """Test executing a request with a body."""
         # This test would normally make a POST request with a body
         # Since we don't want to create real resources, we'll use a mock
@@ -95,7 +93,8 @@ class TestAPIClient:
         assert "Content-Type" in request.headers
         assert request.headers["Content-Type"] == "application/json"
 
-    async def test_response_parsing(self, api_client_integration: APIClient):
+    # @pytest.mark.asyncio(loop_scope="function")
+    async def test_response_parsing(self, api_client_integration: ManagementAPIClient):
         """Test parsing API responses."""
         # Make a request to a public endpoint that returns JSON
         path = "/v1/projects"
@@ -112,7 +111,8 @@ class TestAPIClient:
         assert len(response) > 0
         assert "id" in response[0]
 
-    async def test_request_retry_mechanism(self, monkeypatch, api_client_integration: APIClient):
+    # @pytest.mark.asyncio(loop_scope="function")
+    async def test_request_retry_mechanism(self, monkeypatch, api_client_integration: ManagementAPIClient):
         """Test that the tenacity retry mechanism works correctly for API requests."""
 
         # Create a simple mock that always raises a network error

@@ -1,32 +1,27 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
-from supabase_mcp.database.query_manager import QueryManager
 from supabase_mcp.exceptions import SafetyError
-from supabase_mcp.safety.core import OperationRiskLevel
-from supabase_mcp.sql_validator.models import (
+from supabase_mcp.services.database.query_manager import QueryManager
+from supabase_mcp.services.database.sql.validator import (
     QueryValidationResults,
     SQLQueryCategory,
     SQLQueryCommand,
     ValidatedStatement,
 )
+from supabase_mcp.services.safety.models import OperationRiskLevel
 
 
 class TestQueryManager:
     """Tests for the Query Manager."""
 
     @pytest.mark.asyncio
-    async def test_query_execution(self):
+    @pytest.mark.unit
+    async def test_query_execution(self, mock_query_manager: QueryManager):
         """Test query execution through the Query Manager."""
-        # Create mock dependencies
-        db_client = MagicMock()
-        db_client.execute_query_async = AsyncMock()
 
-        # Create a query manager with the mock dependencies
-        query_manager = QueryManager(db_client)
-        query_manager.validator = MagicMock()
-        query_manager.safety_manager = MagicMock()
+        query_manager = mock_query_manager
 
         # Create a mock validation result for a SELECT query
         validated_statement = ValidatedStatement(
@@ -51,7 +46,7 @@ class TestQueryManager:
 
         # Make the db_client return a mock query result
         mock_query_result = MagicMock()
-        db_client.execute_query_async.return_value = mock_query_result
+        query_manager.db_client.execute_query_async.return_value = mock_query_result
 
         # Execute a query
         query = "SELECT * FROM users"
@@ -60,22 +55,18 @@ class TestQueryManager:
         # Verify the query was processed correctly
         query_manager.validator.validate_query.assert_called_once_with(query)
         query_manager.safety_manager.validate_operation.assert_called_once()
-        db_client.execute_query_async.assert_called_once()
+        query_manager.db_client.execute_query_async.assert_called_once()
 
         # Verify that the result is what we expected
         assert result == mock_query_result
 
     @pytest.mark.asyncio
-    async def test_safety_validation_blocks_dangerous_query(self):
+    @pytest.mark.unit
+    async def test_safety_validation_blocks_dangerous_query(self, mock_query_manager: QueryManager):
         """Test that the safety validation blocks dangerous queries."""
-        # Create mock dependencies
-        db_client = MagicMock()
-        db_client.execute_query_async = AsyncMock()
 
         # Create a query manager with the mock dependencies
-        query_manager = QueryManager(db_client)
-        query_manager.validator = MagicMock()
-        query_manager.safety_manager = MagicMock()
+        query_manager = mock_query_manager
 
         # Create a mock validation result for a DROP TABLE query
         validated_statement = ValidatedStatement(
@@ -111,4 +102,4 @@ class TestQueryManager:
         # Verify the query was validated but not executed
         query_manager.validator.validate_query.assert_called_once()
         query_manager.safety_manager.validate_operation.assert_called_once()
-        db_client.execute_query_async.assert_not_called()
+        query_manager.db_client.execute_query_async.assert_not_called()

@@ -1,27 +1,26 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from supabase_mcp.api_service.api_manager import SupabaseApiManager
 from supabase_mcp.exceptions import SafetyError
-from supabase_mcp.safety.core import ClientType
+from supabase_mcp.services.api.api_manager import SupabaseApiManager
+from supabase_mcp.services.safety.models import ClientType
 
 
 class TestApiManager:
     """Tests for the API Manager."""
 
-    def test_path_parameter_replacement(self):
+    @pytest.mark.unit
+    def test_path_parameter_replacement(self, mock_api_manager: SupabaseApiManager):
         """
         Test that path parameters are correctly replaced in API paths.
 
         This test verifies that the API Manager correctly replaces path placeholders
         with actual values, handling both required and optional parameters.
         """
-        # Create an API manager instance with mocked dependencies
-        api_manager = SupabaseApiManager()
-        api_manager.client = MagicMock()
-        api_manager.safety_manager = MagicMock()
-        api_manager.spec_manager = MagicMock()
+        # Use the mock_api_manager fixture instead of creating one manually
+        api_manager = mock_api_manager
 
         # Test with a simple path and required parameters (avoiding 'ref' which is auto-injected)
         path = "/v1/organizations/{slug}/members"
@@ -54,19 +53,17 @@ class TestApiManager:
         assert result == expected, f"Expected {expected}, got {result}"
 
     @pytest.mark.asyncio
-    @patch("supabase_mcp.api_service.api_manager.logger")
-    async def test_safety_validation(self, mock_logger: MagicMock):
+    @pytest.mark.unit
+    @patch("supabase_mcp.services.api.api_manager.logger")
+    async def test_safety_validation(self, mock_logger: MagicMock, mock_api_manager: SupabaseApiManager):
         """
         Test that API operations are properly validated through the safety manager.
 
         This test verifies that the API Manager correctly validates operations
         before executing them, and handles safety errors appropriately.
         """
-        # Create an API manager instance with mocked dependencies
-        api_manager = SupabaseApiManager()
-        api_manager.client = MagicMock()
-        api_manager.safety_manager = MagicMock()
-        api_manager.spec_manager = MagicMock()
+        # Use the mock_api_manager fixture instead of creating one manually
+        api_manager = mock_api_manager
 
         # Mock the replace_path_params method to return the path unchanged
         api_manager.replace_path_params = MagicMock(return_value="/v1/organizations/example-org")
@@ -77,7 +74,7 @@ class TestApiManager:
         api_manager.client.execute_request.return_value = mock_response
 
         # Make the mock awaitable
-        async def mock_execute_request(*args, **kwargs):
+        async def mock_execute_request(*args: Any, **kwargs: Any) -> dict[str, Any]:
             return mock_response
 
         api_manager.client.execute_request = mock_execute_request
@@ -101,7 +98,7 @@ class TestApiManager:
         api_manager.safety_manager.validate_operation.reset_mock()
 
         # Make the safety manager raise a SafetyError
-        def raise_safety_error(*args, **kwargs):
+        def raise_safety_error(*args: Any, **kwargs: Any) -> None:
             raise SafetyError("Operation not allowed")
 
         api_manager.safety_manager.validate_operation.side_effect = raise_safety_error

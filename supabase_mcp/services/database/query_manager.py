@@ -26,7 +26,7 @@ class QueryManager:
     """
 
     # Path to SQL files directory
-    SQL_DIR = Path(__file__).parent.parent / "sql"
+    SQL_DIR = Path(__file__).parent / "sql" / "queries"
 
     def __init__(
         self,

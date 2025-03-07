@@ -5,6 +5,7 @@ from datetime import datetime
 import pytest
 
 from supabase_mcp.exceptions import PythonSDKError
+from supabase_mcp.services.sdk.sdk_client import SupabaseSDKClient
 
 # Unique identifier for test users to avoid conflicts
 TEST_ID = f"test-{int(time.time())}-{uuid.uuid4().hex[:6]}"
@@ -16,14 +17,15 @@ def get_test_email(prefix="user"):
     return f"a.zuev+{prefix}-{TEST_ID}@outlook.com"
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio(loop_scope="module")
+@pytest.mark.integration
 class TestSDKClientIntegration:
     """
     Integration tests for the SupabaseSDKClient.
     These tests make actual API calls to the Supabase Auth service.
     """
 
-    async def test_list_users(self, sdk_client_integration):
+    async def test_list_users(self, sdk_client_integration: SupabaseSDKClient):
         """Test listing users with pagination"""
         # Create test parameters
         list_params = {"page": 1, "per_page": 10}
@@ -51,7 +53,7 @@ class TestSDKClientIntegration:
         # The actual error message contains "Bad Pagination Parameters" instead of "Invalid parameters"
         assert "Bad Pagination Parameters" in str(excinfo.value)
 
-    async def test_get_user_by_id(self, sdk_client_integration):
+    async def test_get_user_by_id(self, sdk_client_integration: SupabaseSDKClient):
         """Test retrieving a user by ID"""
         # First create a user to get
         test_email = get_test_email("get")
@@ -97,7 +99,7 @@ class TestSDKClientIntegration:
             delete_params = {"id": user_id}
             await sdk_client_integration.call_auth_admin_method("delete_user", delete_params)
 
-    async def test_create_user(self, sdk_client_integration):
+    async def test_create_user(self, sdk_client_integration: SupabaseSDKClient):
         """Test creating a new user"""
         # Create a new test user
         test_email = get_test_email("create")
@@ -135,7 +137,7 @@ class TestSDKClientIntegration:
             delete_params = {"id": user_id}
             await sdk_client_integration.call_auth_admin_method("delete_user", delete_params)
 
-    async def test_update_user_by_id(self, sdk_client_integration):
+    async def test_update_user_by_id(self, sdk_client_integration: SupabaseSDKClient):
         """Test updating a user's attributes"""
         # Create a new test user
         test_email = get_test_email("update")
@@ -188,7 +190,7 @@ class TestSDKClientIntegration:
             delete_params = {"id": user_id}
             await sdk_client_integration.call_auth_admin_method("delete_user", delete_params)
 
-    async def test_delete_user(self, sdk_client_integration):
+    async def test_delete_user(self, sdk_client_integration: SupabaseSDKClient):
         """Test deleting a user"""
         # Create a new test user
         test_email = get_test_email("delete")
@@ -227,7 +229,7 @@ class TestSDKClientIntegration:
         # The API validates UUID format before checking if user exists
         assert "user_id must be an uuid" in str(excinfo.value).lower()
 
-    async def test_invite_user_by_email(self, sdk_client_integration):
+    async def test_invite_user_by_email(self, sdk_client_integration: SupabaseSDKClient):
         """Test inviting a user by email"""
         # Create invite parameters
         test_email = get_test_email("invite")
@@ -266,7 +268,7 @@ class TestSDKClientIntegration:
             else:
                 raise
 
-    async def test_generate_link(self, sdk_client_integration):
+    async def test_generate_link(self, sdk_client_integration: SupabaseSDKClient):
         """Test generating authentication links"""
         # Test different link types
         link_types = ["signup", "magiclink", "recovery"]
@@ -349,7 +351,7 @@ class TestSDKClientIntegration:
             except Exception:
                 pass
 
-    async def test_delete_factor(self, sdk_client_integration):
+    async def test_delete_factor(self, sdk_client_integration: SupabaseSDKClient):
         """Test deleting an MFA factor"""
         # Create a test user
         test_email = get_test_email("factor")
@@ -382,7 +384,7 @@ class TestSDKClientIntegration:
             delete_params = {"id": user_id}
             await sdk_client_integration.call_auth_admin_method("delete_user", delete_params)
 
-    async def test_empty_parameters(self, sdk_client_integration):
+    async def test_empty_parameters(self, sdk_client_integration: SupabaseSDKClient):
         """Test validation errors with empty parameters for various methods"""
         # Test methods with empty parameters
         methods = ["get_user_by_id", "create_user", "update_user_by_id", "delete_user", "generate_link"]

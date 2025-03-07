@@ -2,8 +2,8 @@ import re
 
 import pytest
 
-from supabase_mcp.database.migration_manager import MigrationManager
-from supabase_mcp.sql_validator.validator import SQLValidator
+from supabase_mcp.services.database.migration_manager import MigrationManager
+from supabase_mcp.services.database.sql.validator import SQLValidator
 
 
 @pytest.fixture

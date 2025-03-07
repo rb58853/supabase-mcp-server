@@ -1,13 +1,5 @@
 import pytest
 
-from supabase_mcp.sql_validator.validator import SQLValidator
-
-
-@pytest.fixture
-def validator() -> SQLValidator:
-    """Create a SQLValidator instance for testing."""
-    return SQLValidator()
-
 
 @pytest.fixture
 def sample_dql_queries() -> dict[str, str]:

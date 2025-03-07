@@ -57,7 +57,3 @@ class Container:
 
         logger.info("✓ All services initialized successfully.")
         return self
-
-    async def shutdown(self) -> None:
-        """Shuts down all services in a synchronous manner to satisfy MCP runtime requirements"""
-        await self.postgres_client.close()

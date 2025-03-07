@@ -27,3 +27,8 @@ def run_inspector() -> None:
     from mcp.cli.cli import dev
 
     return dev(__file__)
+
+
+if __name__ == "__main__":
+    logger.info("Starting Supabase MCP server")
+    run_server()

@@ -9,7 +9,7 @@ from supabase_mcp.logger import logger
 
 # Constants
 SPEC_URL = "https://api.supabase.com/api/v1-json"
-LOCAL_SPEC_PATH = Path(__file__).parent / "specs" / "api_spec.json"
+LOCAL_SPEC_PATH = Path(__file__).parent / "services" / "api" / "specs" / "api_spec.json"
 
 
 class ApiDomain(str, Enum):

@@ -7,8 +7,8 @@ determining the risk level of API operations and whether they are allowed or req
 
 import pytest
 
-from supabase_mcp.safety.configs.api_safety_config import APISafetyConfig, HTTPMethod
-from supabase_mcp.safety.core import OperationRiskLevel, SafetyMode
+from supabase_mcp.services.safety.models import OperationRiskLevel, SafetyMode
+from supabase_mcp.services.safety.safety_configs import APISafetyConfig, HTTPMethod
 
 
 @pytest.mark.unit

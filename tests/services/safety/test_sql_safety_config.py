@@ -9,8 +9,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from supabase_mcp.safety.configs.sql_safety_config import SQLSafetyConfig
-from supabase_mcp.safety.core import OperationRiskLevel, SafetyMode
+from supabase_mcp.services.safety.models import OperationRiskLevel, SafetyMode
+from supabase_mcp.services.safety.safety_configs import SQLSafetyConfig
 
 
 @pytest.mark.unit

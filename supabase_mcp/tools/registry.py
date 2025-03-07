@@ -4,6 +4,7 @@ from mcp.server.fastmcp import FastMCP
 
 from supabase_mcp.core.container import Container
 from supabase_mcp.exceptions import ConfirmationRequiredError
+from supabase_mcp.logger import logger
 from supabase_mcp.services.database.postgres_client import QueryResult
 from supabase_mcp.services.safety.models import ClientType, SafetyMode
 from supabase_mcp.tools.manager import ToolName
@@ -22,10 +23,6 @@ class ToolRegistry:
         services_container = self.services_container
 
         tool_manager = services_container.tool_manager
-        query_manager = services_container.query_manager
-        api_manager = services_container.api_manager
-        sdk_client = services_container.sdk_client
-        safety_manager = services_container.safety_manager
 
         @mcp.tool(description=tool_manager.get_description(ToolName.GET_SCHEMAS))  # type: ignore
         async def get_schemas() -> QueryResult:
@@ -105,13 +102,15 @@ class ToolRegistry:
                 new_mode = SafetyMode.UNSAFE if enable_unsafe_mode else SafetyMode.SAFE
                 safety_manager.set_safety_mode(ClientType.API, new_mode)
 
-                return {"service": "api", "mode": "unsafe" if enable_unsafe_mode else "safe"}
+                # Return the actual mode that was set
+                return {"service": "api", "mode": safety_manager.get_safety_mode(ClientType.API)}
             elif service == "database":
                 # Set the safety mode in the safety manager
                 new_mode = SafetyMode.UNSAFE if enable_unsafe_mode else SafetyMode.SAFE
                 safety_manager.set_safety_mode(ClientType.DATABASE, new_mode)
 
-                return {"service": ClientType.DATABASE, "mode": safety_manager.get_safety_mode(ClientType.DATABASE)}
+                # Return the actual mode that was set
+                return {"service": "database", "mode": safety_manager.get_safety_mode(ClientType.DATABASE)}
 
         @mcp.tool(description=tool_manager.get_description(ToolName.GET_MANAGEMENT_API_SPEC))  # type: ignore
         async def get_management_api_spec(params: dict[str, Any] = {}) -> dict[str, Any]:
@@ -142,7 +141,7 @@ class ToolRegistry:
                 f"Getting management API spec with path: {path}, method: {method}, domain: {domain}, all_paths: {all_paths}"
             )
             api_manager = services_container.api_manager
-            return api_manager.handle_spec_request(path, method, domain, all_paths)
+            return await api_manager.handle_spec_request(path, method, domain, all_paths)
 
         @mcp.tool(description=tool_manager.get_description(ToolName.GET_MANAGEMENT_API_SAFETY_RULES))  # type: ignore
         async def get_management_api_safety_rules() -> str:

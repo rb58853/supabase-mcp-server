@@ -5,6 +5,8 @@ from pathlib import Path
 
 import yaml
 
+from supabase_mcp.logger import logger
+
 
 class ToolName(str, Enum):
     """Enum of all available tools in the Supabase MCP server."""
@@ -50,6 +52,13 @@ class ToolManager:
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
+
+    @classmethod
+    def reset(cls) -> None:
+        """Reset the singleton instance of ToolManager."""
+        if cls._instance is not None:
+            cls._instance = None
+            logger.info("ToolManager instance reset complete")
 
     def _load_descriptions(self) -> None:
         """Load tool descriptions from YAML files."""

@@ -53,9 +53,12 @@ class SupabaseApiManager:
             cls._instance = SupabaseApiManager(api_client, safety_manager, spec_manager)
         return cls._instance
 
-    async def get_spec(self) -> dict[str, Any]:
-        """Retrieves loaded spec from spec manager"""
-        return await self.spec_manager.get_spec()
+    @classmethod
+    def reset(cls) -> None:
+        """Reset the singleton instance"""
+        if cls._instance is not None:
+            cls._instance = None
+            logger.info("SupabaseApiManager instance reset complete")
 
     def get_safety_rules(self) -> str:
         """
@@ -234,7 +237,7 @@ class SupabaseApiManager:
             has_confirmation=True,
         )
 
-    def handle_spec_request(
+    async def handle_spec_request(
         self,
         path: str | None = None,
         method: str | None = None,
@@ -256,6 +259,9 @@ class SupabaseApiManager:
 
         if spec_manager is None:
             raise RuntimeError("API spec manager is not initialized")
+
+        # Ensure spec is loaded
+        await spec_manager.get_spec()
 
         # Option 1: Get spec for specific path and method
         if path and method:

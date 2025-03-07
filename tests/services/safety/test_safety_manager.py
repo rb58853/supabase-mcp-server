@@ -3,8 +3,9 @@ import time
 import pytest
 
 from supabase_mcp.exceptions import ConfirmationRequiredError, OperationNotAllowedError
-from supabase_mcp.safety.core import ClientType, OperationRiskLevel, SafetyConfigBase, SafetyMode
-from supabase_mcp.safety.safety_manager import SafetyManager
+from supabase_mcp.services.safety.models import ClientType, OperationRiskLevel, SafetyMode
+from supabase_mcp.services.safety.safety_configs import SafetyConfigBase
+from supabase_mcp.services.safety.safety_manager import SafetyManager
 
 
 class MockSafetyConfig(SafetyConfigBase[str]):

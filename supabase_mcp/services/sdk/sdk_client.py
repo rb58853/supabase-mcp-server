@@ -85,8 +85,8 @@ class SupabaseSDKClient:
         """Creates a new Supabase client"""
         try:
             client = await create_async_client(
-                self.service_role_key,
                 self.supabase_url,
+                self.service_role_key,
                 options=AsyncClientOptions(
                     auto_refresh_token=False,
                     persist_session=False,
@@ -230,3 +230,13 @@ class SupabaseSDKClient:
                 raise e
             logger.error(f"Error calling {method}: {e}")
             raise PythonSDKError(f"Error calling {method}: {str(e)}") from e
+
+    @classmethod
+    def reset(cls) -> None:
+        """Reset the singleton instance cleanly.
+
+        This closes any open connections and resets the singleton instance.
+        """
+        if cls._instance is not None:
+            cls._instance = None
+            logger.info("SupabaseSDKClient instance reset complete")

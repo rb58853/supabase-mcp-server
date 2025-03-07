@@ -165,48 +165,30 @@ class TestDatabaseTools:
         safety_manager = initialized_container_integration.safety_manager
         safety_manager.set_safety_mode(ClientType.DATABASE, SafetyMode.UNSAFE)
 
-        # Clean up any existing migrations with this name to avoid unique constraint violations
-        cleanup_query = """
-        DELETE FROM supabase_migrations.schema_migrations
-        WHERE name LIKE '%create_public_test_values%';
-        """
-        from supabase_mcp.services.database.sql.models import QueryValidationResults
-
-        validation_result = QueryValidationResults(
-            statements=[],
-            highest_risk_level=OperationRiskLevel.MEDIUM,
-            original_query=cleanup_query,
-        )
-        await postgres_client.execute_query_async(validation_result, readonly=False)
+        # Generate a unique table name for this test run to avoid migration conflicts
+        unique_suffix = str(uuid.uuid4()).replace("-", "")[:8]
+        test_table_name = f"test_values_{unique_suffix}"
+        migration_name_pattern = f"create_public_{test_table_name}"
 
         # Store migration names created during this test for cleanup
         test_migration_names = []
 
         try:
-            # First create a test table if it doesn't exist
-            await query_manager.handle_query(
-                "CREATE TABLE IF NOT EXISTS public.test_values (id SERIAL PRIMARY KEY, value TEXT);"
-            )
-            # Store migration name pattern for cleanup
-            test_migration_names.append("create_public_test_values")
-
-            create_table_query = """
-            CREATE TABLE IF NOT EXISTS public.test_values (
+            # First create a test table if it doesn't exist with a unique name
+            create_table_query = f"""
+            CREATE TABLE IF NOT EXISTS public.{test_table_name} (
                 id SERIAL PRIMARY KEY,
                 value TEXT
             );
             """
 
-            # This might require confirmation since it's a DDL operation
-            try:
-                await query_manager.handle_query(create_table_query)
-            except ConfirmationRequiredError:
-                # We can't confirm in tests, so we'll skip this part
-                pass
+            await query_manager.handle_query(create_table_query)
+            # Store migration name pattern for cleanup
+            test_migration_names.append(migration_name_pattern)
 
             # Now test a MEDIUM risk operation (INSERT)
-            medium_risk_query = """
-            INSERT INTO public.test_values (value) VALUES ('test_value');
+            medium_risk_query = f"""
+            INSERT INTO public.{test_table_name} (value) VALUES ('test_value');
             """
 
             # This should NOT raise an error in UNSAFE mode
@@ -242,6 +224,13 @@ class TestDatabaseTools:
                     print(f"Cleaned up test migrations matching: {name_pattern}")
                 except Exception as e:
                     print(f"Failed to clean up test migrations: {e}")
+
+            # Drop the test table
+            try:
+                drop_table_query = f"DROP TABLE IF EXISTS public.{test_table_name};"
+                await query_manager.handle_query(drop_table_query)
+            except Exception as e:
+                print(f"Failed to drop test table: {e}")
 
             # Reset safety mode
             safety_manager.set_safety_mode(ClientType.DATABASE, SafetyMode.SAFE)

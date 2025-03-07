@@ -5,7 +5,7 @@ from unittest.mock import ANY, patch
 import pytest
 
 from supabase_mcp.logger import logger
-from supabase_mcp.main import mcp, run_inspector, run_server
+from supabase_mcp.main import create_server, mcp, run_inspector
 
 # === UNIT TESTS ===
 
@@ -55,7 +55,7 @@ class TestMain:
     def test_run_server_starts(self):
         """Test that server run function executes without errors"""
         with patch("supabase_mcp.main.mcp.run") as mock_run:
-            run_server()
+            create_server()
             mock_run.assert_called_once()
 
     @pytest.mark.unit

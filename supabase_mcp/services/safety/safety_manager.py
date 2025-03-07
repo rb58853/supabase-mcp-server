@@ -45,12 +45,10 @@ class SafetyManager:
         # Register SQL safety config
         sql_config = SQLSafetyConfig()
         self.register_config(ClientType.DATABASE, sql_config)
-        logger.info("Registered SQL safety configuration")
 
         # Register API safety config
         api_config = APISafetyConfig()
         self.register_config(ClientType.API, api_config)
-        logger.info("Registered API safety configuration")
 
         logger.info("✓ Safety configurations registered successfully")
         return True
@@ -63,7 +61,6 @@ class SafetyManager:
             config: The safety configuration for the client
         """
         self._safety_configs[client_type] = config
-        logger.debug(f"Registered safety configuration for {client_type}")
 
     def get_safety_mode(self, client_type: ClientType) -> SafetyMode:
         """Get the current safety mode for a client type.

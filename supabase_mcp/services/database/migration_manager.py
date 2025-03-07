@@ -3,7 +3,7 @@ import random
 import re
 
 from supabase_mcp.logger import logger
-from supabase_mcp.sql_validator.models import QueryValidationResults
+from supabase_mcp.services.database.sql.models import QueryValidationResults
 
 # List of simple words to use for random uniqueness in migration names
 RANDOM_WORDS = [

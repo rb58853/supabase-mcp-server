@@ -59,7 +59,7 @@ class SupabaseSDKClient:
         return f"https://{self.project_ref}.supabase.co"
 
     @classmethod
-    async def create(
+    def create(
         cls,
         settings: Settings | None = None,
         project_ref: str | None = None,
@@ -70,7 +70,7 @@ class SupabaseSDKClient:
         return cls._instance
 
     @classmethod
-    async def get_instance(
+    def get_instance(
         cls,
         settings: Settings | None = None,
         project_ref: str | None = None,
@@ -78,7 +78,7 @@ class SupabaseSDKClient:
     ) -> SupabaseSDKClient:
         """Returns the singleton instance"""
         if cls._instance is None:
-            await cls.create(settings, project_ref, service_role_key)
+            cls.create(settings, project_ref, service_role_key)
         return cls._instance
 
     async def create_client(self) -> AsyncClient:

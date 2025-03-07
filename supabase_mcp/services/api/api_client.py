@@ -40,7 +40,7 @@ class ManagementAPIClient:
         self.settings = settings
         self.client = self.create_httpx_client(settings)
 
-        logger.info("Initilized Mangement API client successfully.")
+        logger.info("Initilized Mangement API client successfully")
 
     def create_httpx_client(self, settings: Settings) -> httpx.AsyncClient:
         """Create and configure an httpx client for API requests."""

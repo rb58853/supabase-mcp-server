@@ -10,7 +10,7 @@ from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_
 
 from supabase_mcp.exceptions import ConnectionError, PermissionError, QueryError
 from supabase_mcp.logger import logger
-from supabase_mcp.services.database.postgres_client import QueryValidationResults
+from supabase_mcp.services.database.sql.models import QueryValidationResults
 from supabase_mcp.services.database.sql.validator import SQLValidator
 from supabase_mcp.settings import Settings
 

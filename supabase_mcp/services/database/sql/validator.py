@@ -4,13 +4,13 @@ from pglast.parser import ParseError, parse_sql
 
 from supabase_mcp.exceptions import ValidationError
 from supabase_mcp.logger import logger
-from supabase_mcp.safety.configs.sql_safety_config import classify_statement
-from supabase_mcp.sql_validator.models import (
+from supabase_mcp.services.database.sql.models import (
     QueryValidationResults,
     SQLQueryCategory,
     SQLQueryCommand,
     ValidatedStatement,
 )
+from supabase_mcp.services.safety.safety_configs import SQLSafetyConfig
 
 
 class SQLValidator:
@@ -19,6 +19,9 @@ class SQLValidator:
     Responsible for:
     - SQL query syntax validation
     - SQL query categorization"""
+
+    def __init__(self, safety_config: SQLSafetyConfig | None = None) -> None:
+        self.safety_config = safety_config or SQLSafetyConfig()
 
     def validate_schema_name(self, schema_name: str) -> str:
         """Validate schema name.
@@ -198,7 +201,7 @@ class SQLValidator:
                         break
 
                 # Get classification for this statement type
-                classification = classify_statement(stmt_type, stmt_node)
+                classification = self.safety_config.classify_statement(stmt_type, stmt_node)
                 logger.debug(
                     f"Statement category classified as: {classification.get('category', 'UNKNOWN')} - risk level: {classification.get('risk_level', 'UNKNOWN')}"
                 )
@@ -252,7 +255,7 @@ class SQLValidator:
             raise ValidationError(f"Missing classification key: {str(e)}") from e
 
 
-validator3000 = SQLValidator()
+validator3000 = SQLValidator(SQLSafetyConfig())
 
 if __name__ == "__main__":
     print("\n=== TESTING SQL VALIDATOR WITH INVALID SYNTAX ===\n")

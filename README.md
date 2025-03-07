@@ -23,6 +23,7 @@
 <p align="center">
   <a href="https://pypi.org/project/supabase-mcp-server/"><img src="https://img.shields.io/pypi/v/supabase-mcp-server.svg" alt="PyPI version" /></a>
   <a href="https://github.com/alexander-zuev/supabase-mcp-server/actions"><img src="https://github.com/alexander-zuev/supabase-mcp-server/workflows/CI/badge.svg" alt="CI Status" /></a>
+  <a href="https://codecov.io/gh/alexander-zuev/supabase-mcp-server"><img src="https://codecov.io/gh/alexander-zuev/supabase-mcp-server/branch/main/graph/badge.svg" alt="Code Coverage" /></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue.svg" alt="Python 3.12+" /></a>
   <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/badge/uv-package%20manager-blueviolet" alt="uv package manager" /></a>
   <a href="https://pepy.tech/project/supabase-mcp-server"><img src="https://static.pepy.tech/badge/supabase-mcp-server" alt="PyPI Downloads" /></a>
@@ -44,23 +45,28 @@ A feature-rich MCP server that enables Cursor and Windsurf to safely interact wi
 ## ✨ Key features
 - 💻 Compatible with Cursor, Windsurf, Cline and other MCP clients supporting `stdio` protocol
 - 🔐 Control read-only and read-write modes of SQL query execution
+- 🔍 Runtime SQL query validation with risk level assessment
+- 🛡️ Three-tier safety system for SQL operations: safe, write, and destructive
 - 🔄 Robust transaction handling for both direct and pooled database connections
+- 📝 Automatic versioning of database schema changes
 - 💻 Manage your Supabase projects with Supabase Management API
 - 🧑‍💻 Manage users with Supabase Auth Admin methods via Python SDK
 - 🔨 Pre-built tools to help Cursor & Windsurf work with MCP more effectively
 - 📦 Dead-simple install & setup via package manager (uv, pipx, etc.)
+
 
 ## Getting Started
 
 ### Prerequisites
 Installing the server requires the following on your system:
 - Python 3.12+
-- PostgresSQL 16+
 
 If you plan to install via `uv`, ensure it's [installed](https://docs.astral.sh/uv/getting-started/installation/#__tabbed_1_1).
 
 ### PostgreSQL Installation
-> ⚠️ **Important**: PostgreSQL must be installed BEFORE installing project dependencies, as psycopg2 requires PostgreSQL development libraries during compilation.
+PostgreSQL installation is no longer required for the MCP server itself, as it now uses asyncpg which doesn't depend on PostgreSQL development libraries.
+
+However, you'll still need PostgreSQL if you're running a local Supabase instance:
 
 **MacOS**
 ```bash
@@ -85,9 +91,7 @@ uv pip install supabase-mcp-server
 
 `pipx` is recommended because it creates isolated environments for each package.
 
-You can also install the server manually by cloning the repository and running `pipx` install -editable . from the root directory.
-
-> ⚠️ If you run into psycopg2 compilation issues, you might be missing PostgreSQL development packages. See above.
+You can also install the server manually by cloning the repository and running `pipx install -e .` from the root directory.
 
 #### Installing from source
 If you would like to install from source, for example for local development:
@@ -115,11 +119,10 @@ npx -y @smithery/cli install @alexander-zuev/supabase-mcp --client claude
 After installing the package, you'll need to configure your database connection settings. The server supports both local and remote Supabase instances.
 
 #### Local Supabase instance (Default)
- Server is pre-configured to connect to the local Supabase instance using default settings:
+Server is pre-configured to connect to the local Supabase instance using default settings:
 - `Host`: 127.0.0.1:54322
 - `Password`: postgres
-- `API URL` : http://127.0.0.1:54321
-
+- `API URL`: http://127.0.0.1:54321
 
 >💡 As long as you didn't modify the default settings and you want to connect to the local instance, you don't need to set environment variables.
 
@@ -155,13 +158,20 @@ The server supports all Supabase regions:
 - `ap-southeast-2` - Oceania (Sydney)
 - `sa-east-1` - South America (São Paulo)
 
-Method of MCP configuration differs between Cursor and Windsurf. Read the relevant section to understand how to configure connection.
+#### Configuration Methods
+
+The server looks for configuration in this order:
+1. Environment variables (highest priority)
+2. Local `.env` file in current directory
+3. Global config file:
+   - Windows: `%APPDATA%/supabase-mcp/.env`
+   - macOS/Linux: `~/.config/supabase-mcp/.env`
+4. Default settings (local development)
 
 ##### Cursor
-Since v0.46 there are two ways to configure MCP servers in Cursor:
+Since Cursor v0.46 there are two ways to configure MCP servers:
 - per project basis -> create `mcp.json` in your project / repo folder and `.env` to configure connection
 - globally -> create an MCP server in Settings and configure using `.env` which is supported by this MCP server only
-
 
 You can create project-specific MCP by:
 - creating .cursor folder in your repo, if doesn't exist
@@ -269,6 +279,8 @@ type: command
 command: supabase-mcp-server
 # if you installed with uv
 command: uv run supabase-mcp-server
+# if the above doesn't work, use the full path (recommended)
+command: /full/path/to/supabase-mcp-server  # Find with 'which supabase-mcp-server' (macOS/Linux) or 'where supabase-mcp-server' (Windows)
 ```
 
 If configuration is correct, you should see a green dot indicator and the number of tools exposed by the server.
@@ -301,6 +313,10 @@ If configuration is correct, you should see green dot indicator and clickable su
 Here are some tips & tricks that might help you:
 - **Debug installation** - run `supabase-mcp-server` directly from the terminal to see if it works. If it doesn't, there might be an issue with the installation.
 - **MCP Server configuration** - if the above step works, it means the server is installed and configured correctly. As long as you provided the right command, IDE should be able to connect. Make sure to provide the right path to the server executable.
+- **"No tools found" error** - If you see "Client closed - no tools available" in Cursor despite the package being installed:
+  - Find the full path to the executable by running `which supabase-mcp-server` (macOS/Linux) or `where supabase-mcp-server` (Windows)
+  - Use the full path in your MCP server configuration instead of just `supabase-mcp-server`
+  - For example: `/Users/username/.local/bin/supabase-mcp-server` or `C:\Users\username\.local\bin\supabase-mcp-server.exe`
 - **Environment variables** - to connect to the right database, make sure you either set env variables in `mcp_config.json` or in `.env` file placed in a global config directory (`~/.config/supabase-mcp/.env` on macOS/Linux or `%APPDATA%\supabase-mcp\.env` on Windows).
 - **Accessing logs** - The MCP server writes detailed logs to a file:
   - Log file location:
@@ -320,82 +336,75 @@ If you are stuck or any of the instructions above are incorrect, please raise an
 
 ### MCP Inspector
 A super useful tool to help debug MCP server issues is MCP Inspector. If you installed from source, you can run `supabase-mcp-inspector` from the project repo and it will run the inspector instance. Coupled with logs this will give you complete overview over what's happening in the server.
-> 📝 Running `supabase-mcp-inspector`, if installed from package, doesn't work properly - I will validate and fix in the cominng release.
+> 📝 Running `supabase-mcp-inspector`, if installed from package, doesn't work properly - I will validate and fix in the coming release.
 
 ## Feature Overview
 
 ### Database query tools
 
-Since v0.3.0 server supports both read-only and data modification operations:
+Since v0.3+ server provides comprehensive database management capabilities with built-in safety controls:
 
-- **Read operations**: SELECT queries for data retrieval
-- **Data Manipulation Language (DML)**: INSERT, UPDATE, DELETE operations for data changes
-- **Data Definition Language (DDL)**: CREATE, ALTER, DROP operations for schema changes*
+- **SQL Query Execution**: Execute any PostgreSQL query with intelligent risk assessment
+  - **Three-tier safety system**:
+    - `safe`: Read-only operations (SELECT, EXPLAIN) - always allowed
+    - `write`: Data modification operations (INSERT, UPDATE, DELETE) - require unsafe mode
+    - `destructive`: Schema-changing operations (DROP, TRUNCATE) - require unsafe mode and confirmation
 
-*Note: DDL operations require:
-1. Read-write mode enabled via `live_dangerously`
-2. Sufficient permissions for the connected database role
+- **SQL Parsing and Validation**:
+  - Uses PostgreSQL's own parser (via pglast) for accurate query analysis
+  - Precisely identifies query types and potential risks
+  - Validates syntax before execution to prevent errors
+  - Categorizes statements into DQL, DML, DDL, DCL, and TCL types
+  - Provides detailed feedback on query safety and required permissions
 
-#### Transaction Handling
+- **Automatic Migration Versioning**:
+  - All schema-changing operations (DDL) are automatically versioned
+  - Creates timestamped migration entries in Supabase's migration system
+  - Generates descriptive migration names based on operation type and target
+  - Includes CREATE, ALTER, DROP, GRANT, REVOKE operations
+  - Maintains a complete history of schema changes for better tracking and rollback capabilities
 
-The server supports two approaches for executing write operations:
+- **Safety Controls**:
+  - All database tools start in SAFE mode by default (only read-only operations are allowed)
+  - All statements are executed in transaction mode by the `asyncpg` client
+  - 2-step confirmation is required for high-risk / destructive operations
 
-1. **Explicit Transaction Control** (Recommended):
-   ```sql
-   BEGIN;
-   CREATE TABLE public.test_table (id SERIAL PRIMARY KEY, name TEXT);
-   COMMIT;
-   ```
-
-2. **Single Statements**:
-   ```sql
-   CREATE TABLE public.test_table (id SERIAL PRIMARY KEY, name TEXT);
-   ```
-
-For DDL operations (CREATE/ALTER/DROP), tool description appropriately guides Cursor/Windsurft to use explicit transaction control with BEGIN/COMMIT blocks.
-
-#### Connection Types
-
-This MCP server uses::
-- **Direct Database Connection**: when connecting to a local Supabase instance
-- **Transaction Pooler Connections**: when connecting to a remote Supabase instance
-
-
-When connecting via Supabase's Transaction Pooler, some complex transaction patterns may not work as expected. For schema changes in these environments, use explicit transaction blocks or consider using Supabase migrations or the SQL Editor in the dashboard.
-
-Available database tools:
-- `get_db_schemas` - Lists all database schemas with their sizes and table counts
-- `get_tables` - Lists all tables in a schema with their sizes, row counts, and metadata
-- `get_table_schema` - Gets detailed table structure including columns, keys, and relationships
-- `execute_sql_query` - Executes raw SQL queries with comprehensive support for all PostgreSQL operations:
-  - Supports all query types (SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, etc.)
-  - Handles transaction control statements (BEGIN, COMMIT, ROLLBACK)
-
-
-- Supported modes:
-  - `read-only` - only read-only queries are allowed (default mode)
-  - `read-write` - all SQL operations are allowed when explicitly enabled
-- Safety features:
-  - Starts in read-only mode by default
-  - Requires explicit mode switch for write operations
-  - Automatically resets to read-only mode after write operations
-  - Intelligent transaction state detection to prevent errors
-  - SQL query validation [TODO]
+- **Available Tools**:
+  - `get_schemas`: Lists all database schemas with their sizes and table counts
+  - `get_tables`: Lists tables, foreign tables, and views in a schema with metadata
+  - `get_table_schema`: Gets detailed table structure including columns, keys, and relationships
+  - `execute_postgresql`: Executes PostgreSQL statements against your Supabase database
+  - `confirm_destructive_operation`: Executes high-risk operations after explicit confirmation
+  - `retrieve_migrations`: Gets all migrations from the supabase_migrations schema
+  - `live_dangerously`: Toggles between safe and unsafe operation modes
 
 ### Management API tools
-Since v0.3.0 server supports sending arbitrary requests to Supabase Management API with auto-injection of project ref and safety mode control:
-  - Includes the following tools:
-    - `send_management_api_request` to send arbitrary requests to Supabase Management API, with auto-injection of project ref and safety mode control
-    - `get_management_api_spec` to get the enriched API specification with safety information
-    - `get_management_api_safety_rules` to get all safety rules including blocked and unsafe operations with human-readable explanations
-    - `live_dangerously` to switch between safe and unsafe modes
-  - Safety features:
-    - Divides API methods into `safe`, `unsafe` and `blocked` categories based on the risk of the operation
-    - Allows to switch between safe and unsafe modes dynamically
-    - Blocked operations (delete project, delete database) are not allowed regardless of the mode
-  - **Note**: Management API tools only work with remote Supabase instances and are not compatible with local Supabase development setups.
+
+Since v0.3.0 server provides secure access to the Supabase Management API with built-in safety controls:
+
+- **Available Tools**:
+  - `send_management_api_request`: Sends arbitrary requests to Supabase Management API with auto-injection of project ref
+  - `get_management_api_spec`: Gets the enriched API specification with safety information
+    - Supports multiple query modes: by domain, by specific path/method, or all paths
+    - Includes risk assessment information for each endpoint
+    - Provides detailed parameter requirements and response formats
+    - Helps LLMs understand the full capabilities of the Supabase Management API
+  - `get_management_api_safety_rules`: Gets all safety rules with human-readable explanations
+  - `live_dangerously`: Toggles between safe and unsafe operation modes
+
+- **Safety Controls**:
+  - Uses the same safety manager as database operations for consistent risk management
+  - Operations categorized by risk level:
+    - `safe`: Read-only operations (GET) - always allowed
+    - `unsafe`: State-changing operations (POST, PUT, PATCH, DELETE) - require unsafe mode
+    - `blocked`: Destructive operations (delete project, etc.) - never allowed
+  - Default safe mode prevents accidental state changes
+  - Path-based pattern matching for precise safety rules
+
+**Note**: Management API tools only work with remote Supabase instances and are not compatible with local Supabase development setups.
 
 ### Auth Admin tools
+
 I was planning to add support for Python SDK methods to the MCP server. Upon consideration I decided to only add support for Auth admin methods as I often found myself manually creating test users which was prone to errors and time consuming. Now I can just ask Cursor to create a test user and it will be done seamlessly. Check out the full Auth Admin SDK method docs to know what it can do.
 
 Since v0.3.6 server supports direct access to Supabase Auth Admin methods via Python SDK:
@@ -431,7 +440,33 @@ The Auth Admin SDK provides several key advantages over direct SQL manipulation:
     - Error handling: The server provides detailed error messages from the Supabase API, which may differ from the dashboard interface
     - Method availability: Some methods like `delete_factor` are exposed in the API but not fully implemented in the SDK
 
-## Roadmap
+### Automatic Versioning of Database Changes
+
+"With great power comes great responsibility." While `execute_postgresql` tool coupled with aptly named `live_dangerously` tool provide a powerful and simple way to manage your Supabase database, it also means that dropping a table or modifying one is one chat message away. In order to reduce the risk of irreversible changes, since v0.3.8 the server supports:
+- automatic creation of migration scripts for all write & destructive sql operations executed on the database
+- improved safety mode of query execution, in which all queries are categorized in:
+  - `safe` type: always allowed. Includes all read-only ops.
+  - `write`type: requires `write` mode to be enabled by the user.
+  - `destructive` type: requires `write` mode to be enabled by the user AND a 2-step confirmation of query execution for clients that do not execute tools automatically.
+
+### Universal Safety Mode
+Since v0.3.8 Safety Mode has been standardized across all services (database, API, SDK) using a universal safety manager. This provides consistent risk management and a unified interface for controlling safety settings across the entire MCP server.
+
+All operations (SQL queries, API requests, SDK methods) are categorized into risk levels:
+- `Low` risk: Read-only operations that don't modify data or structure (SELECT queries, GET API requests)
+- `Medium` risk: Write operations that modify data but not structure (INSERT/UPDATE/DELETE, most POST/PUT API requests)
+- `High` risk: Destructive operations that modify database structure or could cause data loss (DROP/TRUNCATE, DELETE API endpoints)
+- `Extreme` risk: Operations with severe consequences that are blocked entirely (deleting projects)
+
+Safety controls are applied based on risk level:
+- Low risk operations are always allowed
+- Medium risk operations require unsafe mode to be enabled
+- High risk operations require unsafe mode AND explicit confirmation
+- Extreme risk operations are never allowed
+
+This universal approach ensures consistent protection across all server components while providing flexibility for legitimate operations when needed.
+
+## Feature Changelog
 
 - 📦 Simplified installation via package manager - ✅ (v0.2.0)
 - 🌎 Support for different Supabase regions - ✅ (v0.2.2)
@@ -439,16 +474,13 @@ The Auth Admin SDK provides several key advantages over direct SQL manipulation:
 - 👷‍♂️ Read and read-write database SQL queries with safety controls - ✅ (v0.3.0)
 - 🔄 Robust transaction handling for both direct and pooled connections - ✅ (v0.3.2)
 - 🐍 Support methods and objects available in native Python SDK - ✅ (v0.3.6)
-- 🔍 Stronger SQL query validation (read vs write operations)
-- 📝 Automatic versioning of DDL queries(?)
+- 🔍 Stronger SQL query validation ✅ (v0.3.8)
+- 📝 Automatic versioning of database changes ✅ (v0.3.8)
+- 📖 Radically improved knowledge and tools of api spec ✅ (v0.3.8)
 - 🪵 Tools / resources to more easily access database, edge functions logs (?)
-- 👨‍💻 Supabase CLI integration (?)
-- 📖 Radically improved knowledge and tools of api spec
-  - Resources to more easily access and check api spec
-  - Atomic url paths and ops (right now LLM trips more often then not)
-- Better support for local database management
 
 
+For a more detailed roadmap, please see this [discussion](github.com) on GitHub.
 
 ### Connect to Supabase logs
 

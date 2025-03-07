@@ -29,6 +29,29 @@ repos:
         name: Check for debugger imports
         stages: [pre-commit, manual]
 
+  # === SQL Linting ===
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 3.3.1
+    hooks:
+      - id: sqlfluff-lint
+        name: Run SQLFluff linter
+        description: Lint SQL files with SQLFluff
+        types: [sql]
+        args: [
+          "--dialect", "postgres",
+          "--exclude-rules", "L016,L031,LT02",  # Exclude some opinionated rules
+        ]
+        files: ^(supabase_mcp/sql|tests/sql)/
+      - id: sqlfluff-fix
+        name: Run SQLFluff fixer
+        description: Auto-fix SQL files with SQLFluff
+        types: [sql]
+        args: [
+          "--dialect", "postgres",
+          "--exclude-rules", "L016,L031,LT02",  # Exclude some opinionated rules
+        ]
+        files: ^(supabase_mcp/sql|tests/sql)/
+
   # === Type Checking ===
 
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -60,7 +83,7 @@ repos:
 
   # === Code Quality & Style ===
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.7
+    rev: v0.9.9
     hooks:
       - id: ruff
         name: Run Ruff linter
@@ -96,7 +119,12 @@ repos:
         types: [python]
         pass_filenames: false
         args: [
-          "--no-header",        ]
+          "--no-header",
+          "-v",
+          "--quiet",
+          "--no-summary",
+          "--show-capture=no"
+        ]
         stages: [pre-commit, pre-push]
 
   # === Build Check ===

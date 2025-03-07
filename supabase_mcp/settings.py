@@ -27,17 +27,23 @@ SUPPORTED_REGIONS = Literal[
 ]
 
 
-def find_config_file() -> str | None:
-    """Find the .env file in order of precedence:
+def find_config_file(env_file: str = ".env") -> str | None:
+    """Find the specified env file in order of precedence:
     1. Current working directory (where command is run)
     2. Global config:
-       - Windows: %APPDATA%/supabase-mcp/.env
-       - macOS/Linux: ~/.config/supabase-mcp/.env
+       - Windows: %APPDATA%/supabase-mcp/{env_file}
+       - macOS/Linux: ~/.config/supabase-mcp/{env_file}
+
+    Args:
+        env_file: The name of the environment file to look for (default: ".env")
+
+    Returns:
+        The path to the found config file, or None if not found
     """
-    logger.info("Searching for configuration files...")
+    logger.info(f"Searching for configuration file: {env_file}")
 
     # 1. Check current directory
-    cwd_config = Path.cwd() / ".env"
+    cwd_config = Path.cwd() / env_file
     if cwd_config.exists():
         logger.info(f"Found local config file: {cwd_config}")
         return str(cwd_config)
@@ -53,7 +59,7 @@ def find_config_file() -> str | None:
         logger.info(f"Found global config file: {global_config}")
         return str(global_config)
 
-    logger.warning("No config files found, using default settings")
+    logger.info(f"No {env_file} file found")
     return None
 
 
@@ -97,7 +103,7 @@ class Settings(BaseSettings):
 
     @classmethod
     def with_config(cls, config_file: str | None = None) -> "Settings":
-        """Create Settings with specific config file.
+        """Create Settings with a specific config file.
 
         Args:
             config_file: Path to .env file to use, or None for no config file
@@ -116,22 +122,10 @@ class Settings(BaseSettings):
             logger.warning("Using environment variables (highest precedence)")
             if config_file:
                 logger.warning(f"Note: Config file {config_file} exists but environment variables take precedence")
-            for var in ["SUPABASE_PROJECT_REF", "SUPABASE_DB_PASSWORD"]:
-                if var in os.environ:
-                    logger.info(f"Using {var} from environment")
         elif config_file:
             logger.info(f"Using settings from config file: {config_file}")
         else:
             logger.info("Using default settings (local development)")
-
-        # Log final configuration
-        logger.info("Final configuration:")
-        logger.info(f"  Project ref: {instance.supabase_project_ref}")
-        logger.info(f"  Password: {'*' * len(instance.supabase_db_password)}")
-        logger.info(f"  Region: {instance.supabase_region}")
-        logger.info(
-            f"  Service role key: {'*' * len(instance.supabase_service_role_key) if instance.supabase_service_role_key else 'Not set'}"
-        )
         return instance
 
 

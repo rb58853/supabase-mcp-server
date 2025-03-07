@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.3.8] - 2025-03-07
+### Added
+- SQL query validation using PostgreSQL's parser (pglast v7.3+)
+- Automatic migration script generation for schema changes
+- Universal safety system with standardized risk levels (Low/Medium/High/Extreme)
+- Switched to asyncpg v0.30.0+ from psycopg2
+- Enhanced API spec tool with multiple query modes and risk assessment
+- Connection retry logic for database and API operations
+- Code coverage with pytest-cov
+- SQL linting with SQLFluff
+- Added pyyaml v6.0.2+ for configuration
+
+### Changed
+- Refactored to use dependency injection pattern
+- Standardized service initialization to synchronous pattern
+- Improved SQL safety categorization:
+  - `safe`: Read-only operations (always allowed)
+  - `write`: Data modification (requires unsafe mode)
+  - `destructive`: Schema changes (requires unsafe mode + confirmation)
+- Updated Ruff to v0.9.9
+- Added asyncpg-stubs and pytest-mock for testing
+
+## [0.3.7] - 2025-03-02
+### Fixed
+- Documentation inaccuracies
+
+### Added
+- Auth admin SDK support for local Supabase instances
+
+
 ## [0.3.6] - 2025-02-26
 ### Added
 - Added `call_auth_admin_method` which enables MCP server to manage users in your database (create, update, delete, confirm). All Auth SDK methods are supported

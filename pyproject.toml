@@ -5,12 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "supabase-mcp-server"
 dynamic = ["version"]
-description = "Unofficial Supabase MCP server that enables Cursor and Windsurf to manage your database and execute SQL queries"
+description = "Community Supabase MCP server that enables Cursor and Windsurf to end-to-end manage your Supabase project, execute SQL queries, and more."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "asyncpg>=0.30.0",
     "mcp[cli]>=1.2.1",
-    "psycopg2>=2.9.10",
+    "pglast>=7.3",
+    "pyyaml>=6.0.2",
     "supabase>=2.13.0",
     "tenacity>=9.0.0",
 ]
@@ -50,8 +52,8 @@ raw-options = { version_scheme = "no-guess-dev" }
 version-file = "supabase_mcp/_version.py"
 
 [project.scripts]
-supabase-mcp-server = "supabase_mcp.main:run"
-supabase-mcp-inspector = "supabase_mcp.main:inspector"
+supabase-mcp-server = "supabase_mcp.main:run_server"
+supabase-mcp-inspector = "supabase_mcp.main:run_inspector"
 
 
 # Configure PyPI publishing
@@ -95,16 +97,28 @@ warn_unused_ignores = true
 warn_return_any = true
 warn_unreachable = true
 
+# Relaxed rules for tests
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+check_untyped_defs = false
+warn_return_any = false
+warn_unreachable = false
+
 [tool.pytest]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v -ra -q"
-asyncio_mode = "strict"
+addopts = "-v --no-header --tb=short"
+
 
 [tool.pytest.ini_options]
-asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "module"
+
 markers = [
     "unit: marks a test as a unit test",
     "integration: marks a test as an integration test that requires database access"
@@ -112,7 +126,39 @@ markers = [
 
 [dependency-groups]
 dev = [
+    "asyncpg-stubs>=0.30.0",
+    "mypy>=1.15.0",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.3",
+    "pytest-cov>=6.0.0",
     "pytest-mock>=3.14.0",
+    "ruff>=0.9.9",
+    "sqlfluff>=3.3.1",
+]
+
+
+[tool.sqlfluff.core]
+dialect = "postgres"
+templater = "jinja"
+max_line_length = 120
+
+[tool.sqlfluff.indentation]
+tab_space_size = 4
+
+[tool.sqlfluff.rules]
+exclude_rules = [
+    "L016",  # Line length rules
+    "L031",  # Table aliasing
+    "L034",  # Column order in GROUP BY
+    "L036",  # Select targets should be on a new line
+    "L037",  # Ambiguous ordering directions
+    "L042",  # Join condition required
+    "L047",  # DISTINCT used with parentheses
+    "LT02",  # Layout indent
+    "LT12",  # Files must end with a single trailing newline
+    "LT14",  # Keyword newline
+    "AL01",  # Aliasing of table
+    "AM05",  # Join clauses should be fully qualified
+    "ST09",  # Join order
+    "CP03"   # Function name capitalization
 ]

@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea to improve this MCP server
+about: Suggest an idea to improve the Supabase MCP server
 title: "I want X so that I can do Y and gain Z"
 labels: ''
 assignees: ''

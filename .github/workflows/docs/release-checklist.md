@@ -30,7 +30,7 @@ Pre-release
 9. Update .env.example (if necessary) - [X]
 
 Post-release
-10. Clean install from PyPi works
+10. Clean install from PyPi works - [X]
 
 
 

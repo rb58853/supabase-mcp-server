@@ -9,7 +9,7 @@ from supabase_mcp.logger import logger
 
 # Constants
 SPEC_URL = "https://api.supabase.com/api/v1-json"
-LOCAL_SPEC_PATH = Path(__file__).parent / "services" / "api" / "specs" / "api_spec.json"
+LOCAL_SPEC_PATH = Path(__file__).parent / "specs" / "api_spec.json"
 
 
 class ApiDomain(str, Enum):
@@ -212,44 +212,50 @@ class ApiSpecManager:
 
 
 # Example usage (assuming you have an instance of ApiSpecManager called 'spec_manager'):
-async def main():
-    spec_manager = await ApiSpecManager.create()
+async def main() -> None:
+    """Test function to demonstrate ApiSpecManager functionality."""
+    # Create a new instance of ApiSpecManager
     spec_manager = ApiSpecManager()
-    spec_manager.spec = json.loads(LOCAL_SPEC_PATH)  # Load your JSON here for testing
-    spec_manager._build_caches()
 
-    # 1. Get all paths and methods
-    all_paths = spec_manager.get_all_paths_and_methods()
-    print("All Paths and Methods:")
-    for path, methods in all_paths.items():
-        print(f"  {path}:")
-        for method, operation_id in methods.items():
-            print(f"    {method}: {operation_id}")
+    # Load the spec
+    await spec_manager.get_spec()
 
-    # 2. Get paths and methods for the "Auth" domain
-    auth_paths = spec_manager.get_paths_and_methods_by_domain("Auth")
-    print("\nAuth Paths and Methods:")
-    for path, methods in auth_paths.items():
-        print(f"  {path}:")
-        for method, operation_id in methods.items():
-            print(f"    {method}: {operation_id}")
+    # Print the path to help debug
+    print(f"Looking for spec at: {LOCAL_SPEC_PATH}")
 
-    # 3. Get all domains
+    # 1. Get all domains
     all_domains = spec_manager.get_all_domains()
     print("\nAll Domains:")
     print(all_domains)
 
+    # 2. Get all paths and methods
+    all_paths = spec_manager.get_all_paths_and_methods()
+    print("\nAll Paths and Methods (sample):")
+    # Just print a few to avoid overwhelming output
+    for i, (path, methods) in enumerate(all_paths.items()):
+        if i >= 5:  # Limit to 5 paths
+            break
+        print(f"  {path}:")
+        for method, operation_id in methods.items():
+            print(f"    {method}: {operation_id}")
+
+    # 3. Get paths and methods for the "Edge Functions" domain
+    edge_paths = spec_manager.get_paths_and_methods_by_domain("Edge Functions")
+    print("\nEdge Functions Paths and Methods:")
+    for path, methods in edge_paths.items():
+        print(f"  {path}:")
+        for method, operation_id in methods.items():
+            print(f"    {method}: {operation_id}")
+
     # 4. Get the full spec for a specific path and method
-    path = "/v1/projects/{ref}/config/auth"
+    path = "/v1/projects/{ref}/functions"
     method = "GET"
     full_spec = spec_manager.get_spec_for_path_and_method(path, method)
     print(f"\nFull Spec for {method} {path}:")
-    print(json.dumps(full_spec, indent=2))
-
-    # # Example of get_spec_part
-    # schemas = spec_manager.get_spec_part("components", "schemas", "AuthConfigResponse")
-    # print("\nAuthConfigResponse schema:")
-    # print(json.dumps(schemas, indent=2))
+    if full_spec:
+        print(json.dumps(full_spec, indent=2)[:500] + "...")  # Truncate for readability
+    else:
+        print("Spec not found for this path/method")
 
 
 if __name__ == "__main__":

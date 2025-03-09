@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.3.10] - Unreleased
+### Added
+- Enhanced migration naming system with improved object type detection for procedures, functions, and views.
+- Expanded `retrieve_migrations` tool with pagination, name pattern filtering, and option to include full SQL queries.
+- Added a check to validate personal access token and service role key are set before calling API or SDK methods
+
+### Changed
+- Updated setup instructions for Claude Desktop
+- Updated setup instructions for Cline
+- Updated and fixed Smithery.ai setup
+
+### Removed
+- Removed redundant `get_api_safety_rules` tool since exceptions already provide enough information to the client
+
+
 ## [0.3.9] - 2025-03-08
 ### Fixed
 - Fixed an issue with api spec tool that prevented spec retrieval

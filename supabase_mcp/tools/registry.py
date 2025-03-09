@@ -46,31 +46,26 @@ class ToolRegistry:
             return await query_manager.handle_query(query)
 
         @mcp.tool(description=tool_manager.get_description(ToolName.EXECUTE_POSTGRESQL))  # type: ignore
-        async def execute_postgresql(query: str) -> QueryResult:
+        async def execute_postgresql(query: str, migration_name: str = "") -> QueryResult:
             """Execute PostgreSQL statements against your Supabase database."""
             query_manager = services_container.query_manager
-            return await query_manager.handle_query(query, has_confirmation=False)
-
-        @mcp.tool(description=tool_manager.get_description(ToolName.CONFIRM_DESTRUCTIVE_OPERATION))  # type: ignore
-        async def confirm_destructive_operation(
-            operation_type: Literal["api", "database"], confirmation_id: str, user_confirmation: bool = False
-        ) -> QueryResult | dict[str, Any]:
-            """Execute a destructive operation after confirmation. Use this only after reviewing the risks with the user."""
-            api_manager = services_container.api_manager
-            query_manager = services_container.query_manager
-            if not user_confirmation:
-                raise ConfirmationRequiredError("Destructive operation requires explicit user confirmation.")
-
-            if operation_type == "api":
-                return await api_manager.handle_confirmation(confirmation_id)
-            elif operation_type == "database":
-                return await query_manager.handle_confirmation(confirmation_id)
+            return await query_manager.handle_query(query, has_confirmation=False, migration_name=migration_name)
 
         @mcp.tool(description=tool_manager.get_description(ToolName.RETRIEVE_MIGRATIONS))  # type: ignore
-        async def retrieve_migrations() -> QueryResult:
-            """Get all migrations from the supabase_migrations schema."""
+        async def retrieve_migrations(
+            limit: int = 50,
+            offset: int = 0,
+            name_pattern: str = "",
+            include_full_queries: bool = False,
+        ) -> QueryResult:
+            """Retrieve a list of all migrations a user has from Supabase.
+
+            SAFETY: This is a low-risk read operation that can be executed in SAFE mode.
+            """
             query_manager = services_container.query_manager
-            query = query_manager.get_migrations_query()
+            query = query_manager.get_migrations_query(
+                limit=limit, offset=offset, name_pattern=name_pattern, include_full_queries=include_full_queries
+            )
             return await query_manager.handle_query(query)
 
         @mcp.tool(description=tool_manager.get_description(ToolName.SEND_MANAGEMENT_API_REQUEST))  # type: ignore
@@ -84,33 +79,6 @@ class ToolRegistry:
             """Execute a Supabase Management API request."""
             api_manager = services_container.api_manager
             return await api_manager.execute_request(method, path, path_params, request_params, request_body)
-
-        @mcp.tool(description=tool_manager.get_description(ToolName.LIVE_DANGEROUSLY))  # type: ignore
-        async def live_dangerously(
-            service: Literal["api", "database"], enable_unsafe_mode: bool = False
-        ) -> dict[str, Any]:
-            """
-            Toggle between safe and unsafe operation modes for API or Database services.
-
-            This function controls the safety level for operations, allowing you to:
-            - Enable write operations for the database (INSERT, UPDATE, DELETE, schema changes)
-            - Enable state-changing operations for the Management API
-            """
-            safety_manager = services_container.safety_manager
-            if service == "api":
-                # Set the safety mode in the safety manager
-                new_mode = SafetyMode.UNSAFE if enable_unsafe_mode else SafetyMode.SAFE
-                safety_manager.set_safety_mode(ClientType.API, new_mode)
-
-                # Return the actual mode that was set
-                return {"service": "api", "mode": safety_manager.get_safety_mode(ClientType.API)}
-            elif service == "database":
-                # Set the safety mode in the safety manager
-                new_mode = SafetyMode.UNSAFE if enable_unsafe_mode else SafetyMode.SAFE
-                safety_manager.set_safety_mode(ClientType.DATABASE, new_mode)
-
-                # Return the actual mode that was set
-                return {"service": "database", "mode": safety_manager.get_safety_mode(ClientType.DATABASE)}
 
         @mcp.tool(description=tool_manager.get_description(ToolName.GET_MANAGEMENT_API_SPEC))  # type: ignore
         async def get_management_api_spec(params: dict[str, Any] = {}) -> dict[str, Any]:
@@ -143,12 +111,6 @@ class ToolRegistry:
             api_manager = services_container.api_manager
             return await api_manager.handle_spec_request(path, method, domain, all_paths)
 
-        @mcp.tool(description=tool_manager.get_description(ToolName.GET_MANAGEMENT_API_SAFETY_RULES))  # type: ignore
-        async def get_management_api_safety_rules() -> str:
-            """Get all safety rules for the Supabase Management API"""
-            api_manager = services_container.api_manager
-            return api_manager.get_safety_rules()
-
         @mcp.tool(description=tool_manager.get_description(ToolName.GET_AUTH_ADMIN_METHODS_SPEC))  # type: ignore
         async def get_auth_admin_methods_spec() -> dict[str, Any]:
             """Get Python SDK methods specification for Auth Admin."""
@@ -160,5 +122,47 @@ class ToolRegistry:
             """Call an Auth Admin method from Supabase Python SDK."""
             sdk_client = services_container.sdk_client
             return await sdk_client.call_auth_admin_method(method, params)
+
+        @mcp.tool(description=tool_manager.get_description(ToolName.LIVE_DANGEROUSLY))  # type: ignore
+        async def live_dangerously(
+            service: Literal["api", "database"], enable_unsafe_mode: bool = False
+        ) -> dict[str, Any]:
+            """
+            Toggle between safe and unsafe operation modes for API or Database services.
+
+            This function controls the safety level for operations, allowing you to:
+            - Enable write operations for the database (INSERT, UPDATE, DELETE, schema changes)
+            - Enable state-changing operations for the Management API
+            """
+            safety_manager = services_container.safety_manager
+            if service == "api":
+                # Set the safety mode in the safety manager
+                new_mode = SafetyMode.UNSAFE if enable_unsafe_mode else SafetyMode.SAFE
+                safety_manager.set_safety_mode(ClientType.API, new_mode)
+
+                # Return the actual mode that was set
+                return {"service": "api", "mode": safety_manager.get_safety_mode(ClientType.API)}
+            elif service == "database":
+                # Set the safety mode in the safety manager
+                new_mode = SafetyMode.UNSAFE if enable_unsafe_mode else SafetyMode.SAFE
+                safety_manager.set_safety_mode(ClientType.DATABASE, new_mode)
+
+                # Return the actual mode that was set
+                return {"service": "database", "mode": safety_manager.get_safety_mode(ClientType.DATABASE)}
+
+        @mcp.tool(description=tool_manager.get_description(ToolName.CONFIRM_DESTRUCTIVE_OPERATION))  # type: ignore
+        async def confirm_destructive_operation(
+            operation_type: Literal["api", "database"], confirmation_id: str, user_confirmation: bool = False
+        ) -> QueryResult | dict[str, Any]:
+            """Execute a destructive operation after confirmation. Use this only after reviewing the risks with the user."""
+            api_manager = services_container.api_manager
+            query_manager = services_container.query_manager
+            if not user_confirmation:
+                raise ConfirmationRequiredError("Destructive operation requires explicit user confirmation.")
+
+            if operation_type == "api":
+                return await api_manager.handle_confirmation(confirmation_id)
+            elif operation_type == "database":
+                return await query_manager.handle_confirmation(confirmation_id)
 
         return mcp

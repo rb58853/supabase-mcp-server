@@ -212,6 +212,12 @@ class ManagementAPIClient:
             APIResponseError: For response parsing errors
             UnexpectedError: For unexpected errors
         """
+        # Check if access token is available
+        if not self.settings.supabase_access_token:
+            raise APIClientError(
+                "Supabase access token is not configured. Set SUPABASE_ACCESS_TOKEN environment variable to use Management API tools."
+            )
+
         # Log detailed request information
         logger.info(f"API Client: Executing {method} request to {path}")
         if request_params:

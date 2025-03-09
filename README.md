@@ -32,14 +32,14 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
 </p>
 
-A feature-rich MCP server that enables Cursor and Windsurf to safely interact with Supabase databases. It provides tools for database management, SQL query execution, and Supabase Management API access with built-in safety controls.
+A feature-rich MCP server that enables any MCP clients (Cursor, Windsurf, Claude Desktop, Cline and others) to safely interact with Supabase databases. It provides tools for database management, SQL query execution, and Supabase Management API access with built-in safety controls.
 
 ## Table of contents
 <p align="center">
   <a href="#getting-started">Getting started</a> •
   <a href="#feature-overview">Feature overview</a> •
   <a href="#troubleshooting">Troubleshooting</a> •
-  <a href="#roadmap">Roadmap</a>
+  <a href="#changelog">Changelog</a>
 </p>
 
 ## ✨ Key features
@@ -77,7 +77,7 @@ brew install postgresql@16
   - Download and install PostgreSQL 16+ from https://www.postgresql.org/download/windows/
   - Ensure "PostgreSQL Server" and "Command Line Tools" are selected during installation
 
-### Step 1. MCP Server Installation
+### Step 1. Installation
 
 Since v0.2.0 I introduced support for package installation. You can use your favorite Python package manager to install the server via:
 
@@ -106,41 +106,109 @@ uv pip install -e .
 ```
 
 #### Installing via Smithery.ai
-Please report any issues with Smithery, as I haven't tested it yet.
 
-To install Supabase MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@alexander-zuev/supabase-mcp):
+You can find the full instructions on how to use Smithery.ai to connect to this MCP server [here](https://smithery.ai/server/@alexander-zuev/supabase-mcp-server).
 
-```bash
-npx -y @smithery/cli install @alexander-zuev/supabase-mcp --client claude
-```
 
 ### Step 2. Configuration
 
-After installing the package, you'll need to configure your database connection settings. The server supports both local and remote Supabase instances.
+The Supabase MCP server requires configuration to connect to your Supabase database, access the Management API, and use the Auth Admin SDK. This section explains all available configuration options and how to set them up.
 
-#### Local Supabase instance (Default)
-Server is pre-configured to connect to the local Supabase instance using default settings:
-- `Host`: 127.0.0.1:54322
-- `Password`: postgres
-- `API URL`: http://127.0.0.1:54321
+#### Environment Variables
 
->💡 As long as you didn't modify the default settings and you want to connect to the local instance, you don't need to set environment variables.
+The server uses the following environment variables:
 
-#### Remote Supabase instance
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SUPABASE_PROJECT_REF` | No | `127.0.0.1:54322` | Your Supabase project reference ID (or local host:port) |
+| `SUPABASE_DB_PASSWORD` | No | `postgres` | Your database password |
+| `SUPABASE_REGION` | No | `us-east-1` | AWS region where your Supabase project is hosted |
+| `SUPABASE_ACCESS_TOKEN` | No | None | Personal access token for Supabase Management API |
+| `SUPABASE_SERVICE_ROLE_KEY` | No | None | Service role key for Auth Admin SDK |
 
-> ⚠️ **IMPORTANT WARNING**: Session pooling connections are not supported and there are no plans to support it yet. Let me know if you feel there is a use case for supporting this in an MCP server
+> **Note**: The default values are configured for local Supabase development. For remote Supabase projects, you must provide your own values for `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD`.
 
-For remote Supabase projects, you need to configure:
-- `SUPABASE_PROJECT_REF` - Your project reference (found in project URL)
-- `SUPABASE_DB_PASSWORD` - Your database password
-- `SUPABASE_REGION` - (Optional) Defaults to `us-east-1`
-- `SUPABASE_ACCESS_TOKEN` - (Optional) For Management API access
-- `SUPABASE_SERVICE_ROLE_KEY` - (Optional) For Auth Admin SDK access
+#### Connection Types
 
-You can get your SUPABASE_PROJECT_REF from your project's dashboard URL:
-- `https://supabase.com/dashboard/project/<supabase-project-ref>`
+##### Database Connection
+- The server connects to your Supabase PostgreSQL database using the transaction pooler endpoint
+- Local development uses a direct connection to `127.0.0.1:54322`
+- Remote projects use the format: `postgresql://postgres.[project_ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
+
+> ⚠️ **Important**: Session pooling connections are not supported. The server exclusively uses transaction pooling for better compatibility with the MCP server architecture.
+
+##### Management API Connection
+- Requires `SUPABASE_ACCESS_TOKEN` to be set
+- Connects to the Supabase Management API at `https://api.supabase.com`
+- Only works with remote Supabase projects (not local development)
+
+##### Auth Admin SDK Connection
+- Requires `SUPABASE_SERVICE_ROLE_KEY` to be set
+- For local development, connects to `http://127.0.0.1:54321`
+- For remote projects, connects to `https://[project_ref].supabase.co`
+
+#### Configuration Methods
+
+The server looks for configuration in this order (highest to lowest priority):
+
+1. **Environment Variables**: Values set directly in your environment
+2. **Local `.env` File**: A `.env` file in your current working directory (only works when running from source)
+3. **Global Config File**:
+   - Windows: `%APPDATA%\supabase-mcp\.env`
+   - macOS/Linux: `~/.config/supabase-mcp/.env`
+4. **Default Settings**: Local development defaults (if no other config is found)
+
+> ⚠️ **Important**: When using the package installed via pipx or uv, local `.env` files in your project directory are **not** detected. You must use either environment variables or the global config file.
+
+#### Setting Up Configuration
+
+##### Option 1: Client-Specific Configuration (Recommended)
+
+Set environment variables directly in your MCP client configuration (see client-specific setup instructions in Step 3). Most MCP clients support this approach, which keeps your configuration with your client settings.
+
+##### Option 2: Global Configuration
+
+Create a global `.env` configuration file that will be used for all MCP server instances:
+
+```bash
+# Create config directory
+# On macOS/Linux
+mkdir -p ~/.config/supabase-mcp
+# On Windows (PowerShell)
+mkdir -Force "$env:APPDATA\supabase-mcp"
+
+# Create and edit .env file
+# On macOS/Linux
+nano ~/.config/supabase-mcp/.env
+# On Windows (PowerShell)
+notepad "$env:APPDATA\supabase-mcp\.env"
+```
+
+Add your configuration values to the file:
+
+```
+SUPABASE_PROJECT_REF=your-project-ref
+SUPABASE_DB_PASSWORD=your-db-password
+SUPABASE_REGION=us-east-1
+SUPABASE_ACCESS_TOKEN=your-access-token
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+##### Option 3: Project-Specific Configuration (Source Installation Only)
+
+If you're running the server from source (not via package), you can create a `.env` file in your project directory with the same format as above.
+
+#### Finding Your Supabase Project Information
+
+- **Project Reference**: Found in your Supabase project URL: `https://supabase.com/dashboard/project/<project-ref>`
+- **Database Password**: Set during project creation or found in Project Settings → Database
+- **Access Token**: Generate at https://supabase.com/dashboard/account/tokens
+- **Service Role Key**: Found in Project Settings → API → Project API keys
+
+#### Supported Regions
 
 The server supports all Supabase regions:
+
 - `us-west-1` - West US (North California)
 - `us-east-1` - East US (North Virginia) - default
 - `us-east-2` - East US (Ohio)
@@ -158,116 +226,24 @@ The server supports all Supabase regions:
 - `ap-southeast-2` - Oceania (Sydney)
 - `sa-east-1` - South America (São Paulo)
 
-#### Configuration Methods
+#### Limitations
 
-The server looks for configuration in this order:
-1. Environment variables (highest priority)
-2. Local `.env` file in current directory
-3. Global config file:
-   - Windows: `%APPDATA%/supabase-mcp/.env`
-   - macOS/Linux: `~/.config/supabase-mcp/.env`
-4. Default settings (local development)
+- **No Self-Hosted Support**: The server only supports official Supabase.com hosted projects and local development
+- **No Connection String Support**: Custom connection strings are not supported
+- **No Session Pooling**: Only transaction pooling is supported for database connections
+- **API and SDK Features**: Management API and Auth Admin SDK features only work with remote Supabase projects, not local development
 
-##### Cursor
-Since Cursor v0.46 there are two ways to configure MCP servers:
-- per project basis -> create `mcp.json` in your project / repo folder and `.env` to configure connection
-- globally -> create an MCP server in Settings and configure using `.env` which is supported by this MCP server only
+### Step 3. Usage
 
-You can create project-specific MCP by:
-- creating .cursor folder in your repo, if doesn't exist
-- creating or updating `mcp.json` file with the following settings
+In general, any MCP client that supports `stdio` protocol should work with this MCP server. This server was explicitly tested to work with:
+- Cursor
+- Windsurf
+- Cline
+- Claude Desktop
 
-> ⚠ **Environment variables**: If you are configuring MCP server on a per-project basis you still need to create .env file for connection settings to be picked up. I wasn't able to configure mcp.json to pick up my env vars 😔
+Additionally, you can also use smithery.ai to install this server a number of clients, including the ones above.
 
-```json
-{
-	"mcpServers": {
-	  "supabase": {
-		"command": "supabase-mcp-server"
-	  }
-	}
-}
-```
-
-Alternatively, if you want to configure MCP servers globally (i.e. not for each project), you can use configure connection settings by updating an `.env` file in a global config folder by running the following commands:
-```bash
-# Create config directory and navigate to it
-# On macOS/Linux
-mkdir -p ~/.config/supabase-mcp
-cd ~/.config/supabase-mcp
-
-# On Windows (in PowerShell)
-mkdir -Force "$env:APPDATA\supabase-mcp"
-cd "$env:APPDATA\supabase-mcp"
-```
-This creates the necessary config folder where your environment file will be stored.
-
-```bash
-# Create and edit .env file
-# On macOS/Linux
-nano ~/.config/supabase-mcp/.env
-
-# On Windows (PowerShell)
-notepad "$env:APPDATA\supabase-mcp\.env"
-```
-
-This will open the .env file. Once the file is open, copy & paste the following:
-```bash
-SUPABASE_PROJECT_REF=your-project-ref
-SUPABASE_DB_PASSWORD=your-db-password
-SUPABASE_REGION=us-east-1  # optional, defaults to us-east-1
-SUPABASE_ACCESS_TOKEN=your-access-token  # optional, for management API
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key # optional, for Auth Admin SDK
-```
-
-Verify the file exists - you should see the values you have just set:
-```bash
-# On macOS/Linux
-cat ~/.config/supabase-mcp/.env
-
-# On Windows (PowerShell)
-Get-Content "$env:APPDATA\supabase-mcp\.env"
-```
-
-You can find global config file:
-   - Windows: `%APPDATA%/supabase-mcp/.env`
-   - macOS/Linux: `~/.config/supabase-mcp/.env`
-
-
-##### Windsurf
-Windsurf supports de facto standard .json format for MCP Servers configuration. You can configure the server in mcp_config.json file:
-```json
-{
-    "mcpServers": {
-      "supabase": {
-        "command": "/Users/username/.local/bin/supabase-mcp-server",  // update path
-        "env": {
-          "SUPABASE_PROJECT_REF": "your-project-ref",
-          "SUPABASE_DB_PASSWORD": "your-db-password",
-          "SUPABASE_REGION": "us-east-1",  // optional, defaults to us-east-1
-          "SUPABASE_ACCESS_TOKEN": "your-access-token",  // optional, for management API
-          "SUPABASE_SERVICE_ROLE_KEY": "your-service-role-key"  // optional, for Auth Admin SDK
-        }
-      }
-    }
-}
-```
-> 💡 **Finding the server path**:
-> - macOS/Linux: Run `which supabase-mcp-server`
-> - Windows: Run `where supabase-mcp-server`
-
-#### Configuration Precedence
-The server looks for configuration in this order:
-1. Environment variables (highest priority)
-2. Local `.env` file in current directory
-3. Global config file:
-   - Windows: `%APPDATA%/supabase-mcp/.env`
-   - macOS/Linux: `~/.config/supabase-mcp/.env`
-4. Default settings (local development)
-
-### Step 3. Running MCP Server in Cursor/Windsurf
-
-In general, any MCP client that supports `stdio` protocol should work with this MCP server (Cline, for example) but I haven't tested it with anything except Cursor/Windsurf.
+Follow the guides below to install this MCP server in your client.
 
 #### Cursor
 Go to Settings -> Features -> MCP Servers and add a new server with this configuration:
@@ -308,6 +284,88 @@ If configuration is correct, you should see green dot indicator and clickable su
 
 ![How successful Windsurf config looks like](https://github.com/user-attachments/assets/322b7423-8c71-410b-bcab-aff1b143faa4)
 
+#### Claude Desktop
+Claude Desktop also supports MCP servers through a JSON configuration. Follow these steps to set up the Supabase MCP server:
+
+1. **Find the full path to the executable** (this step is critical):
+   ```bash
+   # On macOS/Linux
+   which supabase-mcp-server
+
+   # On Windows
+   where supabase-mcp-server
+   ```
+   Copy the full path that is returned (e.g., `/Users/username/.local/bin/supabase-mcp-server`).
+
+2. **Configure the MCP server** in Claude Desktop:
+   - Open Claude Desktop
+   - Go to Settings → Developer -> Edit Config MCP Servers
+   - Add a new configuration with the following JSON:
+
+   ```json
+   {
+     "mcpServers": {
+       "supabase": {
+         "command": "/full/path/to/supabase-mcp-server",  // Replace with the actual path from step 1
+         "env": {
+           "SUPABASE_PROJECT_REF": "your-project-ref",
+           "SUPABASE_DB_PASSWORD": "your-db-password",
+           "SUPABASE_REGION": "us-east-1",  // optional, defaults to us-east-1
+           "SUPABASE_ACCESS_TOKEN": "your-access-token",  // optional, for management API
+           "SUPABASE_SERVICE_ROLE_KEY": "your-service-role-key"  // optional, for Auth Admin SDK
+         }
+       }
+     }
+   }
+   ```
+
+> ⚠️ **Important**: Unlike Windsurf and Cursor, Claude Desktop requires the **full absolute path** to the executable. Using just the command name (`supabase-mcp-server`) will result in a "spawn ENOENT" error.
+
+If configuration is correct, you should see the Supabase MCP server listed as available in Claude Desktop.
+
+![How successful Windsurf config looks like](https://github.com/user-attachments/assets/500bcd40-6245-40a7-b23b-189827ed2923)
+
+#### Cline
+Cline also supports MCP servers through a similar JSON configuration. Follow these steps to set up the Supabase MCP server:
+
+1. **Find the full path to the executable** (this step is critical):
+   ```bash
+   # On macOS/Linux
+   which supabase-mcp-server
+
+   # On Windows
+   where supabase-mcp-server
+   ```
+   Copy the full path that is returned (e.g., `/Users/username/.local/bin/supabase-mcp-server`).
+
+2. **Configure the MCP server** in Cline:
+   - Open Cline in VS Code
+   - Click on the "MCP Servers" tab in the Cline sidebar
+   - Click "Configure MCP Servers"
+   - This will open the `cline_mcp_settings.json` file
+   - Add the following configuration:
+
+   ```json
+   {
+     "mcpServers": {
+       "supabase": {
+         "command": "/full/path/to/supabase-mcp-server",  // Replace with the actual path from step 1
+         "env": {
+           "SUPABASE_PROJECT_REF": "your-project-ref",
+           "SUPABASE_DB_PASSWORD": "your-db-password",
+           "SUPABASE_REGION": "us-east-1",  // optional, defaults to us-east-1
+           "SUPABASE_ACCESS_TOKEN": "your-access-token",  // optional, for management API
+           "SUPABASE_SERVICE_ROLE_KEY": "your-service-role-key"  // optional, for Auth Admin SDK
+         }
+       }
+     }
+   }
+   ```
+
+If configuration is correct, you should see a green indicator next to the Supabase MCP server in the Cline MCP Servers list, and a message confirming "supabase MCP server connected" at the bottom of the panel.
+
+![How successful configuration in Cline looks like](https://github.com/user-attachments/assets/6c4446ad-7a58-44c6-bf12-6c82222bbe59)
+
 ### Troubleshooting
 
 Here are some tips & tricks that might help you:
@@ -344,39 +402,33 @@ A super useful tool to help debug MCP server issues is MCP Inspector. If you ins
 
 Since v0.3+ server provides comprehensive database management capabilities with built-in safety controls:
 
-- **SQL Query Execution**: Execute any PostgreSQL query with intelligent risk assessment
+- **SQL Query Execution**: Execute PostgreSQL queries with risk assessment
   - **Three-tier safety system**:
-    - `safe`: Read-only operations (SELECT, EXPLAIN) - always allowed
-    - `write`: Data modification operations (INSERT, UPDATE, DELETE) - require unsafe mode
-    - `destructive`: Schema-changing operations (DROP, TRUNCATE) - require unsafe mode and confirmation
+    - `safe`: Read-only operations (SELECT) - always allowed
+    - `write`: Data modifications (INSERT, UPDATE, DELETE) - require unsafe mode
+    - `destructive`: Schema changes (DROP, CREATE) - require unsafe mode + confirmation
 
 - **SQL Parsing and Validation**:
-  - Uses PostgreSQL's own parser (via pglast) for accurate query analysis
-  - Precisely identifies query types and potential risks
-  - Validates syntax before execution to prevent errors
-  - Categorizes statements into DQL, DML, DDL, DCL, and TCL types
-  - Provides detailed feedback on query safety and required permissions
+  - Uses PostgreSQL's parser (pglast) for accurate analysis and provides clear feedback on safety requirements
 
 - **Automatic Migration Versioning**:
-  - All schema-changing operations (DDL) are automatically versioned
-  - Creates timestamped migration entries in Supabase's migration system
-  - Generates descriptive migration names based on operation type and target
-  - Includes CREATE, ALTER, DROP, GRANT, REVOKE operations
-  - Maintains a complete history of schema changes for better tracking and rollback capabilities
+  - Database-altering operations operations are automatically versioned
+  - Generates descriptive names based on operation type and target
+
 
 - **Safety Controls**:
-  - All database tools start in SAFE mode by default (only read-only operations are allowed)
-  - All statements are executed in transaction mode by the `asyncpg` client
-  - 2-step confirmation is required for high-risk / destructive operations
+  - Default SAFE mode allows only read-only operations
+  - All statements run in transaction mode via `asyncpg`
+  - 2-step confirmation for high-risk operations
 
 - **Available Tools**:
-  - `get_schemas`: Lists all database schemas with their sizes and table counts
-  - `get_tables`: Lists tables, foreign tables, and views in a schema with metadata
-  - `get_table_schema`: Gets detailed table structure including columns, keys, and relationships
-  - `execute_postgresql`: Executes PostgreSQL statements against your Supabase database
-  - `confirm_destructive_operation`: Executes high-risk operations after explicit confirmation
-  - `retrieve_migrations`: Gets all migrations from the supabase_migrations schema
-  - `live_dangerously`: Toggles between safe and unsafe operation modes
+  - `get_schemas`: Lists schemas with sizes and table counts
+  - `get_tables`: Lists tables, foreign tables, and views with metadata
+  - `get_table_schema`: Gets detailed table structure (columns, keys, relationships)
+  - `execute_postgresql`: Executes SQL statements against your database
+  - `confirm_destructive_operation`: Executes high-risk operations after confirmation
+  - `retrieve_migrations`: Gets migrations with filtering and pagination options
+  - `live_dangerously`: Toggles between safe and unsafe modes
 
 ### Management API tools
 
@@ -464,9 +516,15 @@ Safety controls are applied based on risk level:
 - High risk operations require unsafe mode AND explicit confirmation
 - Extreme risk operations are never allowed
 
-This universal approach ensures consistent protection across all server components while providing flexibility for legitimate operations when needed.
+#### How confirmation flow works
 
-## Feature Changelog
+Any high-risk operations (be it a postgresql or api request) will be blocked even in `unsafe` mode.
+![Every high-risk operation is blocked](https://github.com/user-attachments/assets/c0df79c2-a879-4b1f-a39d-250f9965c36a)
+You will have to confirm and approve every high-risk operation explicitly in order for it to be executed.
+![Explicit approval is always required](https://github.com/user-attachments/assets/5cd7a308-ec2a-414e-abe2-ff2f3836dd8b)
+
+
+## Changelog
 
 - 📦 Simplified installation via package manager - ✅ (v0.2.0)
 - 🌎 Support for different Supabase regions - ✅ (v0.2.2)
@@ -477,10 +535,10 @@ This universal approach ensures consistent protection across all server componen
 - 🔍 Stronger SQL query validation ✅ (v0.3.8)
 - 📝 Automatic versioning of database changes ✅ (v0.3.8)
 - 📖 Radically improved knowledge and tools of api spec ✅ (v0.3.8)
-- 🪵 Tools / resources to more easily access database, edge functions logs (?)
+- ✍️ Improved consistency of migration-related tools for a more organized database vcs ✅ (v0.3.10)
 
 
-For a more detailed roadmap, please see this [discussion](github.com) on GitHub.
+For a more detailed roadmap, please see this [discussion](https://github.com/alexander-zuev/supabase-mcp-server/discussions/46) on GitHub.
 
 ### Connect to Supabase logs
 

@@ -19,4 +19,3 @@ Why should this feature be added? What problems does it solve? For whom?
 
 ## Implementation Ideas
 Any initial thoughts on how this could be implemented.
-

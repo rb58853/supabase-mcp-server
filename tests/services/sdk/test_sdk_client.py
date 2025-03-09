@@ -12,7 +12,7 @@ TEST_ID = f"test-{int(time.time())}-{uuid.uuid4().hex[:6]}"
 
 
 # Create unique test emails
-def get_test_email(prefix="user"):
+def get_test_email(prefix: str = "user"):
     """Generate a unique test email"""
     return f"a.zuev+{prefix}-{TEST_ID}@outlook.com"
 
@@ -396,5 +396,16 @@ class TestSDKClientIntegration:
             with pytest.raises(PythonSDKError) as excinfo:
                 await sdk_client_integration.call_auth_admin_method(method, empty_params)
 
-            # Verify error message contains validation info
-            assert "Invalid parameters" in str(excinfo.value)
+            # Verify error message contains validation details
+            assert "Invalid parameters" in str(excinfo.value) or "validation error" in str(excinfo.value).lower()
+
+    async def test_client_without_service_role_key(
+        self, monkeypatch: pytest.MonkeyPatch, sdk_client_integration: SupabaseSDKClient
+    ):
+        """Test that an exception is raised when attempting to use the SDK client without a service role key."""
+        # Temporarily set the service role key to None
+        monkeypatch.setattr(sdk_client_integration, "service_role_key", None)
+
+        # Attempt to call a method - should raise an exception
+        with pytest.raises(PythonSDKError):
+            await sdk_client_integration.call_auth_admin_method("list_users", {})

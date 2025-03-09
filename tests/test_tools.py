@@ -128,19 +128,81 @@ class TestDatabaseTools:
         safety_manager.set_safety_mode(ClientType.DATABASE, SafetyMode.SAFE)
 
     async def test_retrieve_migrations(self, initialized_container_integration: Container):
-        """Test the retrieve_migrations tool retrieves migration information."""
-        # Execute the retrieve_migrations tool
+        """Test the retrieve_migrations tool retrieves migration information with various parameters."""
+        # Get the query manager
         query_manager = initialized_container_integration.query_manager
+
+        # Case 1: Basic retrieval with default parameters
         query = query_manager.get_migrations_query()
-        result: QueryResult = await query_manager.handle_query(query)
+        basic_result = await query_manager.handle_query(query)
 
         # Verify result structure
-        assert isinstance(result, QueryResult), "Result should be a QueryResult"
-        assert hasattr(result, "results"), "Result should have results attribute"
+        assert isinstance(basic_result, QueryResult), "Result should be a QueryResult"
+        assert hasattr(basic_result, "results"), "Result should have results attribute"
+        assert len(basic_result.results) > 0, "Should have at least one statement result"
 
-        # Note: We don't assert on row count because there might not be any migrations
-        # But we can verify the query executed successfully by checking that we got a result
-        assert len(result.results) > 0, "Should have at least one statement result"
+        # Case 2: Test pagination with limit and offset
+        query_limited = query_manager.get_migrations_query(limit=3)
+        limited_result = await query_manager.handle_query(query_limited)
+
+        # Verify limited results
+        if limited_result.results[0].rows:
+            assert len(limited_result.results[0].rows) <= 3, "Should return at most 3 migrations"
+
+            # Test offset
+            if len(limited_result.results[0].rows) > 0:
+                query_offset = query_manager.get_migrations_query(limit=3, offset=1)
+                offset_result = await query_manager.handle_query(query_offset)
+
+                # If we have enough migrations, the first migration with offset should be different
+                if len(limited_result.results[0].rows) > 1 and offset_result.results[0].rows:
+                    assert (
+                        limited_result.results[0].rows[0]["version"] != offset_result.results[0].rows[0]["version"]
+                    ), "Offset should return different migrations"
+
+        # Case 3: Test name pattern filtering
+        # First get all migrations to find a pattern to search for
+        all_migrations_query = query_manager.get_migrations_query(limit=100)
+        all_migrations_result = await query_manager.handle_query(all_migrations_query)
+
+        # If we have migrations, try to filter by a pattern from an existing migration
+        if all_migrations_result.results[0].rows:
+            # Extract a substring from the first migration name to use as a pattern
+            first_migration_name = all_migrations_result.results[0].rows[0]["name"]
+            if len(first_migration_name) > 5:
+                pattern = first_migration_name[2:6]  # Use a substring from the middle
+
+                # Search using the pattern
+                pattern_query = query_manager.get_migrations_query(name_pattern=pattern)
+                pattern_result = await query_manager.handle_query(pattern_query)
+
+                # Verify pattern filtering works
+                if pattern_result.results[0].rows:
+                    for row in pattern_result.results[0].rows:
+                        assert pattern.lower() in row["name"].lower(), (
+                            f"Pattern '{pattern}' should be in migration name '{row['name']}'"
+                        )
+
+        # Case 4: Test including full queries
+        full_queries_query = query_manager.get_migrations_query(include_full_queries=True, limit=2)
+        full_queries_result = await query_manager.handle_query(full_queries_query)
+
+        # Verify full queries are included
+        if full_queries_result.results[0].rows:
+            for row in full_queries_result.results[0].rows:
+                assert "statements" in row, "Statements field should be present"
+                if row["statements"] is not None:
+                    assert isinstance(row["statements"], list), "Statements should be a list"
+
+        # Case 5: Test combining multiple parameters
+        combined_query = query_manager.get_migrations_query(limit=5, offset=1, include_full_queries=True)
+        combined_result = await query_manager.handle_query(combined_query)
+
+        # Verify combined parameters work
+        if combined_result.results[0].rows:
+            assert len(combined_result.results[0].rows) <= 5, "Should return at most 5 migrations"
+            for row in combined_result.results[0].rows:
+                assert "statements" in row, "Statements field should be present"
 
     async def test_execute_postgresql_medium_risk_safe_mode(self, initialized_container_integration: Container):
         """Test that MEDIUM risk operations (INSERT, UPDATE, DELETE) are not allowed in SAFE mode."""
@@ -544,21 +606,6 @@ class TestAPITools:
         assert "domain" in domain_result, "Result should contain domain"
         assert domain_result["domain"] == "Edge Functions", "Domain should match"
         assert "paths" in domain_result, "Result should contain paths for the domain"
-
-    # @pytest.mark.asyncio
-    async def test_get_management_api_safety_rules(self, initialized_container_integration: Container):
-        """Test the get_management_api_safety_rules tool returns safety rules."""
-        # Test getting API safety rules
-        api_manager = initialized_container_integration.api_manager
-        result = api_manager.get_safety_rules()
-
-        # Verify result is a string
-        assert isinstance(result, str), "Result should be a string"
-        assert len(result) > 0, "Result should not be empty"
-
-        # Verify it contains safety information
-        assert "Safety Rules" in result, "Result should contain safety rules"
-        assert "Current mode" in result, "Result should mention current mode"
 
 
 @pytest.mark.asyncio(loop_scope="module")

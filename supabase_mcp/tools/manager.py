@@ -16,12 +16,11 @@ class ToolName(str, Enum):
     GET_TABLES = "get_tables"
     GET_TABLE_SCHEMA = "get_table_schema"
     EXECUTE_POSTGRESQL = "execute_postgresql"
-    CONFIRM_DESTRUCTIVE_OPERATION = "confirm_destructive_operation"
     RETRIEVE_MIGRATIONS = "retrieve_migrations"
 
     # Safety tools
     LIVE_DANGEROUSLY = "live_dangerously"
-    GET_MANAGEMENT_API_SAFETY_RULES = "get_management_api_safety_rules"
+    CONFIRM_DESTRUCTIVE_OPERATION = "confirm_destructive_operation"
 
     # Management API tools
     SEND_MANAGEMENT_API_REQUEST = "send_management_api_request"

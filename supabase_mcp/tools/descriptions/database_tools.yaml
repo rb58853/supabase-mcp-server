@@ -68,6 +68,17 @@ execute_postgresql: |
      - Example:
        CREATE TABLE public.test_table (id SERIAL PRIMARY KEY, name TEXT);
 
+  MIGRATION HANDLING:
+  All queries that modify the database will be automatically version controlled by the server. You can provide optional migration name, if you want to name the migration.
+   - Respect the following format: verb_noun_detail. Be descriptive and concise.
+   - Examples:
+     - create_users_table
+     - add_email_to_profiles
+     - enable_rls_on_users
+   - If you don't provide a migration name, the server will generate one based on the SQL statement
+   - The system will sanitize your provided name to ensure compatibility with database systems
+   - Migration names are prefixed with a timestamp in the format YYYYMMDDHHMMSS
+
   SAFETY SYSTEM:
   Operations are categorized by risk level:
   - LOW RISK: Read operations (SELECT, EXPLAIN) - allowed in SAFE mode
@@ -110,5 +121,20 @@ execute_postgresql: |
 
 retrieve_migrations: |
   Retrieve a list of all migrations a user has from Supabase.
+
+  Returns a list of migrations with the following information:
+  - Version (timestamp)
+  - Name
+  - SQL statements (if requested)
+  - Statement count
+  - Version type (named or numbered)
+
+  Parameters:
+  - limit: Maximum number of migrations to return (default: 50, max: 100)
+  - offset: Number of migrations to skip for pagination (default: 0)
+  - name_pattern: Optional pattern to filter migrations by name. Uses SQL ILIKE pattern matching (case-insensitive).
+    The pattern is automatically wrapped with '%' wildcards, so "users" will match "create_users_table",
+    "add_email_to_users", etc. To search for an exact match, use the complete name.
+  - include_full_queries: Whether to include the full SQL statements in the result (default: false)
 
   SAFETY: This is a low-risk read operation that can be executed in SAFE mode.

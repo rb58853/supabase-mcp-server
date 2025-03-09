@@ -1,5 +1,8 @@
 # Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
 
+build:
+  dockerBuildPath: .
+
 startCommand:
   type: stdio
   configSchema:
@@ -46,8 +49,8 @@ startCommand:
     # A function that produces the CLI command to start the MCP on stdio.
     |-
     (config) => ({
-      command: 'supabase-mcp-server',
-      args: [],
+      command: 'uv run supabase-mcp-server',
+      args: ['run', 'supabase-mcp-server'],
       env: {
         SUPABASE_PROJECT_REF: config.supabaseProjectRef,
         SUPABASE_DB_PASSWORD: config.supabaseDbPassword,

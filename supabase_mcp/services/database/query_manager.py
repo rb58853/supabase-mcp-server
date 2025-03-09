@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Any
 
 from supabase_mcp.exceptions import OperationNotAllowedError
 from supabase_mcp.logger import logger
@@ -52,11 +51,9 @@ class QueryManager:
         logger.debug(f"Check readonly result: {result}")
         return result
 
-    async def handle_query(
-        self, query: str, params: tuple[Any, ...] | None = None, has_confirmation: bool = False
-    ) -> QueryResult:
+    async def handle_query(self, query: str, has_confirmation: bool = False, migration_name: str = "") -> QueryResult:
         """
-        Handle a SQL query with validation and potential migration.
+        Handle a SQL query with validation and potential migration. Uses migration name, if provided.
 
         This method:
         1. Validates the query for safety
@@ -76,53 +73,68 @@ class QueryManager:
             OperationNotAllowedError: If the query is not allowed in the current safety mode
             ConfirmationRequiredError: If the query requires confirmation and has_confirmation is False
         """
-        # Validate the query
+        # 1. Run through the validator
         validated_query = self.validator.validate_query(query)
 
-        # Use the safety manager to validate the operation
+        # 2. Ensure execution is allowed
         self.safety_manager.validate_operation(ClientType.DATABASE, validated_query, has_confirmation)
         logger.debug(f"Operation with risk level {validated_query.highest_risk_level} validated successfully")
 
-        # Check if migration is needed
-        if validated_query.needs_migration():
-            logger.debug("Query requires migration, handling...")
-            await self.handle_migration(validated_query, query)
-        else:
-            logger.debug("No migration needed for this query")
+        # 3. Handle migration if needed
+        await self.handle_migration(validated_query, query, migration_name)
 
-        # Check readonly
+        # 4. Execute the query
+        return await self.handle_query_execution(validated_query)
+
+    async def handle_query_execution(self, validated_query: QueryValidationResults) -> QueryResult:
+        """
+        Handle query execution with validation and potential migration.
+
+        This method:
+        1. Checks the readonly mode
+        2. Executes the query
+        3. Returns the result
+
+        Args:
+            validated_query: The validation result
+            query: The original query
+
+        Returns:
+            QueryResult: The result of the query execution
+        """
         readonly = self.check_readonly()
-
-        # Execute the query
         result = await self.db_client.execute_query_async(validated_query, readonly)
         logger.debug(f"Query result: {result}")
         return result
 
-    async def handle_migration(self, validation_result: QueryValidationResults, query: str) -> None:
+    async def handle_migration(
+        self, validation_result: QueryValidationResults, original_query: str, migration_name: str = ""
+    ) -> None:
         """
         Handle migration for a query that requires it.
 
         Args:
             validation_result: The validation result
             query: The original query
+            migration_name: Migration name to use, if provided
         """
-        # Generate a descriptive name using the MigrationManager
-        migration_name = self.migration_manager.generate_descriptive_name(validation_result)
+        # 1. Check if migration is needed
+        if not validation_result.needs_migration():
+            logger.info("No migration needed for this query")
+            return
 
+        # 2. Create migration
         try:
             # Prepare the migration with the original query
-            migration_query = self.migration_manager.prepare_migration(migration_name, query)
-            logger.debug("Migration query prepared")
+            migration_query, migration_name = self.migration_manager.prepare_migration_query(
+                validation_result, original_query, migration_name
+            )
 
-            # Validate migration query
+            # Validate migration query, since it's a raw query
             validated_query = self.validator.validate_query(migration_query)
 
-            # Check readonly
-            readonly = self.check_readonly()
-
-            # Execute the migration query
-            await self.db_client.execute_query_async(validated_query, readonly)
-            logger.info(f"Created migration for query: {migration_name}")
+            await self.handle_query_execution(validated_query)
+            logger.info(f"Successfully created migration: {migration_name}")
         except Exception as e:
             logger.debug(f"Migration failure details: {str(e)}")
             raise e
@@ -219,12 +231,33 @@ class QueryManager:
         sql = self.load_sql("get_table_schema")
         return sql.format(schema_name=schema_name, table=table)
 
-    def get_migrations_query(self) -> str:
+    def get_migrations_query(
+        self, limit: int = 50, offset: int = 0, name_pattern: str = "", include_full_queries: bool = False
+    ) -> str:
         """
-        Get a query to retrieve all migrations from Supabase.
+        Get a query to retrieve migrations from Supabase with filtering and pagination.
+
+        Args:
+            limit: Maximum number of migrations to return (default: 50)
+            offset: Number of migrations to skip (for pagination)
+            name_pattern: Optional pattern to filter migrations by name
+            include_full_queries: Whether to include the full SQL statements in the result
 
         Returns:
-            str: SQL query to get all migrations
+            str: SQL query to get migrations with the specified filters
         """
-        logger.debug("Getting migrations query")
-        return self.load_sql("get_migrations")
+        logger.debug(f"Getting migrations query with limit={limit}, offset={offset}, name_pattern='{name_pattern}'")
+        sql = self.load_sql("get_migrations")
+
+        # Sanitize inputs to prevent SQL injection
+        sanitized_limit = max(1, min(100, limit))  # Limit between 1 and 100
+        sanitized_offset = max(0, offset)
+        sanitized_name_pattern = name_pattern.replace("'", "''")  # Escape single quotes
+
+        # Format the SQL query with the parameters
+        return sql.format(
+            limit=sanitized_limit,
+            offset=sanitized_offset,
+            name_pattern=sanitized_name_pattern,
+            include_full_queries="true" if include_full_queries else "false",
+        )

@@ -190,6 +190,12 @@ class SupabaseSDKClient:
 
     async def call_auth_admin_method(self, method: str, params: dict[str, Any]) -> Any:
         """Calls a method of the Python SDK client"""
+        # Check if service role key is available
+        if not self.service_role_key:
+            raise PythonSDKError(
+                "Supabase service role key is not configured. Set SUPABASE_SERVICE_ROLE_KEY environment variable to use Auth Admin tools."
+            )
+
         if not self.client:
             self.client = await self.get_client()
             if not self.client:

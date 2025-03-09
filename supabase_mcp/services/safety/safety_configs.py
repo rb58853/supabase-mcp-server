@@ -323,6 +323,77 @@ class SQLSafetyConfig(SafetyConfigBase[QueryValidationResults]):
             "risk_level": OperationRiskLevel.MEDIUM,
             "needs_migration": True,
         },
+        # Additional DDL statements
+        "CreateEnumStmt": {  # CREATE TYPE ... AS ENUM
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "CreateTypeStmt": {  # CREATE TYPE (composite)
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "CreateDomainStmt": {  # CREATE DOMAIN
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "CreateSeqStmt": {  # CREATE SEQUENCE
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "CreateForeignTableStmt": {  # CREATE FOREIGN TABLE
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "CreatePolicyStmt": {  # CREATE POLICY
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "CreateCastStmt": {  # CREATE CAST
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "CreateOpClassStmt": {  # CREATE OPERATOR CLASS
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "CreateOpFamilyStmt": {  # CREATE OPERATOR FAMILY
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "AlterEnumStmt": {  # ALTER TYPE ... ADD VALUE
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "AlterSeqStmt": {  # ALTER SEQUENCE
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "AlterOwnerStmt": {  # ALTER ... OWNER TO
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "AlterObjectSchemaStmt": {  # ALTER ... SET SCHEMA
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
+        "RenameStmt": {  # RENAME operations
+            "category": SQLQueryCategory.DDL,
+            "risk_level": OperationRiskLevel.MEDIUM,
+            "needs_migration": True,
+        },
         # DESTRUCTIVE DDL - HIGH risk, need migrations and confirmation
         "DropStmt": {
             "category": SQLQueryCategory.DDL,

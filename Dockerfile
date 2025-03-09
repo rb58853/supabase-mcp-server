@@ -27,4 +27,4 @@ RUN uv venv && \
     uv pip install .
 
 # Set the entrypoint to use the venv
-CMD ["uv", "run", "supabase-mcp-server"]
+CMD ["uv", "--directory", ".", "run", "supabase_mcp/main.py"]

@@ -26,5 +26,6 @@ RUN uv venv && \
     . .venv/bin/activate && \
     uv pip install .
 
+
 # Set the entrypoint to use the venv
 CMD ["uv", "--directory", ".", "run", "supabase_mcp/main.py"]

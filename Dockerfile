@@ -2,30 +2,16 @@ FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
-# Install PostgreSQL client libraries (required for psycopg2) and curl for uv installation
+# Prepare the basic dependencies
 RUN apt-get update && apt-get install -y \
-    libpq-dev \
-    gcc \
-    curl \
-    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# # Install uv with fixed version
-ENV UV_VERSION="0.6.1"
-ADD https://astral.sh/uv/${UV_VERSION}/install.sh /uv-installer.sh
-RUN sh /uv-installer.sh && rm /uv-installer.sh
-ENV PATH="/root/.local/bin/:$PATH"
+# Install pipx
+RUN pip install --no-cache-dir pipx && \
+    pipx ensurepath && \
+    pipx install supabase-mcp-server
 
-# # Copy the project into the image
-COPY . /app
-WORKDIR /app
+# Add pipx bin directory to PATH
+ENV PATH="/root/.local/bin:$PATH"
 
-# Create venv and install dependencies with version set
-ENV SETUPTOOLS_SCM_PRETEND_VERSION="0.3.9"
-RUN uv venv && \
-    . .venv/bin/activate && \
-    uv pip install .
-
-
-# Set the entrypoint to use the venv
-CMD ["uv", "--directory", ".", "run", "supabase_mcp/main.py"]
+CMD ["supabase-mcp-server"]

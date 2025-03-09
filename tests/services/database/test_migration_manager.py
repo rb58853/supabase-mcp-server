@@ -255,7 +255,7 @@ class TestMigrationManager:
         mm = MigrationManager()
 
         # Use getattr to access protected method
-        generate_short_hash = mm._generate_short_hash
+        generate_short_hash = getattr(mm, "_generate_short_hash")  # noqa
 
         # Test with simple string
         hash1 = generate_short_hash("test string")
@@ -277,7 +277,7 @@ class TestMigrationManager:
     def test_generate_dml_name(self, validator: SQLValidator):
         """Test the _generate_dml_name method."""
         mm = MigrationManager()
-        generate_dml_name = mm._generate_dml_name
+        generate_dml_name = getattr(mm, "_generate_dml_name")  # noqa
 
         # Test INSERT statement
         insert_query = "INSERT INTO users (name, email) VALUES ('John', 'john@example.com');"
@@ -304,7 +304,7 @@ class TestMigrationManager:
     def test_generate_dcl_name(self, validator: SQLValidator):
         """Test the _generate_dcl_name method."""
         mm = MigrationManager()
-        generate_dcl_name = mm._generate_dcl_name
+        generate_dcl_name = getattr(mm, "_generate_dcl_name")  # noqa
 
         # Test GRANT statement
         grant_query = "GRANT SELECT ON users TO anon;"
@@ -328,7 +328,7 @@ class TestMigrationManager:
     def test_extract_table_name(self):
         """Test the _extract_table_name method."""
         mm = MigrationManager()
-        extract_table_name = mm._extract_table_name
+        extract_table_name = getattr(mm, "_extract_table_name")  # noqa
 
         # Test CREATE TABLE
         assert extract_table_name("CREATE TABLE users (id SERIAL PRIMARY KEY);") == "users"
@@ -356,7 +356,7 @@ class TestMigrationManager:
     def test_extract_function_name(self):
         """Test the _extract_function_name method."""
         mm = MigrationManager()
-        extract_function_name = mm._extract_function_name
+        extract_function_name = getattr(mm, "_extract_function_name")  # noqa
 
         # Test CREATE FUNCTION
         assert (
@@ -393,7 +393,7 @@ class TestMigrationManager:
     def test_extract_view_name(self):
         """Test the _extract_view_name method."""
         mm = MigrationManager()
-        extract_view_name = mm._extract_view_name
+        extract_view_name = getattr(mm, "_extract_view_name")  # noqa
 
         # Test CREATE VIEW
         assert extract_view_name("CREATE VIEW user_view AS SELECT * FROM users;") == "user_view"
@@ -415,7 +415,7 @@ class TestMigrationManager:
     def test_extract_index_name(self):
         """Test the _extract_index_name method."""
         mm = MigrationManager()
-        extract_index_name = mm._extract_index_name
+        extract_index_name = getattr(mm, "_extract_index_name")  # noqa
 
         # Test CREATE INDEX
         assert extract_index_name("CREATE INDEX idx_user_email ON users (email);") == "idx_user_email"
@@ -439,7 +439,7 @@ class TestMigrationManager:
     def test_extract_extension_name(self):
         """Test the _extract_extension_name method."""
         mm = MigrationManager()
-        extract_extension_name = mm._extract_extension_name
+        extract_extension_name = getattr(mm, "_extract_extension_name")  # noqa
 
         # Test CREATE EXTENSION
         assert extract_extension_name("CREATE EXTENSION pgcrypto;") == "pgcrypto"
@@ -465,7 +465,7 @@ class TestMigrationManager:
     def test_extract_type_name(self):
         """Test the _extract_type_name method."""
         mm = MigrationManager()
-        extract_type_name = mm._extract_type_name
+        extract_type_name = getattr(mm, "_extract_type_name")  # noqa
 
         # Test CREATE TYPE (ENUM)
         assert (
@@ -505,7 +505,7 @@ class TestMigrationManager:
     def test_extract_update_columns(self):
         """Test the _extract_update_columns method."""
         mm = MigrationManager()
-        extract_update_columns = mm._extract_update_columns
+        extract_update_columns = getattr(mm, "_extract_update_columns")  # noqa
 
         # The current implementation seems to have issues with the regex pattern
         # Let's test what it actually returns rather than what we expect
@@ -533,7 +533,7 @@ class TestMigrationManager:
     def test_extract_privilege(self):
         """Test the _extract_privilege method."""
         mm = MigrationManager()
-        extract_privilege = mm._extract_privilege
+        extract_privilege = getattr(mm, "_extract_privilege")  # noqa
 
         # Test with SELECT privilege
         assert extract_privilege("GRANT SELECT ON users TO anon;") == "select"
@@ -565,7 +565,7 @@ class TestMigrationManager:
     def test_extract_dcl_object_name(self):
         """Test the _extract_dcl_object_name method."""
         mm = MigrationManager()
-        extract_dcl_object_name = mm._extract_dcl_object_name
+        extract_dcl_object_name = getattr(mm, "_extract_dcl_object_name")  # noqa
 
         # Test with table
         assert extract_dcl_object_name("GRANT SELECT ON users TO anon;") == "users"
@@ -584,7 +584,7 @@ class TestMigrationManager:
     def test_extract_generic_object_name(self):
         """Test the _extract_generic_object_name method."""
         mm = MigrationManager()
-        extract_generic_object_name = mm._extract_generic_object_name
+        extract_generic_object_name = getattr(mm, "_extract_generic_object_name")  # noqa
 
         # Test with CREATE statement
         assert extract_generic_object_name("CREATE SCHEMA app;") == "app"

@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <strong>Let Cursor & Windsurf manage your Supabase and run SQL queries. Autonomously. In a safe way.</strong>
+  <strong>Enable your favorite IDE to safely execute SQL queries, manage your database end-to-end, access Management API, and handle user authentication with built-in safety controls.</strong>
 </p>
 
 [![Star History Chart](https://api.star-history.com/svg?repos=alexander-zuev/supabase-mcp-server&type=Date)](https://star-history.com/#alexander-zuev/supabase-mcp-server&Date)

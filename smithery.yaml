@@ -13,22 +13,22 @@ startCommand:
     properties:
       supabaseProjectRef:
         type: string
-        description: The project reference of Supabase project you want to connect to. Connects to local instance if not provided.
+        description: "(required) - Supabase project reference ID - Default: 127.0.0.1:54322"
         default: "127.0.0.1:54322"
       supabaseDbPassword:
         type: string
-        description: The database password of Supabase project you want to connect to. Connects to local instance if not provided.
+        description: "(required) - Database password - Default: postgres"
         default: "postgres"
       supabaseRegion:
         type: string
-        description: Region where your Supabase project is hosted.
+        description: "(optional) - AWS region where your Supabase project is hosted - Default: us-east-1"
         default: "us-east-1"
       supabaseAccessToken:
         type: string
-        description: Your Supabase access token (required for Management API tools).
+        description: "(optional) - Personal access token for Supabase Management API - Default: none"
       supabaseServiceRoleKey:
         type: string
-        description: Your Supabase service role key (required for Auth Admin SDK tools).
+        description: "(optional) - Project Service Role Key for Auth Admin SDK - Default: none"
   commandFunction:
     |-
     (config) => ({

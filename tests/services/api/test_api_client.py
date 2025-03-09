@@ -131,3 +131,18 @@ class TestAPIClient:
 
         # Verify the error message indicates retries were attempted
         assert "Network error after 3 retry attempts" in str(exc_info.value)
+
+    # @pytest.mark.asyncio(loop_scope="function")
+    async def test_request_without_access_token(
+        self, monkeypatch: pytest.MonkeyPatch, api_client_integration: ManagementAPIClient
+    ):
+        """Test that an exception is raised when attempting to send a request without an access token."""
+        # Temporarily set the access token to None
+        monkeypatch.setattr(api_client_integration.settings, "supabase_access_token", None)
+
+        # Attempt to execute a request - should raise an exception
+        with pytest.raises(APIClientError):
+            await api_client_integration.execute_request(
+                method="GET",
+                path="/v1/projects",
+            )

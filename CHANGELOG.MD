@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.3.9] - 2025-03-08
+### Fixed
+- Fixed an issue with api spec tool that prevented spec retrieval
+
+
 ## [0.3.8] - 2025-03-07
 ### Added
 - SQL query validation using PostgreSQL's parser (pglast v7.3+)

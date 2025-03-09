@@ -7,6 +7,15 @@ assignees: alexander-zuev
 
 ---
 
+> **⚠️ IMPORTANT NOTE: ⚠️**
+> Reports such as:
+> - "Something is not working" without clear explanations
+> - Vague descriptions of an issue without necessary context or steps to reproduce
+> - Missing essential information (logs, environment details)
+> - Issues explicitly covered in the README
+>
+> will be immediately closed without investigation. Please provide complete information as outlined below.
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 

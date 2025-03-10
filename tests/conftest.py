@@ -14,8 +14,10 @@ from supabase_mcp.logger import logger
 from supabase_mcp.services.api.api_client import ManagementAPIClient
 from supabase_mcp.services.api.api_manager import SupabaseApiManager
 from supabase_mcp.services.api.spec_manager import ApiSpecManager
+from supabase_mcp.services.database.migration_manager import MigrationManager
 from supabase_mcp.services.database.postgres_client import PostgresClient
 from supabase_mcp.services.database.query_manager import QueryManager
+from supabase_mcp.services.database.sql.loader import SQLLoader
 from supabase_mcp.services.database.sql.validator import SQLValidator
 from supabase_mcp.services.safety.safety_manager import SafetyManager
 from supabase_mcp.services.sdk.sdk_client import SupabaseSDKClient
@@ -351,3 +353,15 @@ def tools_registry_integration(
     logger.info("✓ Tools registered with MCP server successfully.")
 
     return container
+
+
+@pytest.fixture
+def sql_loader() -> SQLLoader:
+    """Fixture providing a SQLLoader instance for tests."""
+    return SQLLoader()
+
+
+@pytest.fixture
+def migration_manager(sql_loader: SQLLoader) -> MigrationManager:
+    """Fixture providing a MigrationManager instance for tests."""
+    return MigrationManager(loader=sql_loader)

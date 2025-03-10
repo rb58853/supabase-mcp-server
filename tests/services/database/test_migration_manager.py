@@ -7,14 +7,8 @@ from supabase_mcp.services.database.sql.validator import SQLValidator
 
 
 @pytest.fixture
-def validator() -> SQLValidator:
-    """Create a SQLValidator instance for testing."""
-    return SQLValidator()
-
-
-@pytest.fixture
 def sample_ddl_queries() -> dict[str, str]:
-    """Sample DDL (CREATE, ALTER, DROP) queries for testing."""
+    """Return a dictionary of sample DDL queries for testing."""
     return {
         "create_table": "CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE)",
         "create_table_with_schema": "CREATE TABLE public.users (id SERIAL PRIMARY KEY, name TEXT, email TEXT UNIQUE)",
@@ -52,104 +46,108 @@ class TestMigrationManager:
     """Tests for the MigrationManager class."""
 
     def test_generate_descriptive_name_with_default_schema(
-        self, validator: SQLValidator, sample_ddl_queries: dict[str, str]
+        self, mock_validator: SQLValidator, sample_ddl_queries: dict[str, str], migration_manager: MigrationManager
     ):
         """Test generating a descriptive name with default schema."""
         # Use the create_table query from fixtures (no explicit schema)
-        result = validator.validate_query(sample_ddl_queries["create_table"])
+        result = mock_validator.validate_query(sample_ddl_queries["create_table"])
 
-        # Create a migration manager and generate a name
-        mm = MigrationManager()
-        name = mm.generate_descriptive_name(result)
+        # Generate a name using the migration manager fixture
+        name = migration_manager.generate_descriptive_name(result)
 
         # Check that the name follows the expected format with default schema
         assert name == "create_users_public_unknown"
 
     def test_generate_descriptive_name_with_explicit_schema(
-        self, validator: SQLValidator, sample_ddl_queries: dict[str, str]
+        self, mock_validator: SQLValidator, sample_ddl_queries: dict[str, str], migration_manager: MigrationManager
     ):
         """Test generating a descriptive name with explicit schema."""
         # Use the create_table_with_schema query from fixtures
-        result = validator.validate_query(sample_ddl_queries["create_table_with_schema"])
+        result = mock_validator.validate_query(sample_ddl_queries["create_table_with_schema"])
 
-        # Create a migration manager and generate a name
-        mm = MigrationManager()
-        name = mm.generate_descriptive_name(result)
+        # Generate a name using the migration manager fixture
+        name = migration_manager.generate_descriptive_name(result)
 
         # Check that the name follows the expected format with explicit schema
         assert name == "create_users_public_unknown"
 
     def test_generate_descriptive_name_with_custom_schema(
-        self, validator: SQLValidator, sample_ddl_queries: dict[str, str]
+        self, mock_validator: SQLValidator, sample_ddl_queries: dict[str, str], migration_manager: MigrationManager
     ):
         """Test generating a descriptive name with custom schema."""
         # Use the create_table_custom_schema query from fixtures
-        result = validator.validate_query(sample_ddl_queries["create_table_custom_schema"])
+        result = mock_validator.validate_query(sample_ddl_queries["create_table_custom_schema"])
 
-        # Create a migration manager and generate a name
-        mm = MigrationManager()
-        name = mm.generate_descriptive_name(result)
+        # Generate a name using the migration manager fixture
+        name = migration_manager.generate_descriptive_name(result)
 
         # Check that the name follows the expected format with custom schema
         assert name == "create_users_app_unknown"
 
     def test_generate_descriptive_name_with_multiple_statements(
-        self, validator: SQLValidator, sample_multiple_statements: dict[str, str]
+        self,
+        mock_validator: SQLValidator,
+        sample_multiple_statements: dict[str, str],
+        migration_manager: MigrationManager,
     ):
         """Test generating a descriptive name with multiple statements."""
         # Use the multiple_ddl query from fixtures
-        result = validator.validate_query(sample_multiple_statements["multiple_ddl"])
+        result = mock_validator.validate_query(sample_multiple_statements["multiple_ddl"])
 
-        # Create a migration manager and generate a name
-        mm = MigrationManager()
-        name = mm.generate_descriptive_name(result)
+        # Generate a name using the migration manager fixture
+        name = migration_manager.generate_descriptive_name(result)
 
         # Check that the name is based on the first non-TCL statement that needs migration
         assert name == "create_users_public_users"
 
     def test_generate_descriptive_name_with_mixed_statements(
-        self, validator: SQLValidator, sample_multiple_statements: dict[str, str]
+        self,
+        mock_validator: SQLValidator,
+        sample_multiple_statements: dict[str, str],
+        migration_manager: MigrationManager,
     ):
         """Test generating a descriptive name with mixed statements."""
         # Use the mixed_with_migration query from fixtures
-        result = validator.validate_query(sample_multiple_statements["mixed_with_migration"])
+        result = mock_validator.validate_query(sample_multiple_statements["mixed_with_migration"])
 
-        # Create a migration manager and generate a name
-        mm = MigrationManager()
-        name = mm.generate_descriptive_name(result)
+        # Generate a name using the migration manager fixture
+        name = migration_manager.generate_descriptive_name(result)
 
         # Check that the name is based on the first statement that needs migration (skipping SELECT)
         assert name == "create_logs_public_logs"
 
     def test_generate_descriptive_name_with_no_migration_statements(
-        self, validator: SQLValidator, sample_multiple_statements: dict[str, str]
+        self,
+        mock_validator: SQLValidator,
+        sample_multiple_statements: dict[str, str],
+        migration_manager: MigrationManager,
     ):
         """Test generating a descriptive name with no statements that need migration."""
         # Use the only_select query from fixtures (renamed from only_tcl)
-        result = validator.validate_query(sample_multiple_statements["only_select"])
+        result = mock_validator.validate_query(sample_multiple_statements["only_select"])
 
-        # Create a migration manager and generate a name
-        mm = MigrationManager()
-        name = mm.generate_descriptive_name(result)
+        # Generate a name using the migration manager fixture
+        name = migration_manager.generate_descriptive_name(result)
 
         # Check that a generic name is generated
         assert re.match(r"migration_\w+", name)
 
     def test_generate_descriptive_name_for_alter_table(
-        self, validator: SQLValidator, sample_ddl_queries: dict[str, str]
+        self, mock_validator: SQLValidator, sample_ddl_queries: dict[str, str], migration_manager: MigrationManager
     ):
         """Test generating a descriptive name for ALTER TABLE statements."""
         # Use the alter_table query from fixtures
-        result = validator.validate_query(sample_ddl_queries["alter_table"])
+        result = mock_validator.validate_query(sample_ddl_queries["alter_table"])
 
-        # Create a migration manager and generate a name
-        mm = MigrationManager()
-        name = mm.generate_descriptive_name(result)
+        # Generate a name using the migration manager fixture
+        name = migration_manager.generate_descriptive_name(result)
 
         # Check that the name follows the expected format for ALTER TABLE
         assert name == "alter_users_public_unknown"
 
-    def test_generate_descriptive_name_for_create_function(self, validator: SQLValidator):
+    def test_generate_descriptive_name_for_create_function(
+        self, mock_validator: SQLValidator, migration_manager: MigrationManager
+    ):
         """Test generating a descriptive name for CREATE FUNCTION statements."""
         # Define a CREATE FUNCTION query
         function_query = """
@@ -164,16 +162,17 @@ class TestMigrationManager:
         $$ LANGUAGE plpgsql SECURITY DEFINER;
         """
 
-        result = validator.validate_query(function_query)
+        result = mock_validator.validate_query(function_query)
 
-        # Create a migration manager and generate a name
-        mm = MigrationManager()
-        name = mm.generate_descriptive_name(result)
+        # Generate a name using the migration manager fixture
+        name = migration_manager.generate_descriptive_name(result)
 
         # Check that the name follows the expected format for CREATE FUNCTION
         assert name == "create_function_public_user_role"
 
-    def test_generate_descriptive_name_with_comments(self, validator: SQLValidator):
+    def test_generate_descriptive_name_with_comments(
+        self, mock_validator: SQLValidator, migration_manager: MigrationManager
+    ):
         """Test generating a descriptive name for SQL with comments."""
         # Define a query with various types of comments
         query_with_comments = """
@@ -189,55 +188,50 @@ class TestMigrationManager:
         -- This is a comment at the end
         """
 
-        result = validator.validate_query(query_with_comments)
+        result = mock_validator.validate_query(query_with_comments)
 
-        # Create a migration manager and generate a name
-        mm = MigrationManager()
-        name = mm.generate_descriptive_name(result)
+        # Generate a name using the migration manager fixture
+        name = migration_manager.generate_descriptive_name(result)
 
         # Check that the name is correctly generated despite the comments
         assert name == "create_comments_public_comments"
 
-    def test_sanitize_name(self):
+    def test_sanitize_name(self, migration_manager: MigrationManager):
         """Test the sanitize_name method with various inputs."""
-        mm = MigrationManager()
-
         # Test with simple name
-        assert mm.sanitize_name("simple_name") == "simple_name"
+        assert migration_manager.sanitize_name("simple_name") == "simple_name"
 
         # Test with spaces
-        assert mm.sanitize_name("name with spaces") == "name_with_spaces"
+        assert migration_manager.sanitize_name("name with spaces") == "name_with_spaces"
 
         # Test with special characters
-        assert mm.sanitize_name("name-with!special@chars#") == "namewithspecialchars"
+        assert migration_manager.sanitize_name("name-with!special@chars#") == "namewithspecialchars"
 
         # Test with uppercase
-        assert mm.sanitize_name("UPPERCASE_NAME") == "uppercase_name"
+        assert migration_manager.sanitize_name("UPPERCASE_NAME") == "uppercase_name"
 
         # Test with very long name (over 100 chars)
         long_name = "a" * 150
-        assert len(mm.sanitize_name(long_name)) == 100
+        assert len(migration_manager.sanitize_name(long_name)) == 100
 
         # Test with mixed case and special chars
-        assert mm.sanitize_name("User-Profile_Table!") == "userprofile_table"
+        assert migration_manager.sanitize_name("User-Profile_Table!") == "userprofile_table"
 
-    def test_prepare_migration_query(self, validator: SQLValidator):
+    def test_prepare_migration_query(self, mock_validator: SQLValidator, migration_manager: MigrationManager):
         """Test the prepare_migration_query method."""
         # Create a sample query and validate it
         query = "CREATE TABLE test_table (id SERIAL PRIMARY KEY);"
-        result = validator.validate_query(query)
-
-        mm = MigrationManager()
+        result = mock_validator.validate_query(query)
 
         # Test with client-provided name
-        migration_query, name = mm.prepare_migration_query(result, query, "my_custom_migration")
+        migration_query, name = migration_manager.prepare_migration_query(result, query, "my_custom_migration")
         assert name == "my_custom_migration"
         assert "INSERT INTO supabase_migrations.schema_migrations" in migration_query
         assert "my_custom_migration" in migration_query
         assert query.replace("'", "''") in migration_query
 
         # Test with auto-generated name
-        migration_query, name = mm.prepare_migration_query(result, query)
+        migration_query, name = migration_manager.prepare_migration_query(result, query)
         assert name  # Name should not be empty
         assert "INSERT INTO supabase_migrations.schema_migrations" in migration_query
         assert name in migration_query
@@ -245,17 +239,15 @@ class TestMigrationManager:
 
         # Test with query containing single quotes (SQL injection prevention)
         query_with_quotes = "INSERT INTO users (name) VALUES ('O''Brien');"
-        result = validator.validate_query(query_with_quotes)
-        migration_query, _ = mm.prepare_migration_query(result, query_with_quotes)
+        result = mock_validator.validate_query(query_with_quotes)
+        migration_query, _ = migration_manager.prepare_migration_query(result, query_with_quotes)
         # The single quotes are already escaped in the original query, and they get escaped again
         assert "VALUES (''O''''Brien'')" in migration_query
 
-    def test_generate_short_hash(self):
+    def test_generate_short_hash(self, migration_manager: MigrationManager):
         """Test the _generate_short_hash method."""
-        mm = MigrationManager()
-
         # Use getattr to access protected method
-        generate_short_hash = getattr(mm, "_generate_short_hash")  # noqa
+        generate_short_hash = getattr(migration_manager, "_generate_short_hash")  # noqa
 
         # Test with simple string
         hash1 = generate_short_hash("test string")
@@ -274,21 +266,20 @@ class TestMigrationManager:
         hash4 = generate_short_hash("different string")
         assert hash1 != hash4
 
-    def test_generate_dml_name(self, validator: SQLValidator):
+    def test_generate_dml_name(self, mock_validator: SQLValidator, migration_manager: MigrationManager):
         """Test the _generate_dml_name method."""
-        mm = MigrationManager()
-        generate_dml_name = getattr(mm, "_generate_dml_name")  # noqa
+        generate_dml_name = getattr(migration_manager, "_generate_dml_name")  # noqa
 
         # Test INSERT statement
         insert_query = "INSERT INTO users (name, email) VALUES ('John', 'john@example.com');"
-        result = validator.validate_query(insert_query)
+        result = mock_validator.validate_query(insert_query)
         statement = result.statements[0]
         name = generate_dml_name(statement)
         assert name == "insert_public_users"
 
         # Test UPDATE statement with column extraction
         update_query = "UPDATE users SET name = 'John', email = 'john@example.com' WHERE id = 1;"
-        result = validator.validate_query(update_query)
+        result = mock_validator.validate_query(update_query)
         statement = result.statements[0]
         name = generate_dml_name(statement)
         assert "update" in name
@@ -296,19 +287,18 @@ class TestMigrationManager:
 
         # Test DELETE statement
         delete_query = "DELETE FROM users WHERE id = 1;"
-        result = validator.validate_query(delete_query)
+        result = mock_validator.validate_query(delete_query)
         statement = result.statements[0]
         name = generate_dml_name(statement)
         assert name == "delete_public_users"
 
-    def test_generate_dcl_name(self, validator: SQLValidator):
+    def test_generate_dcl_name(self, mock_validator: SQLValidator, migration_manager: MigrationManager):
         """Test the _generate_dcl_name method."""
-        mm = MigrationManager()
-        generate_dcl_name = getattr(mm, "_generate_dcl_name")  # noqa
+        generate_dcl_name = getattr(migration_manager, "_generate_dcl_name")  # noqa
 
         # Test GRANT statement
         grant_query = "GRANT SELECT ON users TO anon;"
-        result = validator.validate_query(grant_query)
+        result = mock_validator.validate_query(grant_query)
         statement = result.statements[0]
         name = generate_dcl_name(statement)
         assert "grant" in name
@@ -317,7 +307,7 @@ class TestMigrationManager:
 
         # Test REVOKE statement
         revoke_query = "REVOKE ALL ON users FROM anon;"
-        result = validator.validate_query(revoke_query)
+        result = mock_validator.validate_query(revoke_query)
         statement = result.statements[0]
         name = generate_dcl_name(statement)
         # The implementation doesn't actually use the command from the statement
@@ -325,10 +315,9 @@ class TestMigrationManager:
         assert "all" in name
         assert "users" in name
 
-    def test_extract_table_name(self):
+    def test_extract_table_name(self, migration_manager: MigrationManager):
         """Test the _extract_table_name method."""
-        mm = MigrationManager()
-        extract_table_name = getattr(mm, "_extract_table_name")  # noqa
+        extract_table_name = getattr(migration_manager, "_extract_table_name")  # noqa
 
         # Test CREATE TABLE
         assert extract_table_name("CREATE TABLE users (id SERIAL PRIMARY KEY);") == "users"
@@ -353,10 +342,9 @@ class TestMigrationManager:
         assert extract_table_name("") == "unknown"
         assert extract_table_name("SELECT * FROM users;") == "unknown"  # Not handled by this method
 
-    def test_extract_function_name(self):
+    def test_extract_function_name(self, migration_manager: MigrationManager):
         """Test the _extract_function_name method."""
-        mm = MigrationManager()
-        extract_function_name = getattr(mm, "_extract_function_name")  # noqa
+        extract_function_name = getattr(migration_manager, "_extract_function_name")  # noqa
 
         # Test CREATE FUNCTION
         assert (
@@ -390,10 +378,9 @@ class TestMigrationManager:
         assert extract_function_name("") == "unknown"
         assert extract_function_name("SELECT * FROM users;") == "unknown"
 
-    def test_extract_view_name(self):
+    def test_extract_view_name(self, migration_manager: MigrationManager):
         """Test the _extract_view_name method."""
-        mm = MigrationManager()
-        extract_view_name = getattr(mm, "_extract_view_name")  # noqa
+        extract_view_name = getattr(migration_manager, "_extract_view_name")  # noqa
 
         # Test CREATE VIEW
         assert extract_view_name("CREATE VIEW user_view AS SELECT * FROM users;") == "user_view"
@@ -412,10 +399,9 @@ class TestMigrationManager:
         assert extract_view_name("") == "unknown"
         assert extract_view_name("SELECT * FROM users;") == "unknown"
 
-    def test_extract_index_name(self):
+    def test_extract_index_name(self, migration_manager: MigrationManager):
         """Test the _extract_index_name method."""
-        mm = MigrationManager()
-        extract_index_name = getattr(mm, "_extract_index_name")  # noqa
+        extract_index_name = getattr(migration_manager, "_extract_index_name")  # noqa
 
         # Test CREATE INDEX
         assert extract_index_name("CREATE INDEX idx_user_email ON users (email);") == "idx_user_email"
@@ -436,10 +422,9 @@ class TestMigrationManager:
         assert extract_index_name("") == "unknown"
         assert extract_index_name("SELECT * FROM users;") == "unknown"
 
-    def test_extract_extension_name(self):
+    def test_extract_extension_name(self, migration_manager: MigrationManager):
         """Test the _extract_extension_name method."""
-        mm = MigrationManager()
-        extract_extension_name = getattr(mm, "_extract_extension_name")  # noqa
+        extract_extension_name = getattr(migration_manager, "_extract_extension_name")  # noqa
 
         # Test CREATE EXTENSION
         assert extract_extension_name("CREATE EXTENSION pgcrypto;") == "pgcrypto"
@@ -462,10 +447,9 @@ class TestMigrationManager:
         assert extract_extension_name("") == "unknown"
         assert extract_extension_name("SELECT * FROM users;") == "unknown"
 
-    def test_extract_type_name(self):
+    def test_extract_type_name(self, migration_manager: MigrationManager):
         """Test the _extract_type_name method."""
-        mm = MigrationManager()
-        extract_type_name = getattr(mm, "_extract_type_name")  # noqa
+        extract_type_name = getattr(migration_manager, "_extract_type_name")  # noqa
 
         # Test CREATE TYPE (ENUM)
         assert (
@@ -502,10 +486,9 @@ class TestMigrationManager:
         assert extract_type_name("") == "unknown"
         assert extract_type_name("SELECT * FROM users;") == "unknown"
 
-    def test_extract_update_columns(self):
+    def test_extract_update_columns(self, migration_manager: MigrationManager):
         """Test the _extract_update_columns method."""
-        mm = MigrationManager()
-        extract_update_columns = getattr(mm, "_extract_update_columns")  # noqa
+        extract_update_columns = getattr(migration_manager, "_extract_update_columns")  # noqa
 
         # The current implementation seems to have issues with the regex pattern
         # Let's test what it actually returns rather than what we expect
@@ -530,10 +513,9 @@ class TestMigrationManager:
         # Test with a query that doesn't match the regex pattern
         assert extract_update_columns("UPDATE users SET name = 'John'") == ""
 
-    def test_extract_privilege(self):
+    def test_extract_privilege(self, migration_manager: MigrationManager):
         """Test the _extract_privilege method."""
-        mm = MigrationManager()
-        extract_privilege = getattr(mm, "_extract_privilege")  # noqa
+        extract_privilege = getattr(migration_manager, "_extract_privilege")  # noqa
 
         # Test with SELECT privilege
         assert extract_privilege("GRANT SELECT ON users TO anon;") == "select"
@@ -562,10 +544,9 @@ class TestMigrationManager:
         assert extract_privilege("") == "privilege"
         assert extract_privilege("SELECT * FROM users;") == "privilege"
 
-    def test_extract_dcl_object_name(self):
+    def test_extract_dcl_object_name(self, migration_manager: MigrationManager):
         """Test the _extract_dcl_object_name method."""
-        mm = MigrationManager()
-        extract_dcl_object_name = getattr(mm, "_extract_dcl_object_name")  # noqa
+        extract_dcl_object_name = getattr(migration_manager, "_extract_dcl_object_name")  # noqa
 
         # Test with table
         assert extract_dcl_object_name("GRANT SELECT ON users TO anon;") == "users"
@@ -581,10 +562,9 @@ class TestMigrationManager:
         assert extract_dcl_object_name("") == "unknown"
         assert extract_dcl_object_name("SELECT * FROM users;") == "unknown"
 
-    def test_extract_generic_object_name(self):
+    def test_extract_generic_object_name(self, migration_manager: MigrationManager):
         """Test the _extract_generic_object_name method."""
-        mm = MigrationManager()
-        extract_generic_object_name = getattr(mm, "_extract_generic_object_name")  # noqa
+        extract_generic_object_name = getattr(migration_manager, "_extract_generic_object_name")  # noqa
 
         # Test with CREATE statement
         assert extract_generic_object_name("CREATE SCHEMA app;") == "app"
@@ -613,12 +593,10 @@ class TestMigrationManager:
         assert extract_generic_object_name("") == "unknown"
         assert extract_generic_object_name("BEGIN;") == "unknown"
 
-    def test_generate_query_timestamp(self):
+    def test_generate_query_timestamp(self, migration_manager: MigrationManager):
         """Test the generate_query_timestamp method."""
-        mm = MigrationManager()
-
         # Get timestamp
-        timestamp = mm.generate_query_timestamp()
+        timestamp = migration_manager.generate_query_timestamp()
 
         # Verify format (YYYYMMDDHHMMSS)
         assert len(timestamp) == 14
@@ -634,3 +612,80 @@ class TestMigrationManager:
             is_valid = False
 
         assert is_valid
+
+    def test_init_migrations_sql_idempotency(self, migration_manager: MigrationManager):
+        """Test that the init_migrations.sql file is idempotent and handles non-existent schema."""
+        # Get the initialization query from the loader
+        init_query = migration_manager.loader.get_init_migrations_query()
+
+        # Verify it contains CREATE SCHEMA IF NOT EXISTS
+        assert "CREATE SCHEMA IF NOT EXISTS supabase_migrations" in init_query
+
+        # Verify it contains CREATE TABLE IF NOT EXISTS
+        assert "CREATE TABLE IF NOT EXISTS supabase_migrations.schema_migrations" in init_query
+
+        # Verify it defines the required columns
+        assert "version TEXT PRIMARY KEY" in init_query
+        assert "statements TEXT[] NOT NULL" in init_query
+        assert "name TEXT NOT NULL" in init_query
+
+        # The SQL should be idempotent - running it multiple times should be safe
+        # This is achieved with IF NOT EXISTS clauses
+
+    def test_create_migration_query(self, migration_manager: MigrationManager):
+        """Test that the create_migration.sql file correctly inserts a migration record."""
+        # Define test values
+        version = "20230101000000"
+        name = "test_migration"
+        statements = "CREATE TABLE test (id INT);"
+
+        # Get the create migration query
+        create_query = migration_manager.loader.get_create_migration_query(version, name, statements)
+
+        # Verify it contains an INSERT statement
+        assert "INSERT INTO supabase_migrations.schema_migrations" in create_query
+
+        # Verify it includes the version, name, and statements
+        assert version in create_query
+        assert name in create_query
+        assert statements in create_query
+
+        # Verify it's using the ARRAY constructor for statements
+        assert "ARRAY[" in create_query
+
+    def test_migration_system_handles_nonexistent_schema(
+        self, migration_manager: MigrationManager, mock_validator: SQLValidator
+    ):
+        """Test that the migration system correctly handles the case when the migration schema doesn't exist."""
+        # This test verifies that the QueryManager's init_migration_schema method
+        # is called before attempting to create a migration, ensuring that the
+        # schema and table exist before trying to insert into them.
+
+        # In a real system, when the migration schema doesn't exist:
+        # 1. The QueryManager would call init_migration_schema
+        # 2. The init_migration_schema method would execute the init_migrations.sql query
+        # 3. This would create the schema and table with IF NOT EXISTS clauses
+        # 4. Then the create_migration query would be executed
+
+        # For this test, we'll verify that:
+        # 1. The init_migrations.sql query creates the schema and table with IF NOT EXISTS
+        # 2. The create_migration.sql query assumes the table exists
+
+        # Get the initialization query
+        init_query = migration_manager.loader.get_init_migrations_query()
+
+        # Verify it creates the schema and table with IF NOT EXISTS
+        assert "CREATE SCHEMA IF NOT EXISTS" in init_query
+        assert "CREATE TABLE IF NOT EXISTS" in init_query
+
+        # Get a create migration query
+        version = migration_manager.generate_query_timestamp()
+        name = "test_migration"
+        statements = "CREATE TABLE test (id INT);"
+        create_query = migration_manager.loader.get_create_migration_query(version, name, statements)
+
+        # Verify it assumes the table exists (no IF EXISTS check)
+        assert "INSERT INTO supabase_migrations.schema_migrations" in create_query
+
+        # This is why the QueryManager needs to call init_migration_schema before
+        # attempting to create a migration - to ensure the table exists

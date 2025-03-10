@@ -276,9 +276,8 @@ class PostgresClient:
             # Return the result
             return StatementResult(rows=rows)
 
-        except asyncpg.PostgresError:
-            # Let the transaction handler deal with this
-            raise
+        except asyncpg.PostgresError as e:
+            await self._handle_postgres_error(e)
 
     @retry(
         retry=retry_if_exception_type(
@@ -293,7 +292,7 @@ class PostgresClient:
         wait=wait_exponential(multiplier=1, min=2, max=10),
         before_sleep=log_db_retry_attempt,
     )
-    async def execute_query_async(
+    async def execute_query(
         self,
         validated_query: QueryValidationResults,
         readonly: bool = True,  # Default to read-only for safety
@@ -339,79 +338,6 @@ class PostgresClient:
         # Execute the operation with a connection
         return await self.with_connection(execute_all_statements)
 
-    # Keep the original methods but mark them as deprecated
-
-    # TODO: This method is now deprecated, use execute_query_async instead
-    async def _execute_statements(
-        self,
-        validated_query: QueryValidationResults,
-        readonly: bool = False,
-    ) -> QueryResult:
-        """Executes one or more statements in a transaction.
-
-        DEPRECATED: Use execute_query_async instead.
-
-        Args:
-            validated_query: QueryValidationResults containing parsed statements
-            readonly: Read-only mode override
-
-        Returns:
-            QueryResult containing combined rows from all statements
-        """
-        # This implementation is kept for backward compatibility
-        # but will be removed in a future version
-        async with self._pool.acquire() as conn:
-            logger.debug(f"Wrapping query in transaction (readonly={readonly})")
-            # Initialize results list
-            results: list[StatementResult] = []
-
-            async with conn.transaction(readonly=readonly):
-                for statement in validated_query.statements:
-                    if statement.query:
-                        result = await self._execute_raw_query(conn, statement.query)
-                        # Append each result inside the loop
-                        results.append(result)
-
-            # Return combined results
-            return QueryResult(results=results)
-
-    # TODO: This method is now deprecated, use execute_statement instead
-    async def _execute_raw_query(
-        self,
-        conn: asyncpg.Connection[Any],
-        query: str,
-    ) -> StatementResult:
-        """Execute the raw query and process results.
-
-        DEPRECATED: Use execute_statement instead.
-
-        Args:
-            conn: Database connection
-            query: SQL query to execute
-
-        Returns:
-            StatementResult containing rows and metadata
-        """
-        # This implementation is kept for backward compatibility
-        # but will be removed in a future version
-        try:
-            result = await conn.fetch(query)
-            logger.debug(f"Query executed successfully: {result}")
-
-            # Convert records to dictionaries
-            rows = [dict(record) for record in result]
-
-            return StatementResult(rows=rows)
-
-        except asyncpg.PostgresError as e:
-            logger.error(f"PostgreSQL error during query execution: {e}")
-            # Handle and convert exceptions - this will raise appropriate exceptions
-            await self._handle_postgres_error(e)
-
-            # This line will never be reached as _handle_postgres_error always raises an exception
-            # But we need it to satisfy the type checker
-            raise QueryError("Unexpected error occurred")
-
     async def _handle_postgres_error(self, error: asyncpg.PostgresError) -> None:
         """Handle PostgreSQL errors and convert to appropriate exceptions.
 
@@ -438,4 +364,4 @@ class PostgresClient:
             raise QueryError(str(error)) from error
         else:
             logger.error(f"Database error: {error}")
-            raise QueryError(f"Query failed: {str(error)}") from error
+            raise QueryError(f"Query execution failed: {str(error)}") from error

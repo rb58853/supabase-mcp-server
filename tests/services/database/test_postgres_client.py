@@ -1,8 +1,7 @@
 import asyncpg
 import pytest
-from asyncpg.exceptions import PostgresError
 
-from supabase_mcp.exceptions import ConnectionError
+from supabase_mcp.exceptions import ConnectionError, QueryError
 from supabase_mcp.services.database.postgres_client import PostgresClient, QueryResult, StatementResult
 from supabase_mcp.services.database.sql.validator import (
     QueryValidationResults,
@@ -38,7 +37,7 @@ class TestPostgresClient:
         )
 
         # Execute the query
-        result = await postgres_client_integration.execute_query_async(validation_result)
+        result = await postgres_client_integration.execute_query(validation_result)
 
         # Verify the result
         assert isinstance(result, QueryResult)
@@ -78,7 +77,7 @@ class TestPostgresClient:
         )
 
         # Execute the query
-        result = await postgres_client_integration.execute_query_async(validation_result)
+        result = await postgres_client_integration.execute_query(validation_result)
 
         # Verify the result
         assert isinstance(result, QueryResult)
@@ -107,7 +106,7 @@ class TestPostgresClient:
         )
 
         # Execute the query
-        result = await postgres_client_integration.execute_query_async(validation_result)
+        result = await postgres_client_integration.execute_query(validation_result)
 
         # Verify the result
         assert isinstance(result, QueryResult)
@@ -115,9 +114,29 @@ class TestPostgresClient:
         assert result.results[0].rows[0]["name"] == "test"
         assert result.results[0].rows[0]["value"] == 42
 
-    async def test_execute_query_with_error(self, postgres_client_integration: PostgresClient):
-        """Test executing a query that results in an error."""
-        # Create a validation result with an invalid query
+    async def test_permission_error(self, postgres_client_integration: PostgresClient):
+        """Test handling a permission error."""
+        # Create a mock error
+        error = asyncpg.exceptions.InsufficientPrivilegeError("Permission denied")
+
+        # Verify that the method raises PermissionError with the expected message
+        try:
+            await postgres_client_integration._handle_postgres_error(error)
+            # If we get here, the test should fail
+            assert False, "Expected PermissionError was not raised"
+        except Exception as e:
+            # Verify it's the right type of exception
+            from supabase_mcp.exceptions import PermissionError as SupabasePermissionError
+
+            assert isinstance(e, SupabasePermissionError)
+            # Verify the error message
+            assert "Access denied" in str(e)
+            assert "Permission denied" in str(e)
+            assert "live_dangerously" in str(e)
+
+    async def test_query_error(self, postgres_client_integration: PostgresClient):
+        """Test handling a query error."""
+        # Create a validation result with a syntactically valid but semantically incorrect query
         query = "SELECT * FROM nonexistent_table;"
         statement = ValidatedStatement(
             query=query,
@@ -125,7 +144,7 @@ class TestPostgresClient:
             category=SQLQueryCategory.DQL,
             risk_level=OperationRiskLevel.LOW,
             needs_migration=False,
-            object_type="nonexistent_table",
+            object_type="TABLE",
             schema_name="public",
         )
         validation_result = QueryValidationResults(
@@ -134,9 +153,184 @@ class TestPostgresClient:
             highest_risk_level=OperationRiskLevel.LOW,
         )
 
-        # Execute the query and expect an error
-        with pytest.raises(PostgresError):
-            await postgres_client_integration.execute_query_async(validation_result)
+        # Execute the query - should raise a QueryError
+        with pytest.raises(QueryError) as excinfo:
+            await postgres_client_integration.execute_query(validation_result)
+
+        # Verify the error message contains the specific error
+        assert "nonexistent_table" in str(excinfo.value)
+
+    async def test_schema_error(self, postgres_client_integration: PostgresClient):
+        """Test handling a schema error."""
+        # Create a validation result with a query referencing a non-existent column
+        query = "SELECT nonexistent_column FROM information_schema.tables;"
+        statement = ValidatedStatement(
+            query=query,
+            command=SQLQueryCommand.SELECT,
+            category=SQLQueryCategory.DQL,
+            risk_level=OperationRiskLevel.LOW,
+            needs_migration=False,
+            object_type="TABLE",
+            schema_name="information_schema",
+        )
+        validation_result = QueryValidationResults(
+            statements=[statement],
+            original_query=query,
+            highest_risk_level=OperationRiskLevel.LOW,
+        )
+
+        # Execute the query - should raise a QueryError
+        with pytest.raises(QueryError) as excinfo:
+            await postgres_client_integration.execute_query(validation_result)
+
+        # Verify the error message contains the specific error
+        assert "nonexistent_column" in str(excinfo.value)
+
+    async def test_write_operation(self, postgres_client_integration: PostgresClient):
+        """Test a basic write operation (INSERT)."""
+        # First drop the table if it exists
+        drop_query = "DROP TABLE IF EXISTS test_write;"
+        drop_statement = ValidatedStatement(
+            query=drop_query,
+            command=SQLQueryCommand.DROP,
+            category=SQLQueryCategory.DDL,
+            risk_level=OperationRiskLevel.HIGH,
+            needs_migration=False,
+            object_type="TABLE",
+            schema_name="public",
+        )
+        drop_validation = QueryValidationResults(
+            statements=[drop_statement],
+            original_query=drop_query,
+            highest_risk_level=OperationRiskLevel.HIGH,
+        )
+
+        # Execute the drop table query
+        await postgres_client_integration.execute_query(drop_validation, readonly=False)
+
+        # Create a temporary table
+        create_query = "CREATE TEMPORARY TABLE test_write (id SERIAL PRIMARY KEY, name TEXT);"
+        create_statement = ValidatedStatement(
+            query=create_query,
+            command=SQLQueryCommand.CREATE,
+            category=SQLQueryCategory.DDL,
+            risk_level=OperationRiskLevel.MEDIUM,
+            needs_migration=False,
+            object_type="TABLE",
+            schema_name="public",
+        )
+        create_validation = QueryValidationResults(
+            statements=[create_statement],
+            original_query=create_query,
+            highest_risk_level=OperationRiskLevel.MEDIUM,
+        )
+
+        # Execute the create table query
+        await postgres_client_integration.execute_query(create_validation, readonly=False)
+
+        # Now insert data
+        insert_query = "INSERT INTO test_write (name) VALUES ('test_value') RETURNING id, name;"
+        insert_statement = ValidatedStatement(
+            query=insert_query,
+            command=SQLQueryCommand.INSERT,
+            category=SQLQueryCategory.DML,
+            risk_level=OperationRiskLevel.MEDIUM,
+            needs_migration=False,
+            object_type="TABLE",
+            schema_name="public",
+        )
+        insert_validation = QueryValidationResults(
+            statements=[insert_statement],
+            original_query=insert_query,
+            highest_risk_level=OperationRiskLevel.MEDIUM,
+        )
+
+        # Execute the insert query
+        result = await postgres_client_integration.execute_query(insert_validation, readonly=False)
+
+        # Verify the result
+        assert isinstance(result, QueryResult)
+        assert len(result.results) == 1
+        assert result.results[0].rows[0]["name"] == "test_value"
+        assert "id" in result.results[0].rows[0]
+
+    async def test_ddl_operation(self, postgres_client_integration: PostgresClient):
+        """Test a basic DDL operation (CREATE and DROP TABLE)."""
+        # First drop the table if it exists
+        drop_query = "DROP TABLE IF EXISTS test_ddl;"
+        drop_statement = ValidatedStatement(
+            query=drop_query,
+            command=SQLQueryCommand.DROP,
+            category=SQLQueryCategory.DDL,
+            risk_level=OperationRiskLevel.HIGH,
+            needs_migration=False,
+            object_type="TABLE",
+            schema_name="public",
+        )
+        drop_validation = QueryValidationResults(
+            statements=[drop_statement],
+            original_query=drop_query,
+            highest_risk_level=OperationRiskLevel.HIGH,
+        )
+
+        # Execute the drop table query
+        await postgres_client_integration.execute_query(drop_validation, readonly=False)
+
+        # Create a test table
+        create_query = "CREATE TEMPORARY TABLE test_ddl (id SERIAL PRIMARY KEY, value TEXT);"
+        create_statement = ValidatedStatement(
+            query=create_query,
+            command=SQLQueryCommand.CREATE,
+            category=SQLQueryCategory.DDL,
+            risk_level=OperationRiskLevel.MEDIUM,
+            needs_migration=False,
+            object_type="TABLE",
+            schema_name="public",
+        )
+        create_validation = QueryValidationResults(
+            statements=[create_statement],
+            original_query=create_query,
+            highest_risk_level=OperationRiskLevel.MEDIUM,
+        )
+
+        # Execute the create table query
+        await postgres_client_integration.execute_query(create_validation, readonly=False)
+
+        # Verify the table exists by inserting and querying data
+        insert_query = "INSERT INTO test_ddl (value) VALUES ('test_ddl_value'); SELECT * FROM test_ddl;"
+        insert_statements = [
+            ValidatedStatement(
+                query="INSERT INTO test_ddl (value) VALUES ('test_ddl_value');",
+                command=SQLQueryCommand.INSERT,
+                category=SQLQueryCategory.DML,
+                risk_level=OperationRiskLevel.MEDIUM,
+                needs_migration=False,
+                object_type="TABLE",
+                schema_name="public",
+            ),
+            ValidatedStatement(
+                query="SELECT * FROM test_ddl;",
+                command=SQLQueryCommand.SELECT,
+                category=SQLQueryCategory.DQL,
+                risk_level=OperationRiskLevel.LOW,
+                needs_migration=False,
+                object_type="TABLE",
+                schema_name="public",
+            ),
+        ]
+        insert_validation = QueryValidationResults(
+            statements=insert_statements,
+            original_query=insert_query,
+            highest_risk_level=OperationRiskLevel.MEDIUM,
+        )
+
+        # Execute the insert and select queries
+        result = await postgres_client_integration.execute_query(insert_validation, readonly=False)
+
+        # Verify the result
+        assert isinstance(result, QueryResult)
+        assert len(result.results) == 2
+        assert result.results[1].rows[0]["value"] == "test_ddl_value"
 
     async def test_execute_metadata_query(self, postgres_client_integration: PostgresClient):
         """Test executing a metadata query."""
@@ -158,7 +352,7 @@ class TestPostgresClient:
         )
 
         # Execute the query
-        result = await postgres_client_integration.execute_query_async(validation_result)
+        result = await postgres_client_integration.execute_query(validation_result)
 
         # Verify the result
         assert isinstance(result, QueryResult)

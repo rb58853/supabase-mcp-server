@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
-## [0.3.10] - Unreleased
+## [0.3.11] - 2025-03-10
+### Fixed
+- Fixed an error with creating a migration file when a user doesn't have `supabase_migrations` schema
+
+
+## [0.3.10] - 2025-03-09
 ### Added
 - Enhanced migration naming system with improved object type detection for procedures, functions, and views.
 - Expanded `retrieve_migrations` tool with pagination, name pattern filtering, and option to include full SQL queries.

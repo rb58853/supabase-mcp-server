@@ -1,9 +1,8 @@
-from pathlib import Path
-
 from supabase_mcp.exceptions import OperationNotAllowedError
 from supabase_mcp.logger import logger
 from supabase_mcp.services.database.migration_manager import MigrationManager
 from supabase_mcp.services.database.postgres_client import PostgresClient, QueryResult
+from supabase_mcp.services.database.sql.loader import SQLLoader
 from supabase_mcp.services.database.sql.models import QueryValidationResults
 from supabase_mcp.services.database.sql.validator import SQLValidator
 from supabase_mcp.services.safety.models import ClientType, SafetyMode
@@ -24,26 +23,29 @@ class QueryManager:
     validation and execution patterns.
     """
 
-    # Path to SQL files directory
-    SQL_DIR = Path(__file__).parent / "sql" / "queries"
-
     def __init__(
         self,
         postgres_client: PostgresClient,
         safety_manager: SafetyManager,
         sql_validator: SQLValidator | None = None,
         migration_manager: MigrationManager | None = None,
+        sql_loader: SQLLoader | None = None,
     ):
         """
         Initialize the QueryManager.
 
         Args:
-            db_client: The database client to use for executing queries
+            postgres_client: The database client to use for executing queries
+            safety_manager: The safety manager to use for validating operations
+            sql_validator: Optional SQL validator to use
+            migration_manager: Optional migration manager to use
+            sql_loader: Optional SQL loader to use
         """
         self.db_client = postgres_client
         self.safety_manager = safety_manager
         self.validator = sql_validator or SQLValidator()
-        self.migration_manager = migration_manager or MigrationManager()
+        self.sql_loader = sql_loader or SQLLoader()
+        self.migration_manager = migration_manager or MigrationManager(loader=self.sql_loader)
 
     def check_readonly(self) -> bool:
         """Returns true if current safety mode is SAFE."""
@@ -103,7 +105,7 @@ class QueryManager:
             QueryResult: The result of the query execution
         """
         readonly = self.check_readonly()
-        result = await self.db_client.execute_query_async(validated_query, readonly)
+        result = await self.db_client.execute_query(validated_query, readonly)
         logger.debug(f"Query result: {result}")
         return result
 
@@ -120,24 +122,42 @@ class QueryManager:
         """
         # 1. Check if migration is needed
         if not validation_result.needs_migration():
-            logger.info("No migration needed for this query")
+            logger.debug("No migration needed for this query")
             return
 
-        # 2. Create migration
+        # 2. Prepare migration query
+        migration_query, name = self.migration_manager.prepare_migration_query(
+            validation_result, original_query, migration_name
+        )
+        logger.debug("Migration query prepared")
+
+        # 3. Execute migration query
         try:
-            # Prepare the migration with the original query
-            migration_query, migration_name = self.migration_manager.prepare_migration_query(
-                validation_result, original_query, migration_name
-            )
+            # First, ensure the migration schema exists
+            await self.init_migration_schema()
 
-            # Validate migration query, since it's a raw query
-            validated_query = self.validator.validate_query(migration_query)
-
-            await self.handle_query_execution(validated_query)
-            logger.info(f"Successfully created migration: {migration_name}")
+            # Then execute the migration query
+            migration_validation = self.validator.validate_query(migration_query)
+            await self.db_client.execute_query(migration_validation, readonly=False)
+            logger.info(f"Migration '{name}' executed successfully")
         except Exception as e:
             logger.debug(f"Migration failure details: {str(e)}")
-            raise e
+            # We don't want to fail the main query if migration fails
+            # Just log the error and continue
+            logger.warning(f"Failed to record migration '{name}': {e}")
+
+    async def init_migration_schema(self) -> None:
+        """Initialize the migrations schema and table if they don't exist."""
+        try:
+            # Get the initialization query
+            init_query = self.sql_loader.get_init_migrations_query()
+
+            # Validate and execute it
+            init_validation = self.validator.validate_query(init_query)
+            await self.db_client.execute_query(init_validation, readonly=False)
+            logger.debug("Migrations schema initialized successfully")
+        except Exception as e:
+            logger.warning(f"Failed to initialize migrations schema: {e}")
 
     async def handle_confirmation(self, confirmation_id: str) -> QueryResult:
         """
@@ -163,101 +183,22 @@ class QueryManager:
         # Call handle_query with the query and has_confirmation=True
         return await self.handle_query(query, has_confirmation=True)
 
-    @classmethod
-    def load_sql(cls, filename: str) -> str:
-        """
-        Load SQL from a file in the sql directory.
-
-        Args:
-            filename: Name of the SQL file (with or without .sql extension)
-
-        Returns:
-            str: The SQL query from the file
-
-        Raises:
-            FileNotFoundError: If the SQL file doesn't exist
-        """
-        # Ensure the filename has .sql extension
-        if not filename.endswith(".sql"):
-            filename = f"{filename}.sql"
-
-        file_path = cls.SQL_DIR / filename
-
-        if not file_path.exists():
-            logger.error(f"SQL file not found: {file_path}")
-            raise FileNotFoundError(f"SQL file not found: {file_path}")
-
-        with open(file_path) as f:
-            sql = f.read().strip()
-            logger.debug(f"Loaded SQL file: {filename} ({len(sql)} chars)")
-            return sql
-
     def get_schemas_query(self) -> str:
-        """
-        Get SQL query to list all schemas with their sizes and table counts.
-
-        Returns:
-            str: SQL query for listing schemas
-        """
-        logger.debug("Getting schemas query")
-        return self.load_sql("get_schemas")
+        """Get a query to list all schemas."""
+        return self.sql_loader.get_schemas_query()
 
     def get_tables_query(self, schema_name: str) -> str:
-        """
-        Get SQL query to list all tables in a schema.
-
-        Args:
-            schema_name: Name of the schema
-
-        Returns:
-            str: SQL query for listing tables
-        """
-        logger.debug(f"Getting tables query for schema: {schema_name}")
-        sql = self.load_sql("get_tables")
-        return sql.format(schema_name=schema_name)
+        """Get a query to list all tables in a schema."""
+        return self.sql_loader.get_tables_query(schema_name)
 
     def get_table_schema_query(self, schema_name: str, table: str) -> str:
-        """
-        Get SQL query to get detailed table schema.
-
-        Args:
-            schema_name: Name of the schema
-            table: Name of the table
-
-        Returns:
-            str: SQL query for getting table schema
-        """
-        logger.debug(f"Getting table schema query for {schema_name}.{table}")
-        sql = self.load_sql("get_table_schema")
-        return sql.format(schema_name=schema_name, table=table)
+        """Get a query to get the schema of a table."""
+        return self.sql_loader.get_table_schema_query(schema_name, table)
 
     def get_migrations_query(
         self, limit: int = 50, offset: int = 0, name_pattern: str = "", include_full_queries: bool = False
     ) -> str:
-        """
-        Get a query to retrieve migrations from Supabase with filtering and pagination.
-
-        Args:
-            limit: Maximum number of migrations to return (default: 50)
-            offset: Number of migrations to skip (for pagination)
-            name_pattern: Optional pattern to filter migrations by name
-            include_full_queries: Whether to include the full SQL statements in the result
-
-        Returns:
-            str: SQL query to get migrations with the specified filters
-        """
-        logger.debug(f"Getting migrations query with limit={limit}, offset={offset}, name_pattern='{name_pattern}'")
-        sql = self.load_sql("get_migrations")
-
-        # Sanitize inputs to prevent SQL injection
-        sanitized_limit = max(1, min(100, limit))  # Limit between 1 and 100
-        sanitized_offset = max(0, offset)
-        sanitized_name_pattern = name_pattern.replace("'", "''")  # Escape single quotes
-
-        # Format the SQL query with the parameters
-        return sql.format(
-            limit=sanitized_limit,
-            offset=sanitized_offset,
-            name_pattern=sanitized_name_pattern,
-            include_full_queries="true" if include_full_queries else "false",
+        """Get a query to list migrations."""
+        return self.sql_loader.get_migrations_query(
+            limit=limit, offset=offset, name_pattern=name_pattern, include_full_queries=include_full_queries
         )

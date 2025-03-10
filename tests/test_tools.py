@@ -282,7 +282,7 @@ class TestDatabaseTools:
                         original_query=cleanup_query,
                     )
 
-                    await postgres_client.execute_query_async(validation_result, readonly=False)
+                    await postgres_client.execute_query(validation_result, readonly=False)
                     print(f"Cleaned up test migrations matching: {name_pattern}")
                 except Exception as e:
                     print(f"Failed to clean up test migrations: {e}")

@@ -3,6 +3,7 @@ import hashlib
 import re
 
 from supabase_mcp.logger import logger
+from supabase_mcp.services.database.sql.loader import SQLLoader
 from supabase_mcp.services.database.sql.models import (
     QueryValidationResults,
     SQLQueryCategory,
@@ -12,6 +13,14 @@ from supabase_mcp.services.database.sql.models import (
 
 class MigrationManager:
     """Responsible for preparing migration scripts without executing them."""
+
+    def __init__(self, loader: SQLLoader | None = None):
+        """Initialize the migration manager with a SQL loader.
+
+        Args:
+            loader: The SQL loader to use for loading SQL queries
+        """
+        self.loader = loader or SQLLoader()
 
     def prepare_migration_query(
         self,
@@ -39,19 +48,15 @@ class MigrationManager:
             name = self.generate_descriptive_name(validation_result)
 
         # Generate migration version (timestamp)
-        query_timestamp = self.generate_query_timestamp()
+        version = self.generate_query_timestamp()
 
         # Escape single quotes in the query for SQL safety
-        escaped_query = original_query.replace("'", "''")
+        statements = original_query.replace("'", "''")
 
-        # Create the complete migration query with values directly embedded
-        migration_query = f"""
-        INSERT INTO supabase_migrations.schema_migrations
-        (version, name, statements)
-        VALUES ('{query_timestamp}', '{name}', ARRAY['{escaped_query}']);
-        """
+        # Get the migration query using the loader
+        migration_query = self.loader.get_create_migration_query(version, name, statements)
 
-        logger.info(f"Prepared migration: {query_timestamp}_{name}")
+        logger.info(f"Prepared migration: {version}_{name}")
 
         # Return the complete query
         return migration_query, name

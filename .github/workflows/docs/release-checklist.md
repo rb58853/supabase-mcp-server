@@ -19,15 +19,15 @@ Post-release
 ## v0.3.12 - 2025-03-12
 
 Pre-release
-1. Tests pass - []
-2. CI passes - []
-3. Build succeeds - []
-4. Documentation is up to date - []
-5. Changelog is up to date - []
-6. Tag and release on GitHub
-7. Release is published to PyPI
-8. Update dockerfile - []
-9. Update .env.example (if necessary) - []
+1. Tests pass - [X]
+2. CI passes - [X]
+3. Build succeeds - [X]
+4. Documentation is up to date - [X]
+5. Changelog is up to date - [X]
+6. Tag and release on GitHub - []
+7. Release is published to PyPI - []
+8. Update dockerfile - [X]
+9. Update .env.example (if necessary) - [X]
 
 Post-release
 10. Clean install from PyPi works - []

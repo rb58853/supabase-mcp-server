@@ -77,7 +77,12 @@ class PostgresClient:
         self.db_url = self._build_connection_string()
         self.sql_validator: SQLValidator = SQLValidator()
 
-        logger.info(f"Initialized PostgresClient with project ref: {self.project_ref}")
+        # Only log once during initialization with clear project info
+        is_local = self.project_ref.startswith("127.0.0.1")
+        logger.info(
+            f"PostgreSQL client initialized for {'local' if is_local else 'remote'} "
+            f"project: {self.project_ref} (region: {self.db_region})"
+        )
 
     @classmethod
     def get_instance(
@@ -118,7 +123,6 @@ class PostgresClient:
         if self.project_ref.startswith("127.0.0.1"):
             # Local development
             connection_string = f"postgresql://postgres:{encoded_password}@{self.project_ref}/postgres"
-            logger.debug("Using local development connection string")
             return connection_string
 
         # Production Supabase - via transaction pooler
@@ -126,7 +130,6 @@ class PostgresClient:
             f"postgresql://postgres.{self.project_ref}:{encoded_password}"
             f"@aws-0-{self._settings.supabase_region}.pooler.supabase.com:6543/postgres"
         )
-        logger.debug(f"Using production connection string for region: {self._settings.supabase_region}")
         return connection_string
 
     @retry(
@@ -152,7 +155,7 @@ class PostgresClient:
             ConnectionError: If unable to establish a connection to the database
         """
         try:
-            logger.debug(f"Creating asyncpg connection pool for: {self.db_url.split('@')[1]}")
+            logger.debug(f"Creating connection pool for project: {self.project_ref}")
 
             # Create the pool with optimal settings
             pool = await asyncpg.create_pool(
@@ -167,26 +170,36 @@ class PostgresClient:
             # Test the connection with a simple query
             async with pool.acquire() as conn:
                 await conn.execute("SELECT 1")
-                logger.debug("Connection test successful")
 
-            logger.info("✓ Created PostgreSQL connection pool with asyncpg")
+            logger.info("✓ Database connection established successfully")
             return pool
 
         except asyncpg.PostgresError as e:
             # Extract connection details for better error reporting
             host_part = self.db_url.split("@")[1].split("/")[0] if "@" in self.db_url else "unknown"
 
-            error_message = (
-                f"Could not connect to database: {e}\n"
-                f"Connection attempted to: {host_part}\n via Transaction Pooler\n"
-                f"Project ref: {self.project_ref}\n"
-                f"Region: {self.db_region}\n\n"
-                f"Please check:\n"
-                f"1. Your Supabase project reference is correct\n"
-                f"2. Your database password is correct\n"
-                f"3. Your region setting matches your Supabase project region\n"
-                f"4. Your Supabase project is active and the database is online\n"
-            )
+            # Check specifically for the "Tenant or user not found" error which is often caused by region mismatch
+            if "Tenant or user not found" in str(e):
+                error_message = (
+                    "CONNECTION ERROR: Region mismatch detected!\n\n"
+                    f"Could not connect to Supabase project '{self.project_ref}'.\n\n"
+                    "This error typically occurs when your SUPABASE_REGION setting doesn't match your project's actual region.\n"
+                    f"Your configuration is using region: '{self.db_region}' (default: us-east-1)\n\n"
+                    "ACTION REQUIRED: Please set the correct SUPABASE_REGION in your MCP server configuration.\n"
+                    "You can find your project's region in the Supabase dashboard under Project Settings."
+                )
+            else:
+                error_message = (
+                    f"Could not connect to database: {e}\n"
+                    f"Connection attempted to: {host_part}\n via Transaction Pooler\n"
+                    f"Project ref: {self.project_ref}\n"
+                    f"Region: {self.db_region}\n\n"
+                    f"Please check:\n"
+                    f"1. Your Supabase project reference is correct\n"
+                    f"2. Your database password is correct\n"
+                    f"3. Your region setting matches your Supabase project region\n"
+                    f"4. Your Supabase project is active and the database is online\n"
+                )
 
             logger.error(f"Failed to connect to database: {e}")
             logger.error(f"Connection details: {host_part}, Project: {self.project_ref}, Region: {self.db_region}")

@@ -5,6 +5,7 @@ from supabase_mcp.services.api.api_client import ManagementAPIClient
 from supabase_mcp.services.api.api_manager import SupabaseApiManager
 from supabase_mcp.services.database.postgres_client import PostgresClient
 from supabase_mcp.services.database.query_manager import QueryManager
+from supabase_mcp.services.logs.log_manager import LogManager
 from supabase_mcp.services.safety.safety_manager import SafetyManager
 from supabase_mcp.services.sdk.sdk_client import SupabaseSDKClient
 from supabase_mcp.settings import Settings
@@ -22,6 +23,7 @@ class Container:
         safety_manager: SafetyManager | None = None,
         query_manager: QueryManager | None = None,
         tool_manager: ToolManager | None = None,
+        log_manager: LogManager | None = None,
     ) -> None:
         """Create a new container container reference"""
         self.mcp_server = mcp_server
@@ -32,6 +34,7 @@ class Container:
         self.safety_manager = safety_manager
         self.query_manager = query_manager
         self.tool_manager = tool_manager
+        self.log_manager = log_manager
 
     def initialize(self, settings: Settings) -> "Container":
         """Initializes all services in a synchronous manner to satisfy MCP runtime requirements"""

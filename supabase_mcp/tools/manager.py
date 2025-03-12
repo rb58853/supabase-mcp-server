@@ -31,8 +31,7 @@ class ToolName(str, Enum):
     CALL_AUTH_ADMIN_METHOD = "call_auth_admin_method"
 
     # Logs & Analytics tools
-    GET_LOGS = "get_logs"
-    GET_QUERY_PERFORMANCE = "get_query_performance"
+    RETRIEVE_LOGS = "retrieve_logs"
 
 
 class ToolManager:

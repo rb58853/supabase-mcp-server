@@ -6,6 +6,7 @@ from typing import Any
 from supabase_mcp.logger import logger
 from supabase_mcp.services.api.api_client import ManagementAPIClient
 from supabase_mcp.services.api.spec_manager import ApiSpecManager
+from supabase_mcp.services.logs.log_manager import LogManager
 from supabase_mcp.services.safety.models import ClientType
 from supabase_mcp.services.safety.safety_manager import SafetyManager
 from supabase_mcp.settings import settings
@@ -35,11 +36,13 @@ class SupabaseApiManager:
         api_client: ManagementAPIClient,
         safety_manager: SafetyManager,
         spec_manager: ApiSpecManager | None = None,
+        log_manager: LogManager | None = None,
     ) -> None:
         """Initialize the API manager."""
         self.spec_manager = spec_manager or ApiSpecManager()  # this is so that I don't have to pass it
         self.client = api_client
         self.safety_manager = safety_manager
+        self.log_manager = log_manager or LogManager()
 
     @classmethod
     def get_instance(
@@ -288,3 +291,57 @@ class SupabaseApiManager:
         # Option 3: Get all domains (default)
         else:
             return {"domains": spec_manager.get_all_domains()}
+
+    async def retrieve_logs(
+        self,
+        collection: str,
+        limit: int = 20,
+        hours_ago: int | None = 1,
+        filters: list[dict[str, Any]] | None = None,
+        search: str | None = None,
+        custom_query: str | None = None,
+    ) -> dict[str, Any]:
+        """Retrieve logs from a Supabase service.
+
+        Args:
+            collection: The log collection to query
+            limit: Maximum number of log entries to return
+            hours_ago: Retrieve logs from the last N hours
+            filters: List of filter objects with field, operator, and value
+            search: Text to search for in event messages
+            custom_query: Complete custom SQL query to execute
+
+        Returns:
+            The query result
+
+        Raises:
+            ValueError: If the collection is unknown
+        """
+        log_manager = self.log_manager
+
+        # Build the SQL query using LogManager
+        sql = log_manager.build_logs_query(
+            collection=collection,
+            limit=limit,
+            hours_ago=hours_ago,
+            filters=filters,
+            search=search,
+            custom_query=custom_query,
+        )
+
+        logger.debug(f"Executing log query: {sql}")
+
+        # Make the API request
+        try:
+            response = await self.execute_request(
+                method="GET",
+                path="/v1/projects/{ref}/analytics/endpoints/logs.all",
+                path_params={},
+                request_params={"sql": sql},
+                request_body={},
+            )
+
+            return response
+        except Exception as e:
+            logger.error(f"Error retrieving logs: {e}")
+            raise

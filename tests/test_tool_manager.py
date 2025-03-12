@@ -165,3 +165,20 @@ class TestToolManager:
         # Reset the singleton for other tests
         # pylint: disable=protected-access
         ToolManager._instance = None  # type: ignore
+
+    def test_tool_enum_completeness(self):
+        """Test that the ToolName enum contains all expected tools."""
+        # Get all tool values from the enum
+        tool_values = [tool.value for tool in ToolName]
+
+        # Verify the total number of tools
+        # Update this number when new tools are added
+        expected_tool_count = 12
+        assert len(tool_values) == expected_tool_count, f"Expected {expected_tool_count} tools, got {len(tool_values)}"
+
+        # Verify specific tools are included
+        assert "retrieve_logs" in tool_values, "retrieve_logs tool is missing from ToolName enum"
+
+        # Reset the singleton for other tests
+        # pylint: disable=protected-access
+        ToolManager._instance = None  # type: ignore

@@ -108,3 +108,67 @@ class TestApiManager:
             await api_manager.execute_request("DELETE", "/v1/organizations/{slug}", {"slug": "example-org"})
 
         assert "Operation not allowed" in str(excinfo.value)
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_retrieve_logs_basic(self, mock_api_manager: SupabaseApiManager):
+        """
+        Test that the retrieve_logs method correctly builds and executes a logs query.
+
+        This test verifies that the API Manager correctly builds a logs query using
+        the LogManager and executes it through the Management API.
+        """
+        # Mock the log_manager's build_logs_query method
+        mock_api_manager.log_manager.build_logs_query = MagicMock(return_value="SELECT * FROM postgres_logs LIMIT 10")
+
+        # Mock the execute_request method to return a simple response
+        mock_response = {"result": [{"id": "123", "event_message": "test"}]}
+
+        async def mock_execute_request(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            return mock_response
+
+        mock_api_manager.execute_request = mock_execute_request
+
+        # Execute the method
+        result = await mock_api_manager.retrieve_logs(
+            collection="postgres",
+            limit=10,
+            hours_ago=24,
+        )
+
+        # Verify that the log_manager was called with the correct parameters
+        mock_api_manager.log_manager.build_logs_query.assert_called_once_with(
+            collection="postgres",
+            limit=10,
+            hours_ago=24,
+            filters=None,
+            search=None,
+            custom_query=None,
+        )
+
+        # Verify that the result is what we expected
+        assert result == {"result": [{"id": "123", "event_message": "test"}]}
+
+    @pytest.mark.asyncio
+    @pytest.mark.unit
+    async def test_retrieve_logs_error_handling(self, mock_api_manager: SupabaseApiManager):
+        """
+        Test that the retrieve_logs method correctly handles errors.
+
+        This test verifies that the API Manager correctly handles errors that occur
+        during log retrieval and propagates them to the caller.
+        """
+        # Mock the log_manager's build_logs_query method
+        mock_api_manager.log_manager.build_logs_query = MagicMock(return_value="SELECT * FROM postgres_logs LIMIT 10")
+
+        # Mock the execute_request method to raise an exception
+        async def mock_execute_request_error(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            raise Exception("API error")
+
+        mock_api_manager.execute_request = mock_execute_request_error
+
+        # The retrieve_logs method should propagate the exception
+        with pytest.raises(Exception) as excinfo:
+            await mock_api_manager.retrieve_logs(collection="postgres")
+
+        assert "API error" in str(excinfo.value)

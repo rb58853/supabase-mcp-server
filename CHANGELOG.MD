@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.3.12] - 2025-03-12
+### Added
+- Implemented a new `retrieve_logs` tool that allows retrieval of logs from any Supabase log collection - Postgres, PostgREST, Auth, Edge Functions and others. Provides a way to query and filter
+- Implemented log rotation to prevent unbounded log file growth (5MB limit with 3 backup files)
+
+### Changed
+- Improved region configuration with clearer error messages for region mismatches
+- Updated smithery.yaml to reduce configuration error rate (Tenant not found)
+- Improved PostgreSQL client connection error handling with specific guidance for "Tenant or user not found" errors
+
+
 ## [0.3.11] - 2025-03-10
 ### Fixed
 - Fixed an error with creating a migration file when a user doesn't have `supabase_migrations` schema

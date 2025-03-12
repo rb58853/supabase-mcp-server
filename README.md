@@ -120,13 +120,15 @@ The server uses the following environment variables:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `SUPABASE_PROJECT_REF` | No | `127.0.0.1:54322` | Your Supabase project reference ID (or local host:port) |
-| `SUPABASE_DB_PASSWORD` | No | `postgres` | Your database password |
-| `SUPABASE_REGION` | No | `us-east-1` | AWS region where your Supabase project is hosted |
+| `SUPABASE_PROJECT_REF` | Yes | `127.0.0.1:54322` | Your Supabase project reference ID (or local host:port) |
+| `SUPABASE_DB_PASSWORD` | Yes | `postgres` | Your database password |
+| `SUPABASE_REGION` | Yes* | `us-east-1` | AWS region where your Supabase project is hosted |
 | `SUPABASE_ACCESS_TOKEN` | No | None | Personal access token for Supabase Management API |
 | `SUPABASE_SERVICE_ROLE_KEY` | No | None | Service role key for Auth Admin SDK |
 
 > **Note**: The default values are configured for local Supabase development. For remote Supabase projects, you must provide your own values for `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD`.
+
+> 🚨 **CRITICAL CONFIGURATION NOTE**: For remote Supabase projects, you MUST specify the correct region where your project is hosted using `SUPABASE_REGION`. If you encounter a "Tenant or user not found" error, this is almost certainly because your region setting doesn't match your project's actual region. You can find your project's region in the Supabase dashboard under Project Settings.
 
 #### Connection Types
 
@@ -491,6 +493,28 @@ The Auth Admin SDK provides several key advantages over direct SQL manipulation:
       - `magiclink` and `recovery` links require the user to already exist in the system
     - Error handling: The server provides detailed error messages from the Supabase API, which may differ from the dashboard interface
     - Method availability: Some methods like `delete_factor` are exposed in the API but not fully implemented in the SDK
+
+### Logs & Analytics
+
+The server provides access to Supabase logs and analytics data, making it easier to monitor and troubleshoot your applications:
+
+- **Available Tool**: `retrieve_logs` - Access logs from any Supabase service
+
+- **Log Collections**:
+  - `postgres`: Database server logs
+  - `api_gateway`: API gateway requests
+  - `auth`: Authentication events
+  - `postgrest`: RESTful API service logs
+  - `pooler`: Connection pooling logs
+  - `storage`: Object storage operations
+  - `realtime`: WebSocket subscription logs
+  - `edge_functions`: Serverless function executions
+  - `cron`: Scheduled job logs
+  - `pgbouncer`: Connection pooler logs
+
+- **Features**: Filter by time, search text, apply field filters, or use custom SQL queries
+
+Simplifies debugging across your Supabase stack without switching between interfaces or writing complex queries.
 
 ### Automatic Versioning of Database Changes
 

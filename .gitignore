@@ -64,7 +64,8 @@ Icon
 # Local development
 
 *.log
-logs/
+# Only ignore logs directory in the root, not in the package
+/logs/
 
 
 # Ignore local assets

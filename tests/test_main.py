@@ -76,14 +76,15 @@ class TestMain:
             ToolName.GET_MANAGEMENT_API_SPEC,
             ToolName.GET_AUTH_ADMIN_METHODS_SPEC,
             ToolName.CALL_AUTH_ADMIN_METHOD,
+            ToolName.RETRIEVE_LOGS,
         ]
 
         # Verify tools are registered in MCP
         registered_tools = asyncio.run(mcp.list_tools())
         registered_tool_names = {tool.name for tool in registered_tools}
 
-        # We should have exactly 11 tools (all the tools defined in ToolName enum)
-        assert len(registered_tools) == 11, f"Expected 11 tools, but got {len(registered_tools)}"
+        # We should have exactly 12 tools (all the tools defined in ToolName enum)
+        assert len(registered_tools) == 12, f"Expected 12 tools, but got {len(registered_tools)}"
 
         # Log the actual number of tools for reference
         logger.info(f"Found {len(registered_tools)} MCP tools registered")

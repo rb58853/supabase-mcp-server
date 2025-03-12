@@ -10,6 +10,7 @@ startCommand:
     required:
       - supabaseProjectRef
       - supabaseDbPassword
+      - supabaseRegion
     properties:
       supabaseProjectRef:
         type: string
@@ -21,8 +22,7 @@ startCommand:
         default: "postgres"
       supabaseRegion:
         type: string
-        description: "(optional) - AWS region where your Supabase project is hosted - Default: us-east-1"
-        default: "us-east-1"
+        description: "(required) - AWS region where your Supabase project is hosted - Default: us-east-1"
       supabaseAccessToken:
         type: string
         description: "(optional) - Personal access token for Supabase Management API - Default: none"

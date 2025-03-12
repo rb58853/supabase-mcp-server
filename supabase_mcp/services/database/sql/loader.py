@@ -87,3 +87,46 @@ class SQLLoader:
         """
         query = cls.load_sql("create_migration")
         return query.replace("{version}", version).replace("{name}", name).replace("{statements}", statements)
+
+    @classmethod
+    def get_logs_query(cls, collection: str, where_clause: str = "", limit: int = 20) -> str:
+        """Get a query to retrieve logs from a specific collection.
+
+        Args:
+            collection: The log collection name (e.g., postgres, api_gateway, auth)
+            where_clause: The WHERE clause to filter logs
+            limit: Maximum number of log entries to return
+
+        Returns:
+            str: The SQL query to retrieve logs
+
+        Raises:
+            FileNotFoundError: If the log collection SQL file doesn't exist
+        """
+        # Map collection names to SQL files
+        collection_map = {
+            "postgres": "logs/postgres_logs",
+            "api_gateway": "logs/edge_logs",
+            "auth": "logs/auth_logs",
+            "postgrest": "logs/postgrest_logs",
+            "pooler": "logs/supavisor_logs",
+            "storage": "logs/storage_logs",
+            "realtime": "logs/realtime_logs",
+            "edge_functions": "logs/function_edge_logs",
+            "cron": "logs/cron_logs",
+            "pgbouncer": "logs/pgbouncer_logs",
+        }
+
+        # Get the SQL file path
+        sql_file = collection_map.get(collection)
+        if not sql_file:
+            raise ValueError(f"Unknown log collection: {collection}")
+
+        # Load the SQL template
+        query = cls.load_sql(sql_file)
+
+        # Handle special case for cron logs
+        if collection == "cron":
+            return query.replace("{and_where_clause}", where_clause).replace("{limit}", str(limit))
+        else:
+            return query.replace("{where_clause}", where_clause).replace("{limit}", str(limit))

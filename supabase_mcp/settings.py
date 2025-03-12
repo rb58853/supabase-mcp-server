@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from supabase_mcp.logger import logger
@@ -40,12 +40,9 @@ def find_config_file(env_file: str = ".env") -> str | None:
     Returns:
         The path to the found config file, or None if not found
     """
-    logger.info(f"Searching for configuration file: {env_file}")
-
     # 1. Check current directory
     cwd_config = Path.cwd() / env_file
     if cwd_config.exists():
-        logger.info(f"Found local config file: {cwd_config}")
         return str(cwd_config)
 
     # 2. Check global config
@@ -56,10 +53,8 @@ def find_config_file(env_file: str = ".env") -> str | None:
         global_config = home / ".config" / "supabase-mcp" / ".env"
 
     if global_config.exists():
-        logger.info(f"Found global config file: {global_config}")
         return str(global_config)
 
-    logger.info(f"No {env_file} file found")
     return None
 
 
@@ -94,8 +89,21 @@ class Settings(BaseSettings):
 
     @field_validator("supabase_region")
     @classmethod
-    def validate_region(cls, v: str) -> str:
+    def validate_region(cls, v: str, info: ValidationInfo) -> str:
         """Validate that the region is supported by Supabase."""
+        # Get the project_ref from the values
+        values = info.data
+        project_ref = values.get("supabase_project_ref", "")
+
+        # If this is a remote project and region is the default
+        if not project_ref.startswith("127.0.0.1") and v == "us-east-1" and "SUPABASE_REGION" not in os.environ:
+            logger.warning(
+                "IMPORTANT: You're connecting to a remote Supabase project but haven't specified a region. "
+                "Using default 'us-east-1', which may cause 'Tenant or user not found' errors if incorrect. "
+                "Please set the correct SUPABASE_REGION in your configuration."
+            )
+
+        # Validate that the region is supported
         if v not in SUPPORTED_REGIONS.__args__:
             supported = "\n  - ".join([""] + list(SUPPORTED_REGIONS.__args__))
             raise ValueError(f"Region '{v}' is not supported. Supported regions are:{supported}")
@@ -115,17 +123,18 @@ class Settings(BaseSettings):
 
         instance = SettingsWithConfig()
 
-        # Log configuration source and precedence
+        # Log configuration source and precedence - simplified to a single clear message
         env_vars_present = any(var in os.environ for var in ["SUPABASE_PROJECT_REF", "SUPABASE_DB_PASSWORD"])
 
-        if env_vars_present:
-            logger.warning("Using environment variables (highest precedence)")
-            if config_file:
-                logger.warning(f"Note: Config file {config_file} exists but environment variables take precedence")
+        if env_vars_present and config_file:
+            logger.info(f"Using environment variables (highest precedence) over config file: {config_file}")
+        elif env_vars_present:
+            logger.info("Using environment variables for configuration")
         elif config_file:
             logger.info(f"Using settings from config file: {config_file}")
         else:
             logger.info("Using default settings (local development)")
+
         return instance
 
 

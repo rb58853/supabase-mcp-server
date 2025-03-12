@@ -165,4 +165,32 @@ class ToolRegistry:
             elif operation_type == "database":
                 return await query_manager.handle_confirmation(confirmation_id)
 
+        @mcp.tool(description=tool_manager.get_description(ToolName.RETRIEVE_LOGS))  # type: ignore
+        async def retrieve_logs(
+            collection: str,
+            limit: int = 20,
+            hours_ago: int = 1,
+            filters: list[dict[str, Any]] = [],
+            search: str = "",
+            custom_query: str = "",
+        ) -> dict[str, Any]:
+            """Retrieve logs from your Supabase project's services for debugging and monitoring."""
+            logger.info(
+                f"Tool called: retrieve_logs(collection={collection}, limit={limit}, hours_ago={hours_ago}, filters={filters}, search={search}, custom_query={'<custom>' if custom_query else None})"
+            )
+
+            api_manager = services_container.api_manager
+            result = await api_manager.retrieve_logs(
+                collection=collection,
+                limit=limit,
+                hours_ago=hours_ago,
+                filters=filters,
+                search=search,
+                custom_query=custom_query,
+            )
+
+            logger.info(f"Tool completed: retrieve_logs - Retrieved log entries for collection={collection}")
+
+            return result
+
         return mcp

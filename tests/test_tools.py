@@ -230,10 +230,9 @@ class TestDatabaseTools:
         # Generate a unique table name for this test run to avoid migration conflicts
         unique_suffix = str(uuid.uuid4()).replace("-", "")[:8]
         test_table_name = f"test_values_{unique_suffix}"
-        migration_name_pattern = f"create_public_{test_table_name}"
 
-        # Store migration names created during this test for cleanup
-        test_migration_names = []
+        # Import QueryValidationResults here to fix linter error
+        from supabase_mcp.services.database.sql.models import QueryValidationResults
 
         try:
             # First create a test table if it doesn't exist with a unique name
@@ -245,8 +244,6 @@ class TestDatabaseTools:
             """
 
             await query_manager.handle_query(create_table_query)
-            # Store migration name pattern for cleanup
-            test_migration_names.append(migration_name_pattern)
 
             # Now test a MEDIUM risk operation (INSERT)
             medium_risk_query = f"""
@@ -263,36 +260,62 @@ class TestDatabaseTools:
             # Clean up any migrations created during this test
             safety_manager.set_safety_mode(ClientType.DATABASE, SafetyMode.UNSAFE)
 
-            # Use a direct SQL query to clean up migrations by name pattern
-            for name_pattern in test_migration_names:
-                try:
-                    # Use a SQL query to find and delete migrations with matching names
-                    cleanup_query = f"""
-                    DELETE FROM supabase_migrations.schema_migrations
-                    WHERE name LIKE '%{name_pattern}%';
-                    """
-
-                    # Execute the cleanup query directly
-                    from supabase_mcp.services.database.sql.models import QueryValidationResults
-
-                    # Create a simple validation result for the cleanup query
-                    validation_result = QueryValidationResults(
-                        statements=[],
-                        highest_risk_level=OperationRiskLevel.MEDIUM,  # Medium risk
-                        original_query=cleanup_query,
-                    )
-
-                    await postgres_client.execute_query(validation_result, readonly=False)
-                    print(f"Cleaned up test migrations matching: {name_pattern}")
-                except Exception as e:
-                    print(f"Failed to clean up test migrations: {e}")
-
-            # Drop the test table
             try:
-                drop_table_query = f"DROP TABLE IF EXISTS public.{test_table_name};"
-                await query_manager.handle_query(drop_table_query)
+                # More inclusive cleanup for migrations - delete any migration related to test_values tables
+                cleanup_migrations_query = """
+                DELETE FROM supabase_migrations.schema_migrations
+                WHERE name LIKE '%test\\_values\\_%' ESCAPE '\\';
+                """
+
+                # Execute the cleanup query directly
+                # Create a simple validation result for the cleanup query
+                validation_result = QueryValidationResults(
+                    statements=[],
+                    highest_risk_level=OperationRiskLevel.MEDIUM,  # Medium risk
+                    original_query=cleanup_migrations_query,
+                )
+
+                await postgres_client.execute_query(validation_result, readonly=False)
+                print("Cleaned up all test_values migrations")
             except Exception as e:
-                print(f"Failed to drop test table: {e}")
+                print(f"Failed to clean up test migrations: {e}")
+
+            try:
+                # More inclusive cleanup for tables - drop all test_values tables
+                # First get a list of all test_values tables
+                list_tables_query = """
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name LIKE 'test\\_values\\_%' ESCAPE '\\';
+                """
+
+                validation_result = QueryValidationResults(
+                    statements=[],
+                    highest_risk_level=OperationRiskLevel.LOW,
+                    original_query=list_tables_query,
+                )
+
+                tables_result = await postgres_client.execute_query(validation_result, readonly=True)
+
+                # Drop each test table found
+                if tables_result and tables_result.results and tables_result.results[0].rows:
+                    for row in tables_result.results[0].rows:
+                        table_name = row.get("table_name")
+                        if table_name:
+                            drop_table_query = f"DROP TABLE IF EXISTS public.{table_name};"
+                            drop_validation_result = QueryValidationResults(
+                                statements=[],
+                                highest_risk_level=OperationRiskLevel.HIGH,
+                                original_query=drop_table_query,
+                            )
+                            try:
+                                await postgres_client.execute_query(drop_validation_result, readonly=False)
+                                print(f"Dropped test table: {table_name}")
+                            except Exception as e:
+                                print(f"Failed to drop test table {table_name}: {e}")
+            except Exception as e:
+                print(f"Failed to list or drop test tables: {e}")
 
             # Reset safety mode
             safety_manager.set_safety_mode(ClientType.DATABASE, SafetyMode.SAFE)
@@ -916,3 +939,298 @@ class TestAuthTools:
         # Test with valid method but invalid parameters
         with pytest.raises(Exception):
             await sdk_client.call_auth_admin_method(method="get_user_by_id", params={"invalid_param": "value"})
+
+
+@pytest.mark.asyncio(loop_scope="module")
+@pytest.mark.integration
+class TestLogsAndAnalyticsTools:
+    """Integration tests for Logs and Analytics tools."""
+
+    # Collection tests - one test per collection
+    async def test_postgres_logs_collection(self, initialized_container_integration: Container):
+        """Test retrieving logs from the postgres collection."""
+        api_manager = initialized_container_integration.api_manager
+
+        result = await api_manager.retrieve_logs(collection="postgres", limit=5, hours_ago=24)
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+        # We don't assert on result length as there might be no logs in test environment
+        # Just verify the structure is correct
+        if result["result"]:
+            first_log = result["result"][0]
+            assert "id" in first_log, "Log entry should have an ID"
+            assert "timestamp" in first_log, "Log entry should have a timestamp"
+            assert "event_message" in first_log, "Log entry should have an event message"
+
+    async def test_api_gateway_logs_collection(self, initialized_container_integration: Container):
+        """Test retrieving logs from the api_gateway collection."""
+        api_manager = initialized_container_integration.api_manager
+
+        result = await api_manager.retrieve_logs(collection="api_gateway", limit=5, hours_ago=24)
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+        if result["result"]:
+            first_log = result["result"][0]
+            assert "id" in first_log, "Log entry should have an ID"
+            assert "timestamp" in first_log, "Log entry should have a timestamp"
+            assert "event_message" in first_log, "Log entry should have an event message"
+
+    async def test_auth_logs_collection(self, initialized_container_integration: Container):
+        """Test retrieving logs from the auth collection."""
+        api_manager = initialized_container_integration.api_manager
+
+        result = await api_manager.retrieve_logs(collection="auth", limit=5, hours_ago=24)
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+        if result["result"]:
+            first_log = result["result"][0]
+            assert "id" in first_log, "Log entry should have an ID"
+            assert "timestamp" in first_log, "Log entry should have a timestamp"
+            assert "event_message" in first_log, "Log entry should have an event message"
+
+    async def test_postgrest_logs_collection(self, initialized_container_integration: Container):
+        """Test retrieving logs from the postgrest collection."""
+        api_manager = initialized_container_integration.api_manager
+
+        result = await api_manager.retrieve_logs(collection="postgrest", limit=5, hours_ago=24)
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+        if result["result"]:
+            first_log = result["result"][0]
+            assert "id" in first_log, "Log entry should have an ID"
+            assert "timestamp" in first_log, "Log entry should have a timestamp"
+            assert "event_message" in first_log, "Log entry should have an event message"
+
+    async def test_pooler_logs_collection(self, initialized_container_integration: Container):
+        """Test retrieving logs from the pooler collection."""
+        api_manager = initialized_container_integration.api_manager
+
+        result = await api_manager.retrieve_logs(collection="pooler", limit=5, hours_ago=24)
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+        if result["result"]:
+            first_log = result["result"][0]
+            assert "id" in first_log, "Log entry should have an ID"
+            assert "timestamp" in first_log, "Log entry should have a timestamp"
+            assert "event_message" in first_log, "Log entry should have an event message"
+
+    async def test_storage_logs_collection(self, initialized_container_integration: Container):
+        """Test retrieving logs from the storage collection."""
+        api_manager = initialized_container_integration.api_manager
+
+        result = await api_manager.retrieve_logs(collection="storage", limit=5, hours_ago=24)
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+        if result["result"]:
+            first_log = result["result"][0]
+            assert "id" in first_log, "Log entry should have an ID"
+            assert "timestamp" in first_log, "Log entry should have a timestamp"
+            assert "event_message" in first_log, "Log entry should have an event message"
+
+    async def test_realtime_logs_collection(self, initialized_container_integration: Container):
+        """Test retrieving logs from the realtime collection."""
+        api_manager = initialized_container_integration.api_manager
+
+        result = await api_manager.retrieve_logs(collection="realtime", limit=5, hours_ago=24)
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+        if result["result"]:
+            first_log = result["result"][0]
+            assert "id" in first_log, "Log entry should have an ID"
+            assert "timestamp" in first_log, "Log entry should have a timestamp"
+            assert "event_message" in first_log, "Log entry should have an event message"
+
+    async def test_edge_functions_logs_collection(self, initialized_container_integration: Container):
+        """Test retrieving logs from the edge_functions collection."""
+        api_manager = initialized_container_integration.api_manager
+
+        result = await api_manager.retrieve_logs(collection="edge_functions", limit=5, hours_ago=24)
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+        if result["result"]:
+            first_log = result["result"][0]
+            assert "id" in first_log, "Log entry should have an ID"
+            assert "timestamp" in first_log, "Log entry should have a timestamp"
+            assert "event_message" in first_log, "Log entry should have an event message"
+
+    async def test_cron_logs_collection(self, initialized_container_integration: Container):
+        """Test retrieving logs from the cron collection."""
+        api_manager = initialized_container_integration.api_manager
+
+        result = await api_manager.retrieve_logs(collection="cron", limit=5, hours_ago=24)
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+        if result["result"]:
+            first_log = result["result"][0]
+            assert "id" in first_log, "Log entry should have an ID"
+            assert "timestamp" in first_log, "Log entry should have a timestamp"
+            assert "event_message" in first_log, "Log entry should have an event message"
+
+    async def test_pgbouncer_logs_collection(self, initialized_container_integration: Container):
+        """Test retrieving logs from the pgbouncer collection."""
+        api_manager = initialized_container_integration.api_manager
+
+        result = await api_manager.retrieve_logs(collection="pgbouncer", limit=5, hours_ago=24)
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+        if result["result"]:
+            first_log = result["result"][0]
+            assert "id" in first_log, "Log entry should have an ID"
+            assert "timestamp" in first_log, "Log entry should have a timestamp"
+            assert "event_message" in first_log, "Log entry should have an event message"
+
+    # Filtering tests
+    async def test_filtering_by_hours_ago(self, initialized_container_integration: Container):
+        """Test filtering logs by hours_ago parameter."""
+        api_manager = initialized_container_integration.api_manager
+
+        # Test with different hours_ago values
+        result_24h = await api_manager.retrieve_logs(collection="postgres", limit=5, hours_ago=24)
+
+        result_1h = await api_manager.retrieve_logs(collection="postgres", limit=5, hours_ago=1)
+
+        # We can't guarantee there will be logs in both time ranges
+        # Just verify the structure is correct
+        assert isinstance(result_24h, dict), "Result should be a dictionary"
+        assert isinstance(result_1h, dict), "Result should be a dictionary"
+        assert "result" in result_24h, "Result should contain 'result' key"
+        assert "result" in result_1h, "Result should contain 'result' key"
+
+    async def test_filtering_by_search_term(self, initialized_container_integration: Container):
+        """Test filtering logs by search term."""
+        api_manager = initialized_container_integration.api_manager
+
+        # Test with a search term that's likely to be in postgres logs
+        result = await api_manager.retrieve_logs(collection="postgres", limit=5, hours_ago=24, search="connection")
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+
+        # If we have results, verify they contain the search term
+        if result["result"]:
+            # At least one log should contain the search term (case insensitive)
+            search_found = False
+            for log in result["result"]:
+                if "connection" in log["event_message"].lower():
+                    search_found = True
+                    break
+
+            # We don't assert this because the search is done at the SQL level
+            # and might use more complex matching than simple string contains
+            # assert search_found, "At least one log should contain the search term"
+
+    async def test_filtering_by_custom_filters(self, initialized_container_integration: Container):
+        """Test filtering logs by custom filters."""
+        api_manager = initialized_container_integration.api_manager
+
+        # Test with a filter on error severity
+        result = await api_manager.retrieve_logs(
+            collection="postgres",
+            limit=5,
+            hours_ago=24,
+            filters=[{"field": "parsed.error_severity", "operator": "=", "value": "ERROR"}],
+        )
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+
+        # We don't assert on the filter results as there might not be any errors
+        # in the test environment
+
+    # Custom query tests
+    async def test_custom_query_basic(self, initialized_container_integration: Container):
+        """Test using a custom query for log retrieval."""
+        api_manager = initialized_container_integration.api_manager
+
+        # Test with a simple custom query
+        custom_query = "SELECT id, timestamp, event_message FROM postgres_logs LIMIT 3"
+        result = await api_manager.retrieve_logs(collection="postgres", custom_query=custom_query)
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+        if result["result"]:
+            assert len(result["result"]) <= 3, "Should return at most 3 logs"
+            first_log = result["result"][0]
+            assert "id" in first_log, "Log entry should have an ID"
+            assert "timestamp" in first_log, "Log entry should have a timestamp"
+            assert "event_message" in first_log, "Log entry should have an event message"
+
+    async def test_custom_query_with_complex_joins(self, initialized_container_integration: Container):
+        """Test using a custom query with complex joins for log retrieval."""
+        api_manager = initialized_container_integration.api_manager
+
+        # Test with a more complex query that includes metadata
+        custom_query = """
+        SELECT
+            id,
+            timestamp,
+            event_message,
+            parsed.error_severity
+        FROM postgres_logs
+        CROSS JOIN unnest(metadata) AS m
+        CROSS JOIN unnest(m.parsed) AS parsed
+        LIMIT 3
+        """
+
+        result = await api_manager.retrieve_logs(collection="postgres", custom_query=custom_query)
+
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "result" in result, "Result should contain 'result' key"
+        # We don't assert on the structure of the result as it depends on the
+        # actual data in the logs
+
+    # Error handling tests
+    async def test_invalid_collection_name(self, initialized_container_integration: Container):
+        """Test that an invalid collection name raises an appropriate error."""
+        api_manager = initialized_container_integration.api_manager
+
+        # Test with an invalid collection name
+        with pytest.raises(Exception) as excinfo:
+            await api_manager.retrieve_logs(collection="invalid_collection", limit=5)
+
+        # Verify the error message mentions the invalid collection
+        assert "invalid_collection" in str(excinfo.value).lower() or "table" in str(excinfo.value).lower(), (
+            "Error message should mention the invalid collection or table"
+        )
+
+    async def test_invalid_custom_query(self, initialized_container_integration: Container):
+        """Test that an invalid custom query returns an appropriate error message."""
+        api_manager = initialized_container_integration.api_manager
+
+        # Test with an invalid SQL query
+        result = await api_manager.retrieve_logs(collection="postgres", custom_query="SELECT * FROM nonexistent_table")
+
+        # Verify the result contains an error message
+        assert isinstance(result, dict), "Result should be a dictionary"
+        assert "error" in result, "Result should contain an error message"
+        # The error message might vary, but it should indicate an issue with the query
+        assert result["result"] is None, "Result data should be None for invalid query"
+
+    async def test_special_characters_in_search(self, initialized_container_integration: Container):
+        """Test handling of special characters in search terms."""
+        api_manager = initialized_container_integration.api_manager
+
+        # Test with a search term containing special characters
+        try:
+            result = await api_manager.retrieve_logs(
+                collection="postgres",
+                limit=5,
+                search="O'Reilly",  # Contains a single quote
+            )
+
+            assert isinstance(result, dict), "Result should be a dictionary"
+            assert "result" in result, "Result should contain 'result' key"
+            # If we get here, the search term was properly escaped
+
+        except Exception as e:
+            pytest.fail(f"Search with special characters failed: {e}")

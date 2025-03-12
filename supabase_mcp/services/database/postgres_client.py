@@ -172,9 +172,46 @@ class PostgresClient:
             logger.info("✓ Created PostgreSQL connection pool with asyncpg")
             return pool
 
-        except (asyncpg.PostgresError, OSError) as e:
+        except asyncpg.PostgresError as e:
+            # Extract connection details for better error reporting
+            host_part = self.db_url.split("@")[1].split("/")[0] if "@" in self.db_url else "unknown"
+
+            error_message = (
+                f"Could not connect to database: {e}\n"
+                f"Connection attempted to: {host_part}\n via Transaction Pooler\n"
+                f"Project ref: {self.project_ref}\n"
+                f"Region: {self.db_region}\n\n"
+                f"Please check:\n"
+                f"1. Your Supabase project reference is correct\n"
+                f"2. Your database password is correct\n"
+                f"3. Your region setting matches your Supabase project region\n"
+                f"4. Your Supabase project is active and the database is online\n"
+            )
+
             logger.error(f"Failed to connect to database: {e}")
-            raise ConnectionError(f"Could not connect to database: {e}") from e
+            logger.error(f"Connection details: {host_part}, Project: {self.project_ref}, Region: {self.db_region}")
+
+            raise ConnectionError(error_message) from e
+
+        except OSError as e:
+            # For network-related errors, provide a different message that clearly indicates
+            # this is a network/system issue rather than a database configuration problem
+            host_part = self.db_url.split("@")[1].split("/")[0] if "@" in self.db_url else "unknown"
+
+            error_message = (
+                f"Network error while connecting to database: {e}\n"
+                f"Connection attempted to: {host_part}\n\n"
+                f"This appears to be a network or system issue rather than a database configuration problem.\n"
+                f"Please check:\n"
+                f"1. Your internet connection is working\n"
+                f"2. Any firewalls or network security settings allow connections to {host_part}\n"
+                f"3. DNS resolution is working correctly\n"
+                f"4. The Supabase service is not experiencing an outage\n"
+            )
+
+            logger.error(f"Network error connecting to database: {e}")
+            logger.error(f"Connection details: {host_part}")
+            raise ConnectionError(error_message) from e
 
     async def ensure_pool(self) -> None:
         """Ensure a valid connection pool exists.

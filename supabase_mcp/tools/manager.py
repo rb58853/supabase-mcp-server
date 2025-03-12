@@ -30,6 +30,10 @@ class ToolName(str, Enum):
     GET_AUTH_ADMIN_METHODS_SPEC = "get_auth_admin_methods_spec"
     CALL_AUTH_ADMIN_METHOD = "call_auth_admin_method"
 
+    # Logs & Analytics tools
+    GET_LOGS = "get_logs"
+    GET_QUERY_PERFORMANCE = "get_query_performance"
+
 
 class ToolManager:
     """Manager for tool descriptions and registration.

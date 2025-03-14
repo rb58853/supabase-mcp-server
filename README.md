@@ -1,4 +1,4 @@
-# Supabase MCP Server
+# Query MCP (Supabase MCP Server)
 
 <p align="center">
   <picture>
@@ -18,7 +18,9 @@
   <strong>Enable your favorite IDE to safely execute SQL queries, manage your database end-to-end, access Management API, and handle user authentication with built-in safety controls.</strong>
 </p>
 
-[![Star History Chart](https://api.star-history.com/svg?repos=alexander-zuev/supabase-mcp-server&type=Date)](https://star-history.com/#alexander-zuev/supabase-mcp-server&Date)
+<p align="center">
+  <a href="https://thequery.dev"><img src="https://github.com/user-attachments/assets/420a2463-e210-4959-9f3b-b94164db23f8" alt="Control Supabase with natural language" width="800" /></a>
+</p>
 
 <p align="center">
   <a href="https://pypi.org/project/supabase-mcp-server/"><img src="https://img.shields.io/pypi/v/supabase-mcp-server.svg" alt="PyPI version" /></a>
@@ -32,7 +34,18 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
 </p>
 
-A feature-rich MCP server that enables any MCP clients (Cursor, Windsurf, Claude Desktop, Cline and others) to safely interact with Supabase databases. It provides tools for database management, SQL query execution, and Supabase Management API access with built-in safety controls.
+## 🎉 The Future of Supabase MCP Server -> Query MCP
+
+**I'm thrilled to announce that Supabase MCP Server is evolving into [thequery.dev](https://thequery.dev)!**
+
+While I have big plans for the future, I want to make these commitments super clear:
+- **The core tool will stay free forever** - free & open-source software is how I got into coding
+- **Premium features will be added on top** - enhancing capabilities without limiting existing functionality
+- **First 2,000 early adopters will get special perks** - join early for an exclusive treat!
+
+**🚀 BIG v4 Launch Coming Soon!**
+
+[**👉 Join Early Access at thequery.dev**](https://thequery.dev)
 
 ## Table of contents
 <p align="center">
@@ -564,10 +577,10 @@ You will have to confirm and approve every high-risk operation explicitly in ord
 
 For a more detailed roadmap, please see this [discussion](https://github.com/alexander-zuev/supabase-mcp-server/discussions/46) on GitHub.
 
-### Connect to Supabase logs
 
-I'm planning to research, if it's possible to connect to Supabase db logs which might be useful for debugging (if not already supported.)
+## Star History
 
+[![Star History Chart](https://api.star-history.com/svg?repos=alexander-zuev/supabase-mcp-server&type=Date)](https://star-history.com/#alexander-zuev/supabase-mcp-server&Date)
 
 ---
 

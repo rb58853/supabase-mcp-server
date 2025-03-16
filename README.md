@@ -29,10 +29,11 @@
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12%2B-blue.svg" alt="Python 3.12+" /></a>
   <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/badge/uv-package%20manager-blueviolet" alt="uv package manager" /></a>
   <a href="https://pepy.tech/project/supabase-mcp-server"><img src="https://static.pepy.tech/badge/supabase-mcp-server" alt="PyPI Downloads" /></a>
-  <a href="https://smithery.ai/badge/@alexander-zuev/supabase-mcp-server"><img src="https://smithery.ai/badge/@alexander-zuev/supabase-mcp-server" alt="Smithery.ai Downloads" /></a>
+  <a href="https://smithery.ai/server/@alexander-zuev/supabase-mcp-server"><img src="https://smithery.ai/badge/@alexander-zuev/supabase-mcp-server" alt="Smithery.ai Downloads" /></a>
   <a href="https://modelcontextprotocol.io/introduction"><img src="https://img.shields.io/badge/MCP-Server-orange" alt="MCP Server" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
 </p>
+
 
 ## 🎉 The Future of Supabase MCP Server -> Query MCP
 

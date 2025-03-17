@@ -1,10 +1,8 @@
-from __future__ import annotations
-
+from abc import ABC, abstractmethod
 from json.decoder import JSONDecodeError
-from typing import Any
+from typing import Any, TypeVar
 
 import httpx
-from httpx import Request, Response
 from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from supabase_mcp.exceptions import (
@@ -15,7 +13,8 @@ from supabase_mcp.exceptions import (
     UnexpectedError,
 )
 from supabase_mcp.logger import logger
-from supabase_mcp.settings import Settings
+
+T = TypeVar("T")
 
 
 # Helper function for retry decorator to safely log exceptions
@@ -26,44 +25,39 @@ def log_retry_attempt(retry_state: RetryCallState) -> None:
     logger.warning(f"Network error, retrying ({retry_state.attempt_number}/3): {exception_str}")
 
 
-class ManagementAPIClient:
-    """
-    Client for Supabase Management API.
+class AsyncHTTPClient(ABC):
+    """Abstract base class for async HTTP clients."""
 
-    Handles low-level HTTP requests to the Supabase Management API.
-    """
+    @abstractmethod
+    async def _ensure_client(self) -> httpx.AsyncClient:
+        """Ensure client exists and is ready for use.
 
-    def __init__(self, settings: Settings) -> None:
-        """Initialize the API client with default settings."""
-        self.settings = settings
-        self.client = self.create_httpx_client(settings)
+        Creates the client if it doesn't exist yet.
+        Returns the client instance.
+        """
+        pass
 
-        logger.info("Initilized Mangement API client successfully")
+    @abstractmethod
+    async def close(self) -> None:
+        """Close the client and release resources.
 
-    def create_httpx_client(self, settings: Settings) -> httpx.AsyncClient:
-        """Create and configure an httpx client for API requests."""
-        headers = {
-            "Authorization": f"Bearer {settings.supabase_access_token}",
-            "Content-Type": "application/json",
-        }
-
-        return httpx.AsyncClient(
-            base_url=settings.supabase_api_url,
-            headers=headers,
-            timeout=30.0,
-        )
+        Should be called when the client is no longer needed.
+        """
+        pass
 
     def prepare_request(
         self,
+        client: httpx.AsyncClient,
         method: str,
         path: str,
         request_params: dict[str, Any] | None = None,
         request_body: dict[str, Any] | None = None,
-    ) -> Request:
+    ) -> httpx.Request:
         """
-        Prepare an HTTP request to the Supabase Management API.
+        Prepare an HTTP request.
 
         Args:
+            client: The httpx client to use
             method: HTTP method (GET, POST, etc.)
             path: API path
             request_params: Query parameters
@@ -76,7 +70,7 @@ class ManagementAPIClient:
             APIClientError: If request preparation fails
         """
         try:
-            return self.client.build_request(method=method, url=path, params=request_params, json=request_body)
+            return client.build_request(method=method, url=path, params=request_params, json=request_body)
         except Exception as e:
             raise APIClientError(
                 message=f"Failed to build request: {str(e)}",
@@ -90,11 +84,12 @@ class ManagementAPIClient:
         reraise=True,  # Ensure the original exception is raised
         before_sleep=log_retry_attempt,
     )
-    async def send_request(self, request: Request) -> Response:
+    async def send_request(self, client: httpx.AsyncClient, request: httpx.Request) -> httpx.Response:
         """
         Send an HTTP request with retry logic for transient errors.
 
         Args:
+            client: The httpx client to use
             request: Prepared httpx.Request object
 
         Returns:
@@ -105,7 +100,7 @@ class ManagementAPIClient:
             APIClientError: For other request errors
         """
         try:
-            return await self.client.send(request)
+            return await client.send(request)
         except httpx.NetworkError as e:
             # All NetworkErrors will be retried by the decorator
             # This will only be reached after all retries are exhausted
@@ -121,7 +116,7 @@ class ManagementAPIClient:
                 status_code=None,
             ) from e
 
-    def parse_response(self, response: Response) -> dict[str, Any]:
+    def parse_response(self, response: httpx.Response) -> dict[str, Any]:
         """
         Parse an HTTP response as JSON.
 
@@ -146,7 +141,7 @@ class ManagementAPIClient:
                 response_body={"raw_content": response.text},
             ) from e
 
-    def handle_error_response(self, response: Response, parsed_body: dict[str, Any] | None = None) -> None:
+    def handle_error_response(self, response: httpx.Response, parsed_body: dict[str, Any] | None = None) -> None:
         """
         Handle error responses based on status code.
 
@@ -193,7 +188,7 @@ class ManagementAPIClient:
         request_body: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
-        Execute an HTTP request to the Supabase Management API.
+        Execute an HTTP request.
 
         Args:
             method: HTTP method (GET, POST, etc.)
@@ -210,12 +205,6 @@ class ManagementAPIClient:
             APIResponseError: For response parsing errors
             UnexpectedError: For unexpected errors
         """
-        # Check if access token is available
-        if not self.settings.supabase_access_token:
-            raise APIClientError(
-                "Supabase access token is not configured. Set SUPABASE_ACCESS_TOKEN environment variable to use Management API tools."
-            )
-
         # Log detailed request information
         logger.info(f"API Client: Executing {method} request to {path}")
         if request_params:
@@ -223,11 +212,14 @@ class ManagementAPIClient:
         if request_body:
             logger.debug(f"Request body: {request_body}")
 
+        # Get client
+        client = await self._ensure_client()
+
         # Prepare request
-        request = self.prepare_request(method, path, request_params, request_body)
+        request = self.prepare_request(client, method, path, request_params, request_body)
 
         # Send request
-        response = await self.send_request(request)
+        response = await self.send_request(client, request)
 
         # Parse response (for both success and error cases)
         parsed_body = self.parse_response(response)
@@ -240,9 +232,3 @@ class ManagementAPIClient:
         # Log success and return
         logger.info(f"Request successful: {method} {path} - Status {response.status_code}")
         return parsed_body
-
-    async def close(self) -> None:
-        """Close the HTTP client and release resources."""
-        if self.client:
-            await self.client.aclose()
-            logger.info("HTTP API client closed")

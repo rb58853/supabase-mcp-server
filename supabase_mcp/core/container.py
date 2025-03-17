@@ -1,5 +1,6 @@
 from mcp.server.fastmcp import FastMCP
 
+from supabase_mcp.core.query_api_client import QueryApiClient
 from supabase_mcp.logger import logger
 from supabase_mcp.services.api.api_client import ManagementAPIClient
 from supabase_mcp.services.api.api_manager import SupabaseApiManager
@@ -58,5 +59,26 @@ class Container:
         # Register safety configs
         self.safety_manager.register_safety_configs()
 
+        # Create query api client
+        self.query_api_client = QueryApiClient()
+
         logger.info("✓ All services initialized successfully.")
+
         return self
+
+    async def close(self) -> None:
+        """Properly close all relevant clients and connections"""
+        # Postgres client
+        if self.postgres_client:
+            await self.postgres_client.close()
+
+        # API clients
+        if self.query_api_client:
+            await self.query_api_client.close()
+
+        if self.api_client:
+            await self.api_client.close()
+
+        # SDK client
+        if self.sdk_client:
+            await self.sdk_client.close()

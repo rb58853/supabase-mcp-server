@@ -3,6 +3,7 @@ from json.decoder import JSONDecodeError
 from typing import Any, TypeVar
 
 import httpx
+from pydantic import BaseModel
 from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from supabase_mcp.exceptions import (
@@ -186,7 +187,7 @@ class AsyncHTTPClient(ABC):
         path: str,
         request_params: dict[str, Any] | None = None,
         request_body: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | BaseModel:
         """
         Execute an HTTP request.
 

@@ -9,9 +9,10 @@ import pytest_asyncio
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
+from supabase_mcp.clients.management_client import ManagementAPIClient
+from supabase_mcp.clients.sdk_client import SupabaseSDKClient
 from supabase_mcp.core.container import Container
 from supabase_mcp.logger import logger
-from supabase_mcp.services.api.api_client import ManagementAPIClient
 from supabase_mcp.services.api.api_manager import SupabaseApiManager
 from supabase_mcp.services.api.spec_manager import ApiSpecManager
 from supabase_mcp.services.database.migration_manager import MigrationManager
@@ -20,7 +21,6 @@ from supabase_mcp.services.database.query_manager import QueryManager
 from supabase_mcp.services.database.sql.loader import SQLLoader
 from supabase_mcp.services.database.sql.validator import SQLValidator
 from supabase_mcp.services.safety.safety_manager import SafetyManager
-from supabase_mcp.services.sdk.sdk_client import SupabaseSDKClient
 from supabase_mcp.settings import Settings, find_config_file
 from supabase_mcp.tools import ToolManager
 from supabase_mcp.tools.registry import ToolRegistry

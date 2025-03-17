@@ -1,14 +1,15 @@
 from mcp.server.fastmcp import FastMCP
 
-from supabase_mcp.core.query_api_client import QueryApiClient
+from supabase_mcp.clients.api_client import ApiClient
+from supabase_mcp.clients.management_client import ManagementAPIClient
+from supabase_mcp.clients.sdk_client import SupabaseSDKClient
+from supabase_mcp.core.feature_manager import FeatureManager
 from supabase_mcp.logger import logger
-from supabase_mcp.services.api.api_client import ManagementAPIClient
 from supabase_mcp.services.api.api_manager import SupabaseApiManager
 from supabase_mcp.services.database.postgres_client import PostgresClient
 from supabase_mcp.services.database.query_manager import QueryManager
 from supabase_mcp.services.logs.log_manager import LogManager
 from supabase_mcp.services.safety.safety_manager import SafetyManager
-from supabase_mcp.services.sdk.sdk_client import SupabaseSDKClient
 from supabase_mcp.settings import Settings
 from supabase_mcp.tools import ToolManager
 
@@ -60,7 +61,8 @@ class Container:
         self.safety_manager.register_safety_configs()
 
         # Create query api client
-        self.query_api_client = QueryApiClient()
+        self.query_api_client = ApiClient()
+        self.feature_manager = FeatureManager(self.query_api_client, self)
 
         logger.info("✓ All services initialized successfully.")
 

@@ -1,4 +1,4 @@
-from mcp.server.fastmcp import FastMCP
+from __future__ import annotations
 
 from supabase_mcp.clients.api_client import ApiClient
 from supabase_mcp.clients.management_client import ManagementAPIClient
@@ -14,10 +14,14 @@ from supabase_mcp.settings import Settings
 from supabase_mcp.tools import ToolManager
 
 
-class Container:
+class ServicesContainer:
+    """Container for all services"""
+
+    _instance: ServicesContainer | None = None
+
     def __init__(
         self,
-        mcp_server: FastMCP,
+        # mcp_server: FastMCP,
         postgres_client: PostgresClient | None = None,
         api_client: ManagementAPIClient | None = None,
         sdk_client: SupabaseSDKClient | None = None,
@@ -26,9 +30,11 @@ class Container:
         query_manager: QueryManager | None = None,
         tool_manager: ToolManager | None = None,
         log_manager: LogManager | None = None,
+        query_api_client: ApiClient | None = None,
+        feature_manager: FeatureManager | None = None,
     ) -> None:
         """Create a new container container reference"""
-        self.mcp_server = mcp_server
+        # self.mcp_server = mcp_server
         self.postgres_client = postgres_client
         self.api_client = api_client
         self.api_manager = api_manager
@@ -37,8 +43,17 @@ class Container:
         self.query_manager = query_manager
         self.tool_manager = tool_manager
         self.log_manager = log_manager
+        self.query_api_client = query_api_client
+        self.feature_manager = feature_manager
 
-    def initialize(self, settings: Settings) -> "Container":
+    @classmethod
+    def get_instance(cls) -> ServicesContainer:
+        """Get the singleton instance of the container"""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def initialize_services(self, settings: Settings) -> None:
         """Initializes all services in a synchronous manner to satisfy MCP runtime requirements"""
         # Create clients
         self.postgres_client = PostgresClient.get_instance(settings=settings)
@@ -62,13 +77,11 @@ class Container:
 
         # Create query api client
         self.query_api_client = ApiClient()
-        self.feature_manager = FeatureManager(self.query_api_client, self)
+        self.feature_manager = FeatureManager(self.query_api_client)
 
         logger.info("✓ All services initialized successfully.")
 
-        return self
-
-    async def close(self) -> None:
+    async def shutdown_services(self) -> None:
         """Properly close all relevant clients and connections"""
         # Postgres client
         if self.postgres_client:

@@ -41,7 +41,7 @@ class ApiClient(AsyncHTTPClient):
         self.query_api_url = query_api_url or settings.query_api_url
         self._check_api_key_set()
         self.client: httpx.AsyncClient | None = None
-        logger.info(f"Query API client initialized with key: {self.query_api_key}")
+        logger.info(f"Query API client initialized with URL: {self.query_api_url}, key: {self.query_api_key}")
 
     async def _ensure_client(self) -> httpx.AsyncClient:
         """Ensure client exists and is ready for use.

@@ -1,12 +1,14 @@
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from supabase_mcp.clients.api_client import ApiClient
-from supabase_mcp.core.container import Container
 from supabase_mcp.exceptions import APIError, ConfirmationRequiredError, FeatureAccessError, FeatureTemporaryError
 from supabase_mcp.logger import logger
 from supabase_mcp.services.database.postgres_client import QueryResult
 from supabase_mcp.services.safety.models import ClientType, SafetyMode
 from supabase_mcp.tools.manager import ToolName
+
+if TYPE_CHECKING:
+    from supabase_mcp.core.container import ServicesContainer
 
 
 class FeatureManager:
@@ -17,7 +19,6 @@ class FeatureManager:
 
         Args:
             api_client: Client for communicating with the API
-            container: Services container for accessing other services
         """
         self.api_client = api_client
 
@@ -50,81 +51,83 @@ class FeatureManager:
                 raise FeatureTemporaryError(feature_name) from e
             raise
 
-    # Tool implementations moved from registry.py
-
-    async def execute_tool(self, tool_name: str, service_container: Container, **kwargs: Any) -> Any:
+    async def execute_tool(self, tool_name: ToolName, services_container: "ServicesContainer", **kwargs: Any) -> Any:
         """Execute a tool with feature access check.
 
         Args:
             tool_name: Name of the tool to execute
+            services_container: Container with all services
             **kwargs: Arguments to pass to the tool
 
         Returns:
             Result of the tool execution
         """
         # Check feature access
-        await self.check_feature_access(tool_name)
+        await self.check_feature_access(tool_name.value)
 
         # Execute the appropriate tool based on name
         if tool_name == ToolName.GET_SCHEMAS:
-            return await self.get_schemas()
+            return await self.get_schemas(services_container)
         elif tool_name == ToolName.GET_TABLES:
-            return await self.get_tables(**kwargs)
+            return await self.get_tables(services_container, **kwargs)
         elif tool_name == ToolName.GET_TABLE_SCHEMA:
-            return await self.get_table_schema(**kwargs)
+            return await self.get_table_schema(services_container, **kwargs)
         elif tool_name == ToolName.EXECUTE_POSTGRESQL:
-            return await self.execute_postgresql(**kwargs)
+            return await self.execute_postgresql(services_container, **kwargs)
         elif tool_name == ToolName.RETRIEVE_MIGRATIONS:
-            return await self.retrieve_migrations(**kwargs)
+            return await self.retrieve_migrations(services_container, **kwargs)
         elif tool_name == ToolName.SEND_MANAGEMENT_API_REQUEST:
-            return await self.send_management_api_request(**kwargs)
+            return await self.send_management_api_request(services_container, **kwargs)
         elif tool_name == ToolName.GET_MANAGEMENT_API_SPEC:
-            return await self.get_management_api_spec(**kwargs)
+            return await self.get_management_api_spec(services_container, **kwargs)
         elif tool_name == ToolName.GET_AUTH_ADMIN_METHODS_SPEC:
-            return await self.get_auth_admin_methods_spec()
+            return await self.get_auth_admin_methods_spec(services_container)
         elif tool_name == ToolName.CALL_AUTH_ADMIN_METHOD:
-            return await self.call_auth_admin_method(**kwargs)
+            return await self.call_auth_admin_method(services_container, **kwargs)
         elif tool_name == ToolName.LIVE_DANGEROUSLY:
-            return await self.live_dangerously(**kwargs)
+            return await self.live_dangerously(services_container, **kwargs)
         elif tool_name == ToolName.CONFIRM_DESTRUCTIVE_OPERATION:
-            return await self.confirm_destructive_operation(**kwargs)
+            return await self.confirm_destructive_operation(services_container, **kwargs)
         elif tool_name == ToolName.RETRIEVE_LOGS:
-            return await self.retrieve_logs(**kwargs)
+            return await self.retrieve_logs(services_container, **kwargs)
         else:
             raise ValueError(f"Unknown tool: {tool_name}")
 
-    async def get_schemas(self) -> QueryResult:
+    async def get_schemas(self, container: "ServicesContainer") -> QueryResult:
         """List all database schemas with their sizes and table counts."""
-        query_manager = self.container.query_manager
+        query_manager = container.query_manager
         query = query_manager.get_schemas_query()
         return await query_manager.handle_query(query)
 
-    async def get_tables(self, schema_name: str) -> QueryResult:
+    async def get_tables(self, container: "ServicesContainer", schema_name: str) -> QueryResult:
         """List all tables, foreign tables, and views in a schema with their sizes, row counts, and metadata."""
-        query_manager = self.container.query_manager
+        query_manager = container.query_manager
         query = query_manager.get_tables_query(schema_name)
         return await query_manager.handle_query(query)
 
-    async def get_table_schema(self, schema_name: str, table: str) -> QueryResult:
+    async def get_table_schema(self, container: "ServicesContainer", schema_name: str, table: str) -> QueryResult:
         """Get detailed table structure including columns, keys, and relationships."""
-        query_manager = self.container.query_manager
+        query_manager = container.query_manager
         query = query_manager.get_table_schema_query(schema_name, table)
         return await query_manager.handle_query(query)
 
-    async def execute_postgresql(self, query: str, migration_name: str = "") -> QueryResult:
+    async def execute_postgresql(
+        self, container: "ServicesContainer", query: str, migration_name: str = ""
+    ) -> QueryResult:
         """Execute PostgreSQL statements against your Supabase database."""
-        query_manager = self.container.query_manager
+        query_manager = container.query_manager
         return await query_manager.handle_query(query, has_confirmation=False, migration_name=migration_name)
 
     async def retrieve_migrations(
         self,
+        container: "ServicesContainer",
         limit: int = 50,
         offset: int = 0,
         name_pattern: str = "",
         include_full_queries: bool = False,
     ) -> QueryResult:
         """Retrieve a list of all migrations a user has from Supabase."""
-        query_manager = self.container.query_manager
+        query_manager = container.query_manager
         query = query_manager.get_migrations_query(
             limit=limit, offset=offset, name_pattern=name_pattern, include_full_queries=include_full_queries
         )
@@ -132,6 +135,7 @@ class FeatureManager:
 
     async def send_management_api_request(
         self,
+        container: "ServicesContainer",
         method: str,
         path: str,
         path_params: dict[str, str],
@@ -139,10 +143,12 @@ class FeatureManager:
         request_body: dict[str, Any],
     ) -> dict[str, Any]:
         """Execute a Supabase Management API request."""
-        api_manager = self.container.api_manager
+        api_manager = container.api_manager
         return await api_manager.execute_request(method, path, path_params, request_params, request_body)
 
-    async def get_management_api_spec(self, params: dict[str, Any] = {}) -> dict[str, Any]:
+    async def get_management_api_spec(
+        self, container: "ServicesContainer", params: dict[str, Any] = {}
+    ) -> dict[str, Any]:
         """Get the Supabase Management API specification."""
         path = params.get("path")
         method = params.get("method")
@@ -152,21 +158,23 @@ class FeatureManager:
         logger.debug(
             f"Getting management API spec with path: {path}, method: {method}, domain: {domain}, all_paths: {all_paths}"
         )
-        api_manager = self.container.api_manager
+        api_manager = container.api_manager
         return await api_manager.handle_spec_request(path, method, domain, all_paths)
 
-    async def get_auth_admin_methods_spec(self) -> dict[str, Any]:
+    async def get_auth_admin_methods_spec(self, container: "ServicesContainer") -> dict[str, Any]:
         """Get Python SDK methods specification for Auth Admin."""
-        sdk_client = self.container.sdk_client
+        sdk_client = container.sdk_client
         return sdk_client.return_python_sdk_spec()
 
-    async def call_auth_admin_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+    async def call_auth_admin_method(
+        self, container: "ServicesContainer", method: str, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Call an Auth Admin method from Supabase Python SDK."""
-        sdk_client = self.container.sdk_client
+        sdk_client = container.sdk_client
         return await sdk_client.call_auth_admin_method(method, params)
 
     async def live_dangerously(
-        self, service: Literal["api", "database"], enable_unsafe_mode: bool = False
+        self, container: "ServicesContainer", service: Literal["api", "database"], enable_unsafe_mode: bool = False
     ) -> dict[str, Any]:
         """
         Toggle between safe and unsafe operation modes for API or Database services.
@@ -175,7 +183,7 @@ class FeatureManager:
         - Enable write operations for the database (INSERT, UPDATE, DELETE, schema changes)
         - Enable state-changing operations for the Management API
         """
-        safety_manager = self.container.safety_manager
+        safety_manager = container.safety_manager
         if service == "api":
             # Set the safety mode in the safety manager
             new_mode = SafetyMode.UNSAFE if enable_unsafe_mode else SafetyMode.SAFE
@@ -192,11 +200,15 @@ class FeatureManager:
             return {"service": "database", "mode": safety_manager.get_safety_mode(ClientType.DATABASE)}
 
     async def confirm_destructive_operation(
-        self, operation_type: Literal["api", "database"], confirmation_id: str, user_confirmation: bool = False
+        self,
+        container: "ServicesContainer",
+        operation_type: Literal["api", "database"],
+        confirmation_id: str,
+        user_confirmation: bool = False,
     ) -> QueryResult | dict[str, Any]:
         """Execute a destructive operation after confirmation. Use this only after reviewing the risks with the user."""
-        api_manager = self.container.api_manager
-        query_manager = self.container.query_manager
+        api_manager = container.api_manager
+        query_manager = container.query_manager
         if not user_confirmation:
             raise ConfirmationRequiredError("Destructive operation requires explicit user confirmation.")
 
@@ -207,6 +219,7 @@ class FeatureManager:
 
     async def retrieve_logs(
         self,
+        container: "ServicesContainer",
         collection: str,
         limit: int = 20,
         hours_ago: int = 1,
@@ -219,7 +232,7 @@ class FeatureManager:
             f"Tool called: retrieve_logs(collection={collection}, limit={limit}, hours_ago={hours_ago}, filters={filters}, search={search}, custom_query={'<custom>' if custom_query else None})"
         )
 
-        api_manager = self.container.api_manager
+        api_manager = container.api_manager
         result = await api_manager.retrieve_logs(
             collection=collection,
             limit=limit,

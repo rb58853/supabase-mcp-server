@@ -101,6 +101,7 @@ class Settings(BaseSettings):
     query_api_url: str = Field(
         default="https://api.thequery.dev/v1",
         description="TheQuery.dev API URL",
+        alias="QUERY_API_URL",
     )
 
     @field_validator("supabase_region")

@@ -11,15 +11,17 @@ startCommand:
       - supabaseProjectRef
       - supabaseDbPassword
       - supabaseRegion
+      - queryApiKey
     properties:
+      queryApiKey:
+        type: string
+        description: "(required) - Your Query API key"
       supabaseProjectRef:
         type: string
-        description: "(required) - Supabase project reference ID - Default: 127.0.0.1:54322"
-        default: "127.0.0.1:54322"
+        description: "(required) - Supabase project reference ID"
       supabaseDbPassword:
         type: string
-        description: "(required) - Database password - Default: postgres"
-        default: "postgres"
+        description: "(required) - Database password"
       supabaseRegion:
         type: string
         description: "(required) - AWS region where your Supabase project is hosted - Default: us-east-1"
@@ -35,6 +37,7 @@ startCommand:
       command: 'supabase-mcp-server',
       args: [],
       env: {
+        QUERY_API_KEY: config.queryApiKey,
         SUPABASE_PROJECT_REF: config.supabaseProjectRef,
         SUPABASE_DB_PASSWORD: config.supabaseDbPassword,
         SUPABASE_REGION: config.supabaseRegion,

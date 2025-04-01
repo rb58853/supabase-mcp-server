@@ -41,7 +41,9 @@ class ApiClient(AsyncHTTPClient):
         self.query_api_url = query_api_url or settings.query_api_url
         self._check_api_key_set()
         self.client: httpx.AsyncClient | None = None
-        logger.info(f"Query API client initialized with URL: {self.query_api_url}, key: {self.query_api_key}")
+        logger.info(
+            f"✔️ Query API client initialized successfully with URL: {self.query_api_url}, with key: {bool(self.query_api_key)}"
+        )
 
     async def _ensure_client(self) -> httpx.AsyncClient:
         """Ensure client exists and is ready for use.
@@ -53,7 +55,7 @@ class ApiClient(AsyncHTTPClient):
             logger.info("Creating new Query API client")
             self.client = httpx.AsyncClient(
                 base_url=self.query_api_url,
-                headers={"Authorization": f"Bearer {self.query_api_key}"},
+                headers={"X-API-Key": f"{self.query_api_key}"},
                 timeout=30.0,
             )
         logger.info("Returning existing Query API client")
@@ -79,6 +81,7 @@ class ApiClient(AsyncHTTPClient):
                 method="GET",
                 path=ApiRoutes.FEATURES_ACCESS.format(feature_name=feature_name),
             )
+            logger.debug(f"Feature access response: {result}")
             return FeatureAccessResponse.model_validate(result)
         except Exception as e:
             logger.error(f"Error checking feature access: {e}")

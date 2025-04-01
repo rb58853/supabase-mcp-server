@@ -82,7 +82,7 @@ class PostgresClient:
         # Only log once during initialization with clear project info
         is_local = self.project_ref.startswith("127.0.0.1")
         logger.info(
-            f"PostgreSQL client initialized for {'local' if is_local else 'remote'} "
+            f"✔️ PostgreSQL client initialized successfully for {'local' if is_local else 'remote'} "
             f"project: {self.project_ref} (region: {self.db_region})"
         )
 
@@ -245,12 +245,13 @@ class PostgresClient:
 
         This should be called when shutting down the application.
         """
+        import asyncio
+
         if self._pool:
-            await self._pool.close()
+            await asyncio.wait_for(self._pool.close(), timeout=5.0)
             self._pool = None
-            logger.info("Closed PostgreSQL connection pool")
         else:
-            logger.debug("No connection pool to close")
+            logger.debug("No PostgreSQL connection pool to close")
 
     @classmethod
     async def reset(cls) -> None:

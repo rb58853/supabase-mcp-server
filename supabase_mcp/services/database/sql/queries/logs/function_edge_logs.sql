@@ -1,6 +1,6 @@
-SELECT 
-  id, 
-  function_edge_logs.timestamp, 
+SELECT
+  id,
+  function_edge_logs.timestamp,
   event_message,
   m.deployment_id,
   m.execution_time_ms,
@@ -18,4 +18,4 @@ CROSS JOIN unnest(m.request) AS request
 CROSS JOIN unnest(m.response) AS response
 {where_clause}
 ORDER BY timestamp DESC
-LIMIT {limit}; 
+LIMIT {limit};

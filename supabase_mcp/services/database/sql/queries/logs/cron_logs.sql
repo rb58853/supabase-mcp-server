@@ -1,6 +1,6 @@
-SELECT 
-  id, 
-  postgres_logs.timestamp, 
+SELECT
+  id,
+  postgres_logs.timestamp,
   event_message,
   identifier,
   parsed.error_severity,
@@ -12,4 +12,4 @@ CROSS JOIN unnest(m.parsed) AS parsed
 WHERE (parsed.application_name = 'pg_cron' OR event_message LIKE '%cron job%')
 {and_where_clause}
 ORDER BY timestamp DESC
-LIMIT {limit}; 
+LIMIT {limit};

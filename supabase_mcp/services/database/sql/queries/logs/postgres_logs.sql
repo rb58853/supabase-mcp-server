@@ -1,6 +1,6 @@
-SELECT 
-  id, 
-  postgres_logs.timestamp, 
+SELECT
+  id,
+  postgres_logs.timestamp,
   event_message,
   identifier,
   parsed.error_severity,
@@ -11,4 +11,4 @@ CROSS JOIN unnest(metadata) AS m
 CROSS JOIN unnest(m.parsed) AS parsed
 {where_clause}
 ORDER BY timestamp DESC
-LIMIT {limit};  
+LIMIT {limit};

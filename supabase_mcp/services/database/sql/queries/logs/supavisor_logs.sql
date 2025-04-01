@@ -1,6 +1,6 @@
-SELECT 
-  id, 
-  supavisor_logs.timestamp, 
+SELECT
+  id,
+  supavisor_logs.timestamp,
   event_message,
   metadata.level,
   metadata.project,
@@ -9,4 +9,4 @@ FROM supavisor_logs
 CROSS JOIN unnest(metadata) AS metadata
 {where_clause}
 ORDER BY timestamp DESC
-LIMIT {limit}; 
+LIMIT {limit};

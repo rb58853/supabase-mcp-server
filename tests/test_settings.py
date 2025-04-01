@@ -54,10 +54,13 @@ class TestSettings:
     @pytest.mark.integration
     def test_settings_from_env_vars(self, clean_environment: None) -> None:
         """Test env vars take precedence over config file"""
-        env_values = {"SUPABASE_PROJECT_REF": "from-env", "SUPABASE_DB_PASSWORD": "env-password"}
+        env_values = {
+            "SUPABASE_PROJECT_REF": "abcdefghij1234567890",  # Valid 20-char project ref
+            "SUPABASE_DB_PASSWORD": "env-password",
+        }
         with patch.dict("os.environ", env_values, clear=False):
             settings = Settings.with_config(".env.test")  # Even with config file
-            assert settings.supabase_project_ref == "from-env"
+            assert settings.supabase_project_ref == "abcdefghij1234567890"
             assert settings.supabase_db_password == "env-password"
 
     @pytest.mark.integration

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from mcp.server.fastmcp import FastMCP
+
 from supabase_mcp.clients.api_client import ApiClient
 from supabase_mcp.clients.management_client import ManagementAPIClient
 from supabase_mcp.clients.sdk_client import SupabaseSDKClient
@@ -21,7 +23,7 @@ class ServicesContainer:
 
     def __init__(
         self,
-        # mcp_server: FastMCP,
+        mcp_server: FastMCP | None = None,
         postgres_client: PostgresClient | None = None,
         api_client: ManagementAPIClient | None = None,
         sdk_client: SupabaseSDKClient | None = None,
@@ -34,7 +36,6 @@ class ServicesContainer:
         feature_manager: FeatureManager | None = None,
     ) -> None:
         """Create a new container container reference"""
-        # self.mcp_server = mcp_server
         self.postgres_client = postgres_client
         self.api_client = api_client
         self.api_manager = api_manager
@@ -45,6 +46,7 @@ class ServicesContainer:
         self.log_manager = log_manager
         self.query_api_client = query_api_client
         self.feature_manager = feature_manager
+        self.mcp_server = mcp_server
 
     @classmethod
     def get_instance(cls) -> ServicesContainer:

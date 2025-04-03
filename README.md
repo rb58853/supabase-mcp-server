@@ -1,26 +1,19 @@
-# Query MCP (Supabase MCP Server)
-
+# Query | MCP server for Supabase
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/4a363bcd-7c15-47fa-a72a-d159916517f7" />
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/d255388e-cb1b-42ea-a7b2-0928f031e0df" />
-    <img alt="Supabase" src="https://github.com/user-attachments/assets/d255388e-cb1b-42ea-a7b2-0928f031e0df" height="40" />
-  </picture>
-  &nbsp;&nbsp;
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/38db1bcd-50df-4a49-a106-1b5afd924cb2" />
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/82603097-07c9-42bb-9cbc-fb8f03560926" />
-    <img alt="MCP" src="https://github.com/user-attachments/assets/82603097-07c9-42bb-9cbc-fb8f03560926" height="40" />
-  </picture>
+  <a href="https://thequery.dev"><img src="https://github.com/user-attachments/assets/7e9c49b5-e784-4e70-b39e-7410c22da066" alt="Control Supabase with natural language" width="800" /></a>
 </p>
 
 <p align="center">
-  <strong>Enable your favorite IDE to safely execute SQL queries, manage your database end-to-end, access Management API, and handle user authentication with built-in safety controls.</strong>
+  <strong>Query MCP is an open-source MCP server that lets your IDE safely run SQL, manage schema changes, call the Supabase Management API, and use Auth Admin SDK — all with built-in safety controls.</strong>
 </p>
 
 <p align="center">
-  <a href="https://thequery.dev"><img src="https://github.com/user-attachments/assets/420a2463-e210-4959-9f3b-b94164db23f8" alt="Control Supabase with natural language" width="800" /></a>
+  ⚡ Free & open-source forever.  
+  💎 Premium features coming soon.
+  🧪 Early Access is live at <a href="https://thequery.dev">thequery.dev</a>.
+  📢 Share your feedback on GitHub issues or at feedback@thequery.dev.
 </p>
+<p>
 
 <p align="center">
   <a href="https://pypi.org/project/supabase-mcp-server/"><img src="https://img.shields.io/pypi/v/supabase-mcp-server.svg" alt="PyPI version" /></a>
@@ -34,19 +27,6 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
 </p>
 
-
-## 🎉 Query MCP 🎉
-
-**I'm thrilled to announce the future of this MCP server - [thequery.dev](https://thequery.dev)!**
-
-While I have big plans for the future, I want to make these commitments super clear:
-- **The core tool will stay free forever** - free & open-source software is how I got into coding and intend to keep this MCP server this way
-- **Premium features will be added on top** - enhancing capabilities without limiting existing functionality
-- **All 300+ early adopters will get exclusive perks when paid plans land** - stay tuned!
-
-**🚀 Early Access is Live!**
-
-[**👉 Join Early Access at thequery.dev**](https://thequery.dev)
 
 ## Table of contents
 <p align="center">
@@ -128,6 +108,8 @@ You can find the full instructions on how to use Smithery.ai to connect to this 
 
 The Supabase MCP server requires configuration to connect to your Supabase database, access the Management API, and use the Auth Admin SDK. This section explains all available configuration options and how to set them up.
 
+> 🔑 **Important**: Since v0.4 MCP server requires an API key which you can get for free at [thequery.dev](https://thequery.dev) to use this MCP server.
+
 #### Environment Variables
 
 The server uses the following environment variables:
@@ -139,6 +121,7 @@ The server uses the following environment variables:
 | `SUPABASE_REGION` | Yes* | `us-east-1` | AWS region where your Supabase project is hosted |
 | `SUPABASE_ACCESS_TOKEN` | No | None | Personal access token for Supabase Management API |
 | `SUPABASE_SERVICE_ROLE_KEY` | No | None | Service role key for Auth Admin SDK |
+| `QUERY_API_KEY` | Yes | None | API key from thequery.dev (required for all operations) |
 
 > **Note**: The default values are configured for local Supabase development. For remote Supabase projects, you must provide your own values for `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD`.
 
@@ -203,6 +186,7 @@ notepad "$env:APPDATA\supabase-mcp\.env"
 Add your configuration values to the file:
 
 ```
+QUERY_API_KEY=your-api-key
 SUPABASE_PROJECT_REF=your-project-ref
 SUPABASE_DB_PASSWORD=your-db-password
 SUPABASE_REGION=us-east-1
@@ -286,6 +270,7 @@ Go to Cascade -> Click on the hammer icon -> Configure -> Fill in the configurat
       "supabase": {
         "command": "/Users/username/.local/bin/supabase-mcp-server",  // update path
         "env": {
+          "QUERY_API_KEY": "your-api-key",  // Required - get your API key at thequery.dev
           "SUPABASE_PROJECT_REF": "your-project-ref",
           "SUPABASE_DB_PASSWORD": "your-db-password",
           "SUPABASE_REGION": "us-east-1",  // optional, defaults to us-east-1
@@ -324,6 +309,7 @@ Claude Desktop also supports MCP servers through a JSON configuration. Follow th
        "supabase": {
          "command": "/full/path/to/supabase-mcp-server",  // Replace with the actual path from step 1
          "env": {
+           "QUERY_API_KEY": "your-api-key",  // Required - get your API key at thequery.dev
            "SUPABASE_PROJECT_REF": "your-project-ref",
            "SUPABASE_DB_PASSWORD": "your-db-password",
            "SUPABASE_REGION": "us-east-1",  // optional, defaults to us-east-1
@@ -367,6 +353,7 @@ Cline also supports MCP servers through a similar JSON configuration. Follow the
        "supabase": {
          "command": "/full/path/to/supabase-mcp-server",  // Replace with the actual path from step 1
          "env": {
+           "QUERY_API_KEY": "your-api-key",  // Required - get your API key at thequery.dev
            "SUPABASE_PROJECT_REF": "your-project-ref",
            "SUPABASE_DB_PASSWORD": "your-db-password",
            "SUPABASE_REGION": "us-east-1",  // optional, defaults to us-east-1

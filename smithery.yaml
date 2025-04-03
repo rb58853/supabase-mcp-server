@@ -18,7 +18,7 @@ startCommand:
         description: "(required) - Your Query API key"
       supabaseProjectRef:
         type: string
-        description: "(required) - Supabase project reference ID"
+        description: "(required) - Supabase project reference ID. Defaults to: 127.0.0.1:54322"
       supabaseDbPassword:
         type: string
         description: "(required) - Database password"

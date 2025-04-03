@@ -35,16 +35,16 @@
 </p>
 
 
-## 🎉 The Future of Supabase MCP Server -> Query MCP
+## 🎉 Query MCP 🎉
 
-**I'm thrilled to announce that Supabase MCP Server is evolving into [thequery.dev](https://thequery.dev)!**
+**I'm thrilled to announce the future of this MCP server - [thequery.dev](https://thequery.dev)!**
 
 While I have big plans for the future, I want to make these commitments super clear:
-- **The core tool will stay free forever** - free & open-source software is how I got into coding
+- **The core tool will stay free forever** - free & open-source software is how I got into coding and intend to keep this MCP server this way
 - **Premium features will be added on top** - enhancing capabilities without limiting existing functionality
-- **First 2,000 early adopters will get special perks** - join early for an exclusive treat!
+- **All 300+ early adopters will get exclusive perks when paid plans land** - stay tuned!
 
-**🚀 BIG v4 Launch Coming Soon!**
+**🚀 Early Access is Live!**
 
 [**👉 Join Early Access at thequery.dev**](https://thequery.dev)
 
@@ -574,6 +574,7 @@ You will have to confirm and approve every high-risk operation explicitly in ord
 - 📝 Automatic versioning of database changes ✅ (v0.3.8)
 - 📖 Radically improved knowledge and tools of api spec ✅ (v0.3.8)
 - ✍️ Improved consistency of migration-related tools for a more organized database vcs ✅ (v0.3.10)
+- 🥳 Query MCP is released (v0.4.0)
 
 
 For a more detailed roadmap, please see this [discussion](https://github.com/alexander-zuev/supabase-mcp-server/discussions/46) on GitHub.

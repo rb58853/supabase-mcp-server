@@ -47,7 +47,7 @@ class SupabaseSDKClient:
         self.project_ref = settings.supabase_project_ref if settings else project_ref
         self.service_role_key = settings.supabase_service_role_key if settings else service_role_key
         self.supabase_url = self.get_supabase_url()
-        logger.info(f"Initialized Supabase SDK client for project {self.project_ref}")
+        logger.info(f"✔️ Supabase SDK client initialized successfully for project {self.project_ref}")
 
     def get_supabase_url(self) -> str:
         """Returns the Supabase URL based on the project reference"""
@@ -103,6 +103,11 @@ class SupabaseSDKClient:
             self.client = await self.create_client()
             logger.info(f"Created Supabase SDK client for project {self.project_ref}")
         return self.client
+
+    async def close(self) -> None:
+        """Reset the client reference to allow garbage collection."""
+        self.client = None
+        logger.info("Supabase SDK client reference cleared")
 
     def return_python_sdk_spec(self) -> dict:
         """Returns the Python SDK spec"""

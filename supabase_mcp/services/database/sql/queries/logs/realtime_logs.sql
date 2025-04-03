@@ -1,6 +1,6 @@
-SELECT 
-  id, 
-  realtime_logs.timestamp, 
+SELECT
+  id,
+  realtime_logs.timestamp,
   event_message,
   metadata.level,
   measurements.connected,
@@ -13,4 +13,4 @@ CROSS JOIN unnest(metadata) AS metadata
 CROSS JOIN unnest(metadata.measurements) AS measurements
 {where_clause}
 ORDER BY timestamp DESC
-LIMIT {limit}; 
+LIMIT {limit};

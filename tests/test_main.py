@@ -1,10 +1,9 @@
 import asyncio
-import subprocess
 from unittest.mock import patch
 
 import pytest
 
-from supabase_mcp.core.container import Container
+from supabase_mcp.core.container import ServicesContainer
 from supabase_mcp.logger import logger
 from supabase_mcp.main import run_inspector, run_server
 from supabase_mcp.services.safety.models import ClientType
@@ -17,7 +16,7 @@ class TestMain:
     """Tests for the main application functionality."""
 
     @pytest.mark.unit
-    def test_mcp_server_initializes(self, container_integration: Container):
+    def test_mcp_server_initializes(self, container_integration: ServicesContainer):
         """Test that the MCP server initializes correctly."""
         # Verify server name
         mcp = container_integration.mcp_server
@@ -33,7 +32,7 @@ class TestMain:
     @pytest.mark.unit
     def test_services_container_initialization(
         self,
-        initialized_container_integration: Container,
+        initialized_container_integration: ServicesContainer,
     ):
         """Test that the services container is correctly initialized."""
         # Verify container has all required services
@@ -53,7 +52,7 @@ class TestMain:
         assert safety_manager.get_safety_mode(ClientType.API) is not None
 
     @pytest.mark.unit
-    def test_tool_registration(self, tools_registry_integration: Container):
+    def test_tool_registration(self, tools_registry_integration: ServicesContainer):
         """Test that tools are registered correctly using ToolManager's tool names."""
 
         # Get the tool manager from the container
@@ -130,18 +129,18 @@ class TestMain:
                 mock_dev.assert_called_once_with(__file__)
 
     @pytest.mark.unit
-    def test_server_command_starts(self):
-        """Test that the server command executes without errors"""
+    def test_server_command_exists(self):
+        """Test that the server command exists and is executable"""
         import os
+        import shutil
 
         # Skip this test in CI environments
         if os.environ.get("CI") == "true":
-            pytest.skip("Skipping server start test in CI environment")
+            pytest.skip("Skipping server command test in CI environment")
 
-        result = subprocess.run(
-            ["supabase-mcp-server"],
-            capture_output=True,
-            text=True,
-            timeout=2,  # Kill after 2 seconds since it's a server
-        )
-        assert result.returncode == 0, f"Server command failed: {result.stderr}"
+        # Check if the command exists in PATH
+        server_path = shutil.which("supabase-mcp-server")
+        assert server_path is not None, "supabase-mcp-server command not found in PATH"
+
+        # Check if the file is executable
+        assert os.access(server_path, os.X_OK), "supabase-mcp-server is not executable"

@@ -17,6 +17,8 @@ from supabase_mcp.settings import Settings
 # Define a type variable for generic return types
 T = TypeVar("T")
 
+# TODO: Use a context manager to properly handle the connection pool
+
 
 class StatementResult(BaseModel):
     """Represents the result of a single SQL statement."""
@@ -69,7 +71,7 @@ class PostgresClient:
             db_password: Optional database password. If not provided, will be taken from settings.
             db_region: Optional database region. If not provided, will be taken from settings.
         """
-        self._pool = None
+        self._pool: asyncpg.Pool[asyncpg.Record] | None = None
         self._settings = settings
         self.project_ref = project_ref or self._settings.supabase_project_ref
         self.db_password = db_password or self._settings.supabase_db_password
@@ -80,7 +82,7 @@ class PostgresClient:
         # Only log once during initialization with clear project info
         is_local = self.project_ref.startswith("127.0.0.1")
         logger.info(
-            f"PostgreSQL client initialized for {'local' if is_local else 'remote'} "
+            f"✔️ PostgreSQL client initialized successfully for {'local' if is_local else 'remote'} "
             f"project: {self.project_ref} (region: {self.db_region})"
         )
 
@@ -243,12 +245,13 @@ class PostgresClient:
 
         This should be called when shutting down the application.
         """
+        import asyncio
+
         if self._pool:
-            await self._pool.close()
+            await asyncio.wait_for(self._pool.close(), timeout=5.0)
             self._pool = None
-            logger.info("Closed PostgreSQL connection pool")
         else:
-            logger.debug("No connection pool to close")
+            logger.debug("No PostgreSQL connection pool to close")
 
     @classmethod
     async def reset(cls) -> None:

@@ -1,21 +1,18 @@
 # Query | MCP server for Supabase
-<p align="center">
-  <a href="https://thequery.dev"><img src="https://github.com/user-attachments/assets/7e9c49b5-e784-4e70-b39e-7410c22da066" alt="Control Supabase with natural language" width="800" /></a>
-</p>
 
-<p align="center">
+> 🌅 More than 17k installs via pypi and close to 30k downloads on Smithery.ai — in short, this was fun! 🥳
+> Thanks to everyone who has been using this server for the past few months, and I hope it was useful for you.
+> Since Supabase has released their own [official MCP server](https://github.com/supabase-community/supabase-mcp),
+> I've decided to no longer actively maintain this one. The official MCP server is as feature-rich, and many more
+> features will be added in the future. Check it out!
+
+
+<p class="center-text">
   <strong>Query MCP is an open-source MCP server that lets your IDE safely run SQL, manage schema changes, call the Supabase Management API, and use Auth Admin SDK — all with built-in safety controls.</strong>
 </p>
 
-<p align="center">
-  ⚡ Free & open-source forever.  
-  💎 Premium features coming soon.
-  🧪 Early Access is live at <a href="https://thequery.dev">thequery.dev</a>.
-  📢 Share your feedback on GitHub issues or at feedback@thequery.dev.
-</p>
-<p>
 
-<p align="center">
+<p class="center-text">
   <a href="https://pypi.org/project/supabase-mcp-server/"><img src="https://img.shields.io/pypi/v/supabase-mcp-server.svg" alt="PyPI version" /></a>
   <a href="https://github.com/alexander-zuev/supabase-mcp-server/actions"><img src="https://github.com/alexander-zuev/supabase-mcp-server/workflows/CI/badge.svg" alt="CI Status" /></a>
   <a href="https://codecov.io/gh/alexander-zuev/supabase-mcp-server"><img src="https://codecov.io/gh/alexander-zuev/supabase-mcp-server/branch/main/graph/badge.svg" alt="Code Coverage" /></a>
@@ -25,11 +22,11 @@
   <a href="https://smithery.ai/server/@alexander-zuev/supabase-mcp-server"><img src="https://smithery.ai/badge/@alexander-zuev/supabase-mcp-server" alt="Smithery.ai Downloads" /></a>
   <a href="https://modelcontextprotocol.io/introduction"><img src="https://img.shields.io/badge/MCP-Server-orange" alt="MCP Server" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
-</p>
-
+</p>    
 
 ## Table of contents
-<p align="center">
+
+<p class="center-text">
   <a href="#getting-started">Getting started</a> •
   <a href="#feature-overview">Feature overview</a> •
   <a href="#troubleshooting">Troubleshooting</a> •

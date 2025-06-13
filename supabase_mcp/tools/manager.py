@@ -69,7 +69,9 @@ class ToolManager:
 
         # Check if the directory exists
         if not descriptions_dir.exists():
-            raise FileNotFoundError(f"Tool descriptions directory not found: {descriptions_dir}")
+            raise FileNotFoundError(
+                f"Tool descriptions directory not found: {descriptions_dir}"
+            )
 
         # Load all YAML files in the directory
         for yaml_file in descriptions_dir.glob("*.yaml"):

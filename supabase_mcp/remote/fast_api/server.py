@@ -1,35 +1,86 @@
 import contextlib
-from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 from .environment import FastApiEnvironment
+from ..doc.httpstream_doc import root, end
+from typing import Optional
+from ...logger import setup_logger
+
+# from loguru import logger
+
+logger = setup_logger()
 
 
-server = FastApiEnvironment.MCP_SERVER
+def httpstream_api() -> FastAPI:
+    """
+    Inicializa la aplicación FastAPI con configuración básica y middleware.
+    """
+    global app
 
+    # Configuración básica
+    app = FastAPI(
+        title="API de Servicios MCP",
+        description="API para servicios de procesamiento",
+        version="1.0.0",
+        docs_url="/docs",
+        # redoc_url="/redoc"
+    )
 
-# Create a combined lifespan to manage both session managers
-@contextlib.asynccontextmanager
-async def lifespan(app: FastAPI):
-    async with contextlib.AsyncExitStack() as stack:
-        await stack.enter_async_context(server.mcp.session_manager.run())
-        yield
+    # Middleware CORS
+    # app.add_middleware(
+    #     CORSMiddleware,
+    #     allow_origins=["*"],
+    #     allow_credentials=True,
+    #     allow_methods=["*"],
+    #     allow_headers=["*"],
+    # )
 
+    # Gestión de errores
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request, exc):
+        logger.error(f"Error {exc.status_code}: {exc.detail}")
+        return {"error": exc.detail, "status_code": exc.status_code}
 
-app = FastAPI(lifespan=lifespan)
-app.mount("/server", server.mcp.streamable_http_app())
+    # Rutas básicas
+    @app.get("/", include_in_schema=False)
+    async def redirect_to_help():
+        return RedirectResponse(url="/help")
 
+    @app.get("/health", include_in_schema=True)
+    async def health_check():
+        return {"status": "ok"}
 
-@app.get("/", include_in_schema=False)
-async def redirect_to_help():
-    return RedirectResponse(url="/help")
+    @app.get("/help", include_in_schema=False)
+    async def help() -> str:
+        try:
+            help_text: str = root + "\n"
+            for server in FastApiEnvironment.MCP_SERVERS:
+                help_text += server.help_html_text + "\n"
 
+            return HTMLResponse(content=help_text + end, status_code=200)
+        except Exception as e:
+            logger.error(f"Error al generar docs: {str(e)}")
+            raise HTTPException(status_code=500, detail="Error interno del servidor")
 
-@app.get("/help", include_in_schema=False)
-async def help():
-    help = {
-        "httpstream supabase mcp": {
-            "path": "/server/mcp",
-            "description": "Example mcp server root path",
-        }
-    }
-    return help
+    # Configuración de ciclo de vida
+    @contextlib.asynccontextmanager
+    async def lifespan(app: FastAPI):
+        try:
+            servers = [
+                server_mcp.mcp_server for server_mcp in FastApiEnvironment.MCP_SERVERS
+            ]
+            async with contextlib.AsyncExitStack() as stack:
+                for server in servers:
+                    await stack.enter_async_context(server.session_manager.run())
+                yield
+        except Exception as e:
+            logger.error(f"Error en el ciclo de vida: {str(e)}")
+            raise
+
+    app.lifespan_context = lifespan
+
+    for server_mcp in FastApiEnvironment.MCP_SERVERS:
+        app.mount(f"/{server_mcp.name}", server_mcp.mcp_server.streamable_http_app())
+
+    return app

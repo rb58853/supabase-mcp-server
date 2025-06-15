@@ -6,7 +6,13 @@ from typing import Any, TypeVar
 
 import asyncpg
 from pydantic import BaseModel, Field
-from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    RetryCallState,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from supabase_mcp.exceptions import ConnectionError, PermissionError, QueryError
 from supabase_mcp.logger import logger
@@ -47,7 +53,9 @@ def log_db_retry_attempt(retry_state: RetryCallState) -> None:
     if retry_state.outcome is not None and retry_state.outcome.failed:
         exception = retry_state.outcome.exception()
         exception_str = str(exception)
-        logger.warning(f"Database error, retrying ({retry_state.attempt_number}/3): {exception_str}")
+        logger.warning(
+            f"Database error, retrying ({retry_state.attempt_number}/3): {exception_str}"
+        )
 
 
 # Add the new AsyncSupabaseClient class
@@ -122,9 +130,20 @@ class PostgresClient:
         """
         encoded_password = urllib.parse.quote_plus(self.db_password)
 
+        if self.project_ref.startswith("http://") or self.project_ref.startswith(
+            "https://"
+        ):
+            # Local development
+            connection_string = (
+                f"postgresql://postgres:{encoded_password}@{self.project_ref}/postgres"
+            )
+            return connection_string
+
         if self.project_ref.startswith("127.0.0.1"):
             # Local development
-            connection_string = f"postgresql://postgres:{encoded_password}@{self.project_ref}/postgres"
+            connection_string = (
+                f"postgresql://postgres:{encoded_password}@{self.project_ref}/postgres"
+            )
             return connection_string
 
         # Production Supabase - via transaction pooler
@@ -178,7 +197,11 @@ class PostgresClient:
 
         except asyncpg.PostgresError as e:
             # Extract connection details for better error reporting
-            host_part = self.db_url.split("@")[1].split("/")[0] if "@" in self.db_url else "unknown"
+            host_part = (
+                self.db_url.split("@")[1].split("/")[0]
+                if "@" in self.db_url
+                else "unknown"
+            )
 
             # Check specifically for the "Tenant or user not found" error which is often caused by region mismatch
             if "Tenant or user not found" in str(e):
@@ -204,14 +227,20 @@ class PostgresClient:
                 )
 
             logger.error(f"Failed to connect to database: {e}")
-            logger.error(f"Connection details: {host_part}, Project: {self.project_ref}, Region: {self.db_region}")
+            logger.error(
+                f"Connection details: {host_part}, Project: {self.project_ref}, Region: {self.db_region}"
+            )
 
             raise ConnectionError(error_message) from e
 
         except OSError as e:
             # For network-related errors, provide a different message that clearly indicates
             # this is a network/system issue rather than a database configuration problem
-            host_part = self.db_url.split("@")[1].split("/")[0] if "@" in self.db_url else "unknown"
+            host_part = (
+                self.db_url.split("@")[1].split("/")[0]
+                if "@" in self.db_url
+                else "unknown"
+            )
 
             error_message = (
                 f"Network error while connecting to database: {e}\n"
@@ -264,7 +293,9 @@ class PostgresClient:
             cls._instance = None
             logger.info("AsyncSupabaseClient instance reset complete")
 
-    async def with_connection(self, operation_func: Callable[[asyncpg.Connection[Any]], Awaitable[T]]) -> T:
+    async def with_connection(
+        self, operation_func: Callable[[asyncpg.Connection[Any]], Awaitable[T]]
+    ) -> T:
         """Execute an operation with a database connection.
 
         Args:
@@ -284,7 +315,10 @@ class PostgresClient:
             return await operation_func(conn)
 
     async def with_transaction(
-        self, conn: asyncpg.Connection[Any], operation_func: Callable[[], Awaitable[T]], readonly: bool = False
+        self,
+        conn: asyncpg.Connection[Any],
+        operation_func: Callable[[], Awaitable[T]],
+        readonly: bool = False,
     ) -> T:
         """Execute an operation within a transaction.
 
@@ -303,7 +337,9 @@ class PostgresClient:
         async with conn.transaction(readonly=readonly):
             return await operation_func()
 
-    async def execute_statement(self, conn: asyncpg.Connection[Any], query: str) -> StatementResult:
+    async def execute_statement(
+        self, conn: asyncpg.Connection[Any], query: str
+    ) -> StatementResult:
         """Execute a single SQL statement.
 
         Args:
@@ -381,7 +417,9 @@ class PostgresClient:
                         result = await self.execute_statement(conn, statement.query)
                         results.append(result)
                     else:
-                        logger.warning(f"Statement has no query, statement: {statement}")
+                        logger.warning(
+                            f"Statement has no query, statement: {statement}"
+                        )
                 return results
 
             # Execute the operation within a transaction

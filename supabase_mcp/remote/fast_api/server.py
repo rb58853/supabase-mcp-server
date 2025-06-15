@@ -16,16 +16,29 @@ def httpstream_api() -> FastAPI:
     """
     Inicializa la aplicación FastAPI con configuración básica y middleware.
     """
-    global app
+
+    @contextlib.asynccontextmanager
+    async def lifespan(app: FastAPI):
+        servers = [
+            server_mcp.mcp_server for server_mcp in FastApiEnvironment.MCP_SERVERS
+        ]
+        async with contextlib.AsyncExitStack() as stack:
+            for server in servers:
+                await stack.enter_async_context(server.session_manager.run())
+            yield
 
     # Configuración básica
     app = FastAPI(
+        lifespan=lifespan,
         title="API de Servicios MCP",
         description="API para servicios de procesamiento",
         version="1.0.0",
         docs_url="/docs",
         # redoc_url="/redoc"
     )
+
+    for server_mcp in FastApiEnvironment.MCP_SERVERS:
+        app.mount(f"/{server_mcp.name}", server_mcp.mcp_server.streamable_http_app())
 
     # Middleware CORS
     # app.add_middleware(
@@ -63,24 +76,5 @@ def httpstream_api() -> FastAPI:
             logger.error(f"Error al generar docs: {str(e)}")
             raise HTTPException(status_code=500, detail="Error interno del servidor")
 
-    # Configuración de ciclo de vida
-    @contextlib.asynccontextmanager
-    async def lifespan(app: FastAPI):
-        try:
-            servers = [
-                server_mcp.mcp_server for server_mcp in FastApiEnvironment.MCP_SERVERS
-            ]
-            async with contextlib.AsyncExitStack() as stack:
-                for server in servers:
-                    await stack.enter_async_context(server.session_manager.run())
-                yield
-        except Exception as e:
-            logger.error(f"Error en el ciclo de vida: {str(e)}")
-            raise
-
-    app.lifespan_context = lifespan
-
-    for server_mcp in FastApiEnvironment.MCP_SERVERS:
-        app.mount(f"/{server_mcp.name}", server_mcp.mcp_server.streamable_http_app())
-
+   
     return app

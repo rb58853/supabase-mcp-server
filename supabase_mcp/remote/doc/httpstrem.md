@@ -8,14 +8,14 @@ Para crear levantar el servidor `httpstream` debe levantar la api de `fastapi`, 
 uvicorn supabase_mcp.remote.mount:app --host 0.0.0.0 --port 8080
 ```
 
+### Instalar paquete local y levantarlo en tu propio proyecto
+
 Alternativamente puede instalar el paquete de forma local con el bash:
 
 ```shell
 pytho3.x -m build
 pip3.x install -e .
 ```
-
-### Instalar paquete local y levantarlo en tu propio proyecto
 
 El paquete traer por default dos servidores que se exponen. En caso de crear otro servidor asegurese de que no contenga los mismos nombres de los servidores default. Opcionalmente puede elimnar los servidores expuestos agregando la linea `clear_servers()`. Los nombres de server expuestos son `admin` y `client`.
 

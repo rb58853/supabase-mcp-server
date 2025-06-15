@@ -117,7 +117,11 @@ class Settings(BaseSettings):
         project_ref = values.get("supabase_project_ref", "")
 
         # If this is a remote project and region is the default
-        if not project_ref.startswith("127.0.0.1") and v == "us-east-1" and "SUPABASE_REGION" not in os.environ:
+        if (
+            not project_ref.startswith("127.0.0.1")
+            and v == "us-east-1"
+            and "SUPABASE_REGION" not in os.environ
+        ):
             logger.warning(
                 "You're connecting to a remote Supabase project but haven't specified a region. "
                 "Using default 'us-east-1', which may cause 'Tenant or user not found' errors if incorrect. "
@@ -127,13 +131,20 @@ class Settings(BaseSettings):
         # Validate that the region is supported
         if v not in SUPPORTED_REGIONS.__args__:
             supported = "\n  - ".join([""] + list(SUPPORTED_REGIONS.__args__))
-            raise ValueError(f"Region '{v}' is not supported. Supported regions are:{supported}")
+            raise ValueError(
+                f"Region '{v}' is not supported. Supported regions are:{supported}"
+            )
         return v
 
     @field_validator("supabase_project_ref")
     @classmethod
     def validate_project_ref(cls, v: str) -> str:
         """Validate the project ref format."""
+
+        if v.startswith("http://") or v.startswith("https://"):
+            # VPS development - allow default format
+            return v
+
         if v.startswith("127.0.0.1"):
             # Local development - allow default format
             return v
@@ -160,7 +171,9 @@ class Settings(BaseSettings):
 
         # For remote projects, password is required
         if not v:
-            logger.error("SUPABASE_DB_PASSWORD is required when connecting to a remote instance")
+            logger.error(
+                "SUPABASE_DB_PASSWORD is required when connecting to a remote instance"
+            )
             raise ValueError(
                 "Database password is required for remote Supabase projects. "
                 "Please set SUPABASE_DB_PASSWORD in your environment variables."
@@ -177,15 +190,22 @@ class Settings(BaseSettings):
 
         # Create a new Settings class with the specific config
         class SettingsWithConfig(cls):
-            model_config = SettingsConfigDict(env_file=config_file, env_file_encoding="utf-8")
+            model_config = SettingsConfigDict(
+                env_file=config_file, env_file_encoding="utf-8"
+            )
 
         instance = SettingsWithConfig()
 
         # Log configuration source and precedence - simplified to a single clear message
-        env_vars_present = any(var in os.environ for var in ["SUPABASE_PROJECT_REF", "SUPABASE_DB_PASSWORD"])
+        env_vars_present = any(
+            var in os.environ
+            for var in ["SUPABASE_PROJECT_REF", "SUPABASE_DB_PASSWORD"]
+        )
 
         if env_vars_present and config_file:
-            logger.info(f"Using environment variables (highest precedence) over config file: {config_file}")
+            logger.info(
+                f"Using environment variables (highest precedence) over config file: {config_file}"
+            )
         elif env_vars_present:
             logger.info("Using environment variables for configuration")
         elif config_file:

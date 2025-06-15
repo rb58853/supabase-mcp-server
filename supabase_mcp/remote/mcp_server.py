@@ -4,6 +4,7 @@ from mcp.server.fastmcp import FastMCP
 from ..logger import logger
 from .fast_api.environment import FastApiEnvironment
 from .doc.httpstream_doc import admin
+from ..settings import settings
 
 
 class ServerMCP:
@@ -55,6 +56,7 @@ class ServerMCP:
             """ """
             Exception("Not Implemented Resources")
 
+
         self.help_html_text: str = help_html_text
         self.name: str = name
         self.instructions: str = instructions
@@ -62,12 +64,18 @@ class ServerMCP:
         self.trasfer_protocol: str = transfer_protocol
         # Set MCP server
         self.mcp_server = create_fastmcp_server()
-
+        
+        logger.info(f"CREATING MCP SERVER {name.upper()}")
         # Create an Services Container
         self.container: ServicesContainer = ServicesContainer(
-            mcp_server=self.mcp_server
+            mcp_server=self.mcp_server,
         )
+        self.container.initialize_services(settings=settings)
 
         # Initialize server, tools, resources and prompts
+        registry_tools()
+
+        # Add to servers
         add_to_server()
-        # registry_tools()
+
+        logger.info(f"✓ {self.name} MCP server created successfully.\n")

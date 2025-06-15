@@ -8,7 +8,7 @@ __all__ = [
     "__version__",
     "version",
     "version_tuple",
-    "httpserver",
+    "httpstream_api",
     "ServerMCP",
     "FastApiEnvironment",
     "ToolName",

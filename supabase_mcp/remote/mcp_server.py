@@ -3,7 +3,7 @@ from ..tools.registry import ToolRegistry, ToolName
 from mcp.server.fastmcp import FastMCP
 from ..logger import logger
 from .fast_api.environment import FastApiEnvironment
-from .doc.httpstream_doc import admin
+from .doc.html_doc import server_info
 from ..settings import settings
 
 
@@ -15,7 +15,6 @@ class ServerMCP:
         name: str = "server",
         instructions: str = "This server specializes in supabase read and write operations.",
         exclude_tools: list[ToolName] = [],
-        help_html_text: str | None = None,
         transfer_protocol="httpstream",
     ):
         """
@@ -33,14 +32,13 @@ class ServerMCP:
                     stateless_http=True,
                 )
             else:
-                Exception(f"{self.transfer_protocl} is not implemented")
+                Exception(f"{self.trasfer_protocol} is not implemented")
 
             return mcp_server
 
         def add_to_server() -> None:
             """Establece este servidor como servidor default que se va a exponer en fastapi"""
             FastApiEnvironment.MCP_SERVERS.append(self)
-            FastApiEnvironment.HTML_DOC = self.help_html_text
 
         def registry_tools() -> None:
             """ """
@@ -56,15 +54,13 @@ class ServerMCP:
             """ """
             Exception("Not Implemented Resources")
 
-
-        self.help_html_text: str = help_html_text
         self.name: str = name
         self.instructions: str = instructions
         self.exclude_tools: list[ToolName] = exclude_tools
         self.trasfer_protocol: str = transfer_protocol
         # Set MCP server
         self.mcp_server = create_fastmcp_server()
-        
+
         logger.info(f"CREATING MCP SERVER {name.upper()}")
         # Create an Services Container
         self.container: ServicesContainer = ServicesContainer(
@@ -74,6 +70,12 @@ class ServerMCP:
 
         # Initialize server, tools, resources and prompts
         registry_tools()
+
+        self.help_html_text: str = server_info(
+            name=self.name,
+            description=self.instructions,
+            tools=["Test tool", "Test tool 2", "Test tool 3"],
+        )
 
         # Add to servers
         add_to_server()

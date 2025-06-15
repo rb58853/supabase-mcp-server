@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from .environment import FastApiEnvironment
-from ..doc.httpstream_doc import root, end
+from ..doc.html_doc import base, end
 from typing import Optional
 from ...logger import setup_logger
 
@@ -67,7 +67,7 @@ def httpstream_api() -> FastAPI:
     @app.get("/help", include_in_schema=False)
     async def help() -> str:
         try:
-            help_text: str = root + "\n"
+            help_text: str = base + "\n<h1> Aviable Servers</h1>\n"
             for server in FastApiEnvironment.MCP_SERVERS:
                 help_text += server.help_html_text + "\n"
 
@@ -76,5 +76,4 @@ def httpstream_api() -> FastAPI:
             logger.error(f"Error al generar docs: {str(e)}")
             raise HTTPException(status_code=500, detail="Error interno del servidor")
 
-   
     return app

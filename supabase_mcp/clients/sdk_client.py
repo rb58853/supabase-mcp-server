@@ -45,14 +45,23 @@ class SupabaseSDKClient:
         self.client: AsyncClient | None = None
         self.settings = settings
         self.project_ref = settings.supabase_project_ref if settings else project_ref
-        self.service_role_key = settings.supabase_service_role_key if settings else service_role_key
+        self.service_role_key = (
+            settings.supabase_service_role_key if settings else service_role_key
+        )
         self.supabase_url = self.get_supabase_url()
-        logger.info(f"✔️ Supabase SDK client initialized successfully for project {self.project_ref}")
+        logger.info(
+            f"✔️ Supabase SDK client initialized successfully for project {self.project_ref}"
+        )
 
     def get_supabase_url(self) -> str:
         """Returns the Supabase URL based on the project reference"""
         if not self.project_ref:
             raise PythonSDKError("Project reference is not set")
+        if self.project_ref.startswith("http://") or self.project_ref.startswith(
+            "https://"
+        ):
+            # If the project_ref is already a full URL, return it as is
+            return self.project_ref
         if self.project_ref.startswith("127.0.0.1"):
             # Return the default Supabase API URL
             return "http://127.0.0.1:54321"
@@ -113,12 +122,16 @@ class SupabaseSDKClient:
         """Returns the Python SDK spec"""
         return get_auth_admin_methods_spec()
 
-    def _validate_params(self, method: str, params: dict, param_model_cls: type[T]) -> T:
+    def _validate_params(
+        self, method: str, params: dict, param_model_cls: type[T]
+    ) -> T:
         """Validate parameters using the appropriate Pydantic model"""
         try:
             return param_model_cls.model_validate(params)
         except ValidationError as e:
-            raise PythonSDKError(f"Invalid parameters for method {method}: {str(e)}") from e
+            raise PythonSDKError(
+                f"Invalid parameters for method {method}: {str(e)}"
+            ) from e
 
     async def _get_user_by_id(self, params: GetUserByIdParams) -> dict:
         """Get user by ID implementation"""
@@ -131,7 +144,9 @@ class SupabaseSDKClient:
         """List users implementation"""
         self.client = await self.get_client()
         admin_auth_client = self.client.auth.admin
-        result = await admin_auth_client.list_users(page=params.page, per_page=params.per_page)
+        result = await admin_auth_client.list_users(
+            page=params.page, per_page=params.per_page
+        )
         return result
 
     async def _create_user(self, params: CreateUserParams) -> dict:
@@ -146,7 +161,9 @@ class SupabaseSDKClient:
         """Delete user implementation"""
         self.client = await self.get_client()
         admin_auth_client = self.client.auth.admin
-        result = await admin_auth_client.delete_user(params.id, should_soft_delete=params.should_soft_delete)
+        result = await admin_auth_client.delete_user(
+            params.id, should_soft_delete=params.should_soft_delete
+        )
         return result
 
     async def _invite_user_by_email(self, params: InviteUserByEmailParams) -> dict:
@@ -191,7 +208,9 @@ class SupabaseSDKClient:
     async def _delete_factor(self, params: DeleteFactorParams) -> dict:
         """Delete factor implementation"""
         # This method is not implemented in the Supabase SDK yet
-        raise NotImplementedError("The delete_factor method is not implemented in the Supabase SDK yet")
+        raise NotImplementedError(
+            "The delete_factor method is not implemented in the Supabase SDK yet"
+        )
 
     async def call_auth_admin_method(self, method: str, params: dict[str, Any]) -> Any:
         """Calls a method of the Python SDK client"""
@@ -209,7 +228,9 @@ class SupabaseSDKClient:
         # Validate method exists
         if method not in PARAM_MODELS:
             available_methods = ", ".join(PARAM_MODELS.keys())
-            raise PythonSDKError(f"Unknown method: {method}. Available methods: {available_methods}")
+            raise PythonSDKError(
+                f"Unknown method: {method}. Available methods: {available_methods}"
+            )
 
         # Get the appropriate model class and validate parameters
         param_model_cls = PARAM_MODELS[method]

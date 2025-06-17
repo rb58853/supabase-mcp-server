@@ -8,7 +8,7 @@ from ..settings import settings
 
 
 class ServerMCP:
-    """ """
+    """"""
 
     def __init__(
         self,
@@ -40,10 +40,10 @@ class ServerMCP:
             """Establece este servidor como servidor default que se va a exponer en fastapi"""
             FastApiEnvironment.MCP_SERVERS.append(self)
 
-        def registry_tools() -> None:
+        def registry_tools(server=None) -> None:
             """ """
             registry = ToolRegistry(self.mcp_server, self.container)
-            registry.register_tools()
+            registry.register_tools(server=server)
             logger.info("✓ Tools registered with MCP server successfully.")
 
         def registry_resources() -> None:
@@ -69,12 +69,13 @@ class ServerMCP:
         self.container.initialize_services(settings=settings)
 
         # Initialize server, tools, resources and prompts
-        registry_tools()
+        registry_tools(server=self)
 
+        tools = [tool.name for tool in self.mcp_server._tool_manager.list_tools()]
         self.help_html_text: str = server_info(
             name=self.name,
             description=self.instructions,
-            tools=["Test tool", "Test tool 2", "Test tool 3"],
+            tools=[tool.name for tool in self.mcp_server._tool_manager.list_tools()],
         )
 
         # Add to servers

@@ -119,6 +119,8 @@ class Settings(BaseSettings):
         # If this is a remote project and region is the default
         if (
             not project_ref.startswith("127.0.0.1")
+            and not project_ref.startswith("http://")
+            and not project_ref.startswith("https://")
             and v == "us-east-1"
             and "SUPABASE_REGION" not in os.environ
         ):

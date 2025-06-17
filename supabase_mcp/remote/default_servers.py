@@ -7,9 +7,11 @@ ServerMCP(
     name="client",
     exclude_tools=[
         ToolName.CALL_AUTH_ADMIN_METHOD,
+        ToolName.EXECUTE_POSTGRESQL,
+        ToolName.SEND_MANAGEMENT_API_REQUEST,
         ToolName.CONFIRM_DESTRUCTIVE_OPERATION,
         ToolName.LIVE_DANGEROUSLY,
-        ToolName.SEND_MANAGEMENT_API_REQUEST,
+        ToolName.GET_AUTH_ADMIN_METHODS_SPEC,
         ToolName.EXECUTE_POSTGRESQL,
     ],
 )

@@ -90,3 +90,6 @@ future-evolution.md
 
 #html httpstrem doc
 supabase_mcp/remote/doc/html/*
+
+#local test file
+test.py

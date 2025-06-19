@@ -107,6 +107,31 @@ class Settings(BaseSettings):
         description="TheQuery.dev API URL",
         alias="QUERY_API_URL",
     )
+    vps_ip: str = Field(
+        default="127.0.0.1",  # Local Container default
+        description="vps ip where Supabase MCP is running - Used for remote connections",
+        alias="VPS_IP",
+    )
+    database_user: str = Field(
+        default="postgres",  # Supabase docker-compose.yml default value
+        description="database user for Supabase MCP - Used for remote connections",
+        alias="DATABASE_USER",
+    )
+    database_name: str = Field(
+        default="postgres",  # Supabase docker-compose.yml default value
+        description="database name for Supabase MCP - Used for remote connections",
+        alias="DATABASE_NAME",
+    )
+    pooler_proxy_port_transaction: str = Field(
+        default="6543",  # Supabase docker-compose.yml default value
+        description="database pooler proxy port transaction for Supabase MCP - Used for remote connections",
+        alias="POOLER_PROXY_PORT_TRANSACTION",
+    )
+    pooler_tenant_id: str = Field(
+        default="your-tenant-id",  # Supabase docker-compose.yml default value
+        description="database pooler tenant id for Supabase MCP - Used for remote connections",
+        alias="POOLER_TENANT_ID",
+    )
 
     @field_validator("supabase_region")
     @classmethod

@@ -19,6 +19,7 @@ from supabase_mcp.logger import logger
 from supabase_mcp.services.database.sql.models import QueryValidationResults
 from supabase_mcp.services.database.sql.validator import SQLValidator
 from supabase_mcp.settings import Settings
+import os
 
 # Define a type variable for generic return types
 T = TypeVar("T")
@@ -133,10 +134,16 @@ class PostgresClient:
         if self.project_ref.startswith("http://") or self.project_ref.startswith(
             "https://"
         ):
-            # Local development
-            connection_string = (
-                f"postgresql://postgres:{encoded_password}@{self.project_ref}/postgres"
-            )
+            # VPS development
+            DATABASE_PASSWORD = self._settings.supabase_db_password
+            DATABASE_USER = self._settings.database_user
+            VPS_IP = self._settings.vps_ip
+            POOLER_PROXY_PORT_TRANSACTION = self._settings.pooler_proxy_port_transaction
+            POOLER_TENANT_ID = self._settings.pooler_tenant_id
+            DATABASE_NAME = self._settings.database_name
+
+            connection_string = f"postgresql://{DATABASE_NAME}.{POOLER_TENANT_ID}:{DATABASE_PASSWORD}@{VPS_IP}:{POOLER_PROXY_PORT_TRANSACTION}/{DATABASE_USER}"
+
             return connection_string
 
         if self.project_ref.startswith("127.0.0.1"):

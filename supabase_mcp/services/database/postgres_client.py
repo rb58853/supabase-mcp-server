@@ -137,12 +137,12 @@ class PostgresClient:
             # VPS development
             DATABASE_PASSWORD = self._settings.supabase_db_password
             DATABASE_USER = self._settings.database_user
-            VPS_IP = self._settings.vps_ip
+            CONTAINER_EXPOSE_IP = self._settings.CONTAINER_EXPOSE_IP
             POOLER_PROXY_PORT_TRANSACTION = self._settings.pooler_proxy_port_transaction
             POOLER_TENANT_ID = self._settings.pooler_tenant_id
             DATABASE_NAME = self._settings.database_name
 
-            connection_string = f"postgresql://{DATABASE_NAME}.{POOLER_TENANT_ID}:{DATABASE_PASSWORD}@{VPS_IP}:{POOLER_PROXY_PORT_TRANSACTION}/{DATABASE_USER}"
+            connection_string = f"postgresql://{DATABASE_NAME}.{POOLER_TENANT_ID}:{DATABASE_PASSWORD}@{CONTAINER_EXPOSE_IP}:{POOLER_PROXY_PORT_TRANSACTION}/{DATABASE_USER}"
 
             return connection_string
 

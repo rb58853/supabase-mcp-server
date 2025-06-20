@@ -107,10 +107,10 @@ class Settings(BaseSettings):
         description="TheQuery.dev API URL",
         alias="QUERY_API_URL",
     )
-    vps_ip: str = Field(
+    CONTAINER_EXPOSE_IP: str = Field(
         default="127.0.0.1",  # Local Container default
         description="vps ip where Supabase MCP is running - Used for remote connections",
-        alias="VPS_IP",
+        alias="CONTAINER_EXPOSE_IP",
     )
     database_user: str = Field(
         default="postgres",  # Supabase docker-compose.yml default value

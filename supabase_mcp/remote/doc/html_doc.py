@@ -1,3 +1,5 @@
+from ..fast_api.environment import FastApiEnvironment
+
 end: str = """
 </html>
 """
@@ -390,15 +392,31 @@ def server_info(
     tools: list[str],
     is_auth: bool = False,
 ) -> str:
+    http_path = f"{FastApiEnvironment.DNS if FastApiEnvironment.DNS else FastApiEnvironment.BASE_IP}/{name}/mcp"
     text: str = f"""
     <body>
     <h2>MCP server {name}</h2>
     <p>{description}</p>
-    <b>http path:</b><code class = "inline-code">http://0.0.0.0:8080/{name}/mcp</code>
+    <b>http path:</b><code class = "inline-code">{http_path}</code>
     <h3>Aviable Tools</h3>
     <ul class = "horizontal-ul">
     """
     for tool in tools:
         text += f"<li><code>{tool}</code></li>"
+    text += "</ul>"
 
-    return text + "</ul></body>"
+    text += (
+        f""" <h3>Server Config</h3>
+    You can use <a href="https://github.com/rb58853/python-mcp-client">mcp-llm-client</a> and paste this configuration
+    <pre><code class="lang-python">
+    <span class="hljs-string">"supabase_{name}"</span>: """
+        + "{"
+        + f"""
+        <span class="hljs-string">"http"</span>: <span class="hljs-string">"{http_path}"</span>,
+        <span class="hljs-string">"name"</span>: <span class="hljs-string">"supabase_{name}"</span>,
+        <span class="hljs-string">"description"</span>: <span class="hljs-string">"{description}"</span>
+    """
+        + """}
+    </code></pre>"""
+    )
+    return text + "</body>"

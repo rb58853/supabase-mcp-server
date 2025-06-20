@@ -69,7 +69,7 @@ def httpstream_api() -> FastAPI:
         try:
             help_text: str = base + "\n<h1> Aviable Servers</h1>\n"
             for server in FastApiEnvironment.MCP_SERVERS:
-                help_text += server.help_html_text + "\n"
+                help_text += server.help_html_text() + "\n"
 
             return HTMLResponse(content=help_text + end, status_code=200)
         except Exception as e:

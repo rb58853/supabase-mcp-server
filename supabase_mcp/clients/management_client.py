@@ -5,7 +5,13 @@ from typing import Any
 
 import httpx
 from httpx import Request, Response
-from tenacity import RetryCallState, retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    RetryCallState,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from supabase_mcp.exceptions import (
     APIClientError,
@@ -21,9 +27,15 @@ from supabase_mcp.settings import Settings
 # Helper function for retry decorator to safely log exceptions
 def log_retry_attempt(retry_state: RetryCallState) -> None:
     """Log retry attempts with exception details if available."""
-    exception = retry_state.outcome.exception() if retry_state.outcome and retry_state.outcome.failed else None
+    exception = (
+        retry_state.outcome.exception()
+        if retry_state.outcome and retry_state.outcome.failed
+        else None
+    )
     exception_str = str(exception) if exception else "Unknown error"
-    logger.warning(f"Network error, retrying ({retry_state.attempt_number}/3): {exception_str}")
+    logger.warning(
+        f"Network error, retrying ({retry_state.attempt_number}/3): {exception_str}"
+    )
 
 
 class ManagementAPIClient:
@@ -46,6 +58,12 @@ class ManagementAPIClient:
             "Authorization": f"Bearer {settings.supabase_access_token}",
             "Content-Type": "application/json",
         }
+        if settings.supabase_api_url.startswith("http"):
+            # If supabase is hosted in docker container
+            settings.supabase_api_url = settings.supabase_project_ref
+            settings.supabase_access_token = settings.supabase_service_role_key
+            headers["apikey"] = settings.supabase_access_token
+            headers["Authorization"] = f"Bearer {settings.supabase_access_token}"
 
         return httpx.AsyncClient(
             base_url=settings.supabase_api_url,
@@ -76,7 +94,9 @@ class ManagementAPIClient:
             APIClientError: If request preparation fails
         """
         try:
-            return self.client.build_request(method=method, url=path, params=request_params, json=request_body)
+            return self.client.build_request(
+                method=method, url=path, params=request_params, json=request_body
+            )
         except Exception as e:
             raise APIClientError(
                 message=f"Failed to build request: {str(e)}",
@@ -84,7 +104,9 @@ class ManagementAPIClient:
             ) from e
 
     @retry(
-        retry=retry_if_exception_type(httpx.NetworkError),  # This includes ConnectError and TimeoutException
+        retry=retry_if_exception_type(
+            httpx.NetworkError
+        ),  # This includes ConnectError and TimeoutException
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         reraise=True,  # Ensure the original exception is raised
@@ -146,7 +168,9 @@ class ManagementAPIClient:
                 response_body={"raw_content": response.text},
             ) from e
 
-    def handle_error_response(self, response: Response, parsed_body: dict[str, Any] | None = None) -> None:
+    def handle_error_response(
+        self, response: Response, parsed_body: dict[str, Any] | None = None
+    ) -> None:
         """
         Handle error responses based on status code.
 
@@ -234,11 +258,15 @@ class ManagementAPIClient:
 
         # Check if successful
         if not response.is_success:
-            logger.warning(f"Request failed: {method} {path} - Status {response.status_code}")
+            logger.warning(
+                f"Request failed: {method} {path} - Status {response.status_code}"
+            )
             self.handle_error_response(response, parsed_body)
 
         # Log success and return
-        logger.info(f"Request successful: {method} {path} - Status {response.status_code}")
+        logger.info(
+            f"Request successful: {method} {path} - Status {response.status_code}"
+        )
         return parsed_body
 
     async def close(self) -> None:

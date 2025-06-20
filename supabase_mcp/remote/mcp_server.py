@@ -71,14 +71,14 @@ class ServerMCP:
         # Initialize server, tools, resources and prompts
         registry_tools(server=self)
 
-        tools = [tool.name for tool in self.mcp_server._tool_manager.list_tools()]
-        self.help_html_text: str = server_info(
-            name=self.name,
-            description=self.instructions,
-            tools=[tool.name for tool in self.mcp_server._tool_manager.list_tools()],
-        )
-
         # Add to servers
         add_to_server()
 
         logger.info(f"✓ {self.name} MCP server created successfully.\n")
+    
+    def help_html_text(self)->str:
+        return server_info(
+            name=self.name,
+            description=self.instructions,
+            tools=[tool.name for tool in self.mcp_server._tool_manager.list_tools()],
+        )

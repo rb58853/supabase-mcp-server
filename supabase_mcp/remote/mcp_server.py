@@ -8,7 +8,17 @@ from ..settings import settings
 
 
 class ServerMCP:
-    """"""
+    """
+    Represents a server specialized in Supabase read and write operations. This class initializes and manages an MCP server, registers tools, and integrates the server into the FastAPI environment. It also provides methods for server configuration and documentation.
+
+    Attributes:
+        name (str): The name of the server.
+        instructions (str): Instructions describing the server's purpose.
+        exclude_tools (list[ToolName]): List of tools to exclude from the server.
+        transfer_protocol (str): The transfer protocol used by the server.
+        mcp_server (FastMCP): The MCP server instance.
+        container (ServicesContainer): The container for managing services.
+    """
 
     def __init__(
         self,
@@ -18,8 +28,19 @@ class ServerMCP:
         transfer_protocol="httpstream",
     ):
         """
-        ### Aviable tranfer protocols
+        Initializes the ServerMCP instance.
+        ## Aviable tranfer protocols
         - `httpstream`
+
+        Args:
+            name (str): The name of the server. Defaults to "server".
+            instructions (str): Instructions describing the server's purpose. Defaults to "This server specializes in supabase read and write operations."
+            exclude_tools (list[ToolName]): List of tools to exclude from the server. Defaults to an empty list.
+            transfer_protocol (str): The transfer protocol used by the server. Defaults to "httpstream".
+
+        Raises:
+            Exception: If the specified transfer protocol is not implemented.
+
         """
 
         def create_fastmcp_server() -> FastMCP:
@@ -75,8 +96,13 @@ class ServerMCP:
         add_to_server()
 
         logger.info(f"✓ {self.name} MCP server created successfully.\n")
-    
-    def help_html_text(self)->str:
+
+    def help_html_text(self) -> str:
+        """
+        Generates an HTML representation of the server's information.
+        Returns:
+            server_info (str): HTML text containing the server's name, description, and registered tools.
+        """
         return server_info(
             name=self.name,
             description=self.instructions,

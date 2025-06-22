@@ -58,12 +58,13 @@ class ManagementAPIClient:
             "Authorization": f"Bearer {settings.supabase_access_token}",
             "Content-Type": "application/json",
         }
-        if settings.supabase_api_url.startswith("http"):
-            # If supabase is hosted in docker container
-            settings.supabase_api_url = settings.supabase_project_ref
-            settings.supabase_access_token = settings.supabase_service_role_key
-            headers["apikey"] = settings.supabase_access_token
-            headers["Authorization"] = f"Bearer {settings.supabase_access_token}"
+        
+        # if settings.supabase_project_ref.startswith("http"):
+        #     # If supabase is hosted in docker container
+        #     settings.supabase_api_url = settings.supabase_project_ref
+        #     settings.supabase_access_token = settings.supabase_service_role_key
+        #     headers["apikey"] = settings.supabase_access_token
+        #     headers["Authorization"] = f"Bearer {settings.supabase_access_token}"
 
         return httpx.AsyncClient(
             base_url=settings.supabase_api_url,

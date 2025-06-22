@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 from supabase_mcp.clients.base_http_client import AsyncHTTPClient
 from supabase_mcp.logger import logger
-from supabase_mcp.settings import settings
+from supabase_mcp.settings import Settings, settings
 
 
 class ApiRoutes:
@@ -35,10 +35,13 @@ class ApiClient(AsyncHTTPClient):
         self,
         query_api_key: str | None = None,
         query_api_url: str | None = None,
+        settings: Settings = settings,
     ):
         """Initialize the Query API client"""
+        # If is http (ergo docker container instance) then `key` is `service role key` and `url` is `project ref`
         self.query_api_key = query_api_key or settings.query_api_key
         self.query_api_url = query_api_url or settings.query_api_url
+
         self._check_api_key_set()
         self.client: httpx.AsyncClient | None = None
         logger.info(
@@ -70,7 +73,9 @@ class ApiClient(AsyncHTTPClient):
     def _check_api_key_set(self) -> None:
         """Check if the API key is set"""
         if not self.query_api_key:
-            logger.warning("Query API key is not set. Only free features will be available.")
+            logger.warning(
+                "Query API key is not set. Only free features will be available."
+            )
             return
 
     async def check_feature_access(self, feature_name: str) -> FeatureAccessResponse:

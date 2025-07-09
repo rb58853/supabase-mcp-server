@@ -10,10 +10,10 @@ class FastApiEnvironment:
     """Lis of MCP Servers will be use as default server in httpstream api"""
 
     # This var is used only for documentation
-    BASE_IP: str | None = "http://0.0.0.0:8080"
+    EXPOSE_IP: str | None = "http://127.0.0.1:8080"
     """Public hosted root IP """
 
-    # DNS Anula el uso de BASE_IP
+    # DNS Anula el uso de EXPOSE_IP
     # This var is used only for documentation
     DNS: str | None = None
     """Public hosted DNS"""

@@ -341,7 +341,7 @@ def server_info(
     tools: list[str],
     is_auth: bool = False,
 ) -> str:
-    http_path = f"{FastApiEnvironment.DNS if FastApiEnvironment.DNS else FastApiEnvironment.BASE_IP}/{name}/mcp"
+    http_path = f"{FastApiEnvironment.DNS if FastApiEnvironment.DNS else FastApiEnvironment.EXPOSE_IP}/{name}/mcp"
     text: str = f"""
     <body>
     <h2>MCP server {name}</h2>

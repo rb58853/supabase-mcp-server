@@ -1,10 +1,12 @@
-from ..core.container import ServicesContainer
-from ..tools.registry import ToolRegistry, ToolName
+from ...core.container import ServicesContainer
+from ...tools.registry import ToolRegistry, ToolName
 from mcp.server.fastmcp import FastMCP
-from ..logger import logger
-from .fast_api.environment import FastApiEnvironment
-from .doc.html_doc import server_info
-from ..settings import settings
+from ...logger import logger
+from ..fast_api.environment import FastApiEnvironment
+from ..doc.html_doc import server_info
+from ...settings import settings
+from mcp.server.auth.provider import TokenVerifier
+from mcp.server.auth.settings import AuthSettings
 
 
 class ServerMCP:
@@ -25,7 +27,9 @@ class ServerMCP:
         name: str = "server",
         instructions: str = "This server specializes in supabase read and write operations.",
         exclude_tools: list[ToolName] = [],
-        transfer_protocol="httpstream",
+        transfer_protocol: str = "httpstream",
+        auth_settings: AuthSettings | None = None,
+        token_verifier: TokenVerifier | None = None,
     ):
         """
         Initializes the ServerMCP instance.
@@ -37,7 +41,8 @@ class ServerMCP:
             instructions (str): Instructions describing the server's purpose. Defaults to "This server specializes in supabase read and write operations."
             exclude_tools (list[ToolName]): List of tools to exclude from the server. Defaults to an empty list.
             transfer_protocol (str): The transfer protocol used by the server. Defaults to "httpstream".
-
+            auth_settings (AuthSettings | None): Optional authentication settings for the server. Defaults to None.
+            token_verifier (TokenVerifier | None): Optional token verifier for the server. Defaults to
         Raises:
             Exception: If the specified transfer protocol is not implemented.
 
@@ -47,6 +52,9 @@ class ServerMCP:
         self.instructions: str = instructions
         self.exclude_tools: list[ToolName] = exclude_tools
         self.trasfer_protocol: str = transfer_protocol
+        self.auth_settings: AuthSettings | None = auth_settings
+        self.token_verifier: TokenVerifier | None = token_verifier
+
         # Set MCP server
         self.mcp_server = self.__create_fastmcp_server(
             name=self.name,
@@ -69,14 +77,27 @@ class ServerMCP:
         logger.info(f"✓ {self.name} MCP server created successfully.\n")
 
     def __create_fastmcp_server(self, name: str, instructions: str) -> FastMCP:
+        """Creates a FastMCP server instance based on the specified transfer protocol and OAuth server."""
+
         # Create an MCP server
         mcp_server: FastMCP | None = None
         if self.trasfer_protocol == "httpstream":
-            mcp_server = FastMCP(
-                name=name,
-                instructions=instructions,
-                stateless_http=True,
-            )
+            if self.oauth_server:
+                # If oauth server is provided, use it
+                mcp_server = FastMCP(
+                    name=name,
+                    instructions=instructions,
+                    stateless_http=True,
+                    # Auth configuration for RS mode
+                    token_verifier=self.token_verifier,
+                    auth=self.auth_settings,
+                )
+            else:
+                mcp_server = FastMCP(
+                    name=name,
+                    instructions=instructions,
+                    stateless_http=True,
+                )
         else:
             Exception(f"{self.trasfer_protocol} is not implemented")
 

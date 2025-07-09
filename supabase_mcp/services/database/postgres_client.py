@@ -134,7 +134,7 @@ class PostgresClient:
         if self.project_ref.startswith("http://") or self.project_ref.startswith(
             "https://"
         ):
-            # VPS development
+            # Docker development
             DATABASE_PASSWORD = self._settings.supabase_db_password
             DATABASE_USER = self._settings.database_user
             CONTAINER_EXPOSE_IP = self._settings.CONTAINER_EXPOSE_IP

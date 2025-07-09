@@ -9,7 +9,7 @@ base: str = """<html>
 <head>
     <style>
         :root {
-            --bg-primary: #282c34;
+            --bg-primary: #1E1E1E;
             --text-primary: #abb2bf;
             --heading-color: #61afef;
             --accent-color: #98c379;
@@ -172,58 +172,7 @@ base: str = """<html>
         <li>Secure connection management</li>
         <li>Interface compatible with the MCP protocol</li>
     </ul>
-    <h2 id="client-configuration">Client Configuration</h2>
-    <p>To connect to the server, use the following Python example codes:</p>
-    <h3 id="client-for-server-without-authorization">Client for server without authorization</h3>
-    <pre><code class="lang-python"><span class="hljs-keyword">from</span> mcp.client.streamable_http <span class="hljs-keyword">import</span> streamablehttp_client
-<span class="hljs-keyword">from</span> mcp <span class="hljs-keyword">import</span> ClientSession
-<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">main</span><span class="hljs-params">()</span>:</span>
-    <span class="hljs-comment"># Connect to HTTPstream server</span>
-    <span class="hljs-keyword">async</span> <span class="hljs-keyword">with</span> streamablehttp_client(<span class="hljs-string">"http://0.0.0.0:8080/{server_name}/mcp"</span>) <span class="hljs-keyword">as</span> (
-            read_stream,
-            write_stream,
-            _,
-    ):
-        <span class="hljs-comment"># Create session using client streams</span>
-        <span class="hljs-keyword">async</span> <span class="hljs-keyword">with</span> ClientSession(read_stream, write_stream) <span class="hljs-keyword">as</span> session:
-            <span class="hljs-comment"># Initialize connection</span>
-            <span class="hljs-keyword">await</span> session.initialize()
-            <span class="hljs-comment"># List available tools</span>
-            tools = <span class="hljs-keyword">await</span> session.list_tools()
-            <span class="hljs-comment"># List available resources</span>
-            resources = <span class="hljs-keyword">await</span> session.list_resource_templates()
-            <span class="hljs-comment"># List available prompts</span>
-            prompts = <span class="hljs-keyword">await</span> session.list_prompts()
-
-<span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">"__main__"</span>:
-    <span class="hljs-keyword">import</span> asyncio
-    asyncio.run(main())
-</code></pre>
-    <h3 id="client-for-server-with-authorization">Client for server with authorization</h3>
-    <pre><code class="lang-python"><span class="hljs-keyword">from</span> mcp.client.streamable_http <span class="hljs-keyword">import</span> streamablehttp_client
-<span class="hljs-keyword">from</span> mcp <span class="hljs-keyword">import</span> ClientSession
-<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">main</span><span class="hljs-params">()</span>:</span>
-    <span class="hljs-comment"># Connect to HTTPstream server</span>
-    <span class="hljs-keyword">async</span> <span class="hljs-keyword">with</span> streamablehttp_client(<span class="hljs-string">"http://0.0.0.0:8080/{server_name}/mcp"</span>) <span class="hljs-keyword">as</span> (
-            read_stream,
-            write_stream,
-            _,
-    ):
-        <span class="hljs-comment"># Create session using client streams</span>
-        <span class="hljs-keyword">async</span> <span class="hljs-keyword">with</span> ClientSession(read_stream, write_stream) <span class="hljs-keyword">as</span> session:
-            <span class="hljs-comment"># Initialize connection</span>
-            <span class="hljs-keyword">await</span> session.initialize()
-            <span class="hljs-comment"># List available tools</span>
-            tools = <span class="hljs-keyword">await</span> session.list_tools()
-            <span class="hljs-comment"># List available resources</span>
-            resources = <span class="hljs-keyword">await</span> session.list_resource_templates()
-            <span class="hljs-comment"># List available prompts</span>
-            prompts = <span class="hljs-keyword">await</span> session.list_prompts()
-
-<span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">"__main__"</span>:
-    <span class="hljs-keyword">import</span> asyncio
-    asyncio.run(main())
-</code></pre>
+    <hr>
     <h1 id="tools">Tools</h1>
     <h2 id="database-tools">Database Tools</h2>
     <h3 id="get_db_schemas">get_db_schemas</h3>
@@ -412,9 +361,11 @@ def server_info(
     <span class="hljs-string">"supabase_{name}"</span>: """
         + "{"
         + f"""
-        <span class="hljs-string">"http"</span>: <span class="hljs-string">"{http_path}"</span>,
+        <span class="hljs-string">"transport"</span>: <span class="hljs-string">"httpstream"</span>,
+        <span class="hljs-string">"httpstream-url"</span>: <span class="hljs-string">"{http_path}"</span>,
         <span class="hljs-string">"name"</span>: <span class="hljs-string">"supabase_{name}"</span>,
         <span class="hljs-string">"description"</span>: <span class="hljs-string">"{description}"</span>
+        <span class="hljs-string">"auth"</span>: <span class="hljs-string"><a href="https://github.com/rb58853/mcp-llm-client">*****</a></span>
     """
         + """}
     </code></pre>"""

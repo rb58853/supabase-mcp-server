@@ -43,44 +43,15 @@ class ServerMCP:
 
         """
 
-        def create_fastmcp_server() -> FastMCP:
-            # Create an MCP server
-            mcp_server: FastMCP | None = None
-            if self.trasfer_protocol == "httpstream":
-                mcp_server = FastMCP(
-                    name=name,
-                    instructions=instructions,
-                    stateless_http=True,
-                )
-            else:
-                Exception(f"{self.trasfer_protocol} is not implemented")
-
-            return mcp_server
-
-        def add_to_server() -> None:
-            """Establece este servidor como servidor default que se va a exponer en fastapi"""
-            FastApiEnvironment.MCP_SERVERS.append(self)
-
-        def registry_tools(server=None) -> None:
-            """ """
-            registry = ToolRegistry(self.mcp_server, self.container)
-            registry.register_tools(server=server)
-            logger.info("✓ Tools registered with MCP server successfully.")
-
-        def registry_resources() -> None:
-            """ """
-            Exception("Not Implemented Resources")
-
-        def registry_prompt() -> None:
-            """ """
-            Exception("Not Implemented Resources")
-
         self.name: str = name
         self.instructions: str = instructions
         self.exclude_tools: list[ToolName] = exclude_tools
         self.trasfer_protocol: str = transfer_protocol
         # Set MCP server
-        self.mcp_server = create_fastmcp_server()
+        self.mcp_server = self.__create_fastmcp_server(
+            name=self.name,
+            instructions=self.instructions,
+        )
 
         logger.info(f"CREATING MCP SERVER {name.upper()}")
         # Create an Services Container
@@ -90,12 +61,48 @@ class ServerMCP:
         self.container.initialize_services(settings=settings)
 
         # Initialize server, tools, resources and prompts
-        registry_tools(server=self)
+        self.__registry_tools(server=self)
 
         # Add to servers
-        add_to_server()
+        self.add_to_server()
 
         logger.info(f"✓ {self.name} MCP server created successfully.\n")
+
+    def __create_fastmcp_server(self, name: str, instructions: str) -> FastMCP:
+        # Create an MCP server
+        mcp_server: FastMCP | None = None
+        if self.trasfer_protocol == "httpstream":
+            mcp_server = FastMCP(
+                name=name,
+                instructions=instructions,
+                stateless_http=True,
+            )
+        else:
+            Exception(f"{self.trasfer_protocol} is not implemented")
+
+        return mcp_server
+
+    def add_to_server(self) -> None:
+        """Agrega este servidor a los servidores default que se van a exponer en fastapi. Al momento de crearse, se agrega automaticamente"""
+        FastApiEnvironment.MCP_SERVERS.append(self)
+
+    def remove_from_servers(self) -> None:
+        """Elimina este servidor desde los servidores"""
+        FastApiEnvironment.MCP_SERVERS.remove(self)
+
+    def __registry_tools(self, server=None) -> None:
+        """ """
+        registry = ToolRegistry(self.mcp_server, self.container)
+        registry.register_tools(server=server)
+        logger.info("✓ Tools registered with MCP server successfully.")
+
+    def __registry_resources(self) -> None:
+        """ """
+        Exception("Not Implemented Resources")
+
+    def __registry_prompt(self) -> None:
+        """ """
+        Exception("Not Implemented Resources")
 
     def help_html_text(self) -> str:
         """

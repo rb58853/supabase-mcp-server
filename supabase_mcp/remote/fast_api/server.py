@@ -14,7 +14,7 @@ logger = setup_logger()
 
 def httpstream_api() -> FastAPI:
     """
-    Inicializa la aplicación FastAPI con configuración básica y middleware.
+    Inicializa la aplicación FastAPI con configuración básica.
     """
 
     @contextlib.asynccontextmanager
@@ -33,27 +33,10 @@ def httpstream_api() -> FastAPI:
         title="API de Servicios MCP",
         description="API para servicios de procesamiento",
         version="1.0.0",
-        docs_url="/docs",
-        # redoc_url="/redoc"
     )
 
     for server_mcp in FastApiEnvironment.MCP_SERVERS:
         app.mount(f"/{server_mcp.name}", server_mcp.mcp_server.streamable_http_app())
-
-    # Middleware CORS
-    # app.add_middleware(
-    #     CORSMiddleware,
-    #     allow_origins=["*"],
-    #     allow_credentials=True,
-    #     allow_methods=["*"],
-    #     allow_headers=["*"],
-    # )
-
-    # Gestión de errores
-    @app.exception_handler(HTTPException)
-    async def http_exception_handler(request, exc):
-        logger.error(f"Error {exc.status_code}: {exc.detail}")
-        return {"error": exc.detail, "status_code": exc.status_code}
 
     # Rutas básicas
     @app.get("/", include_in_schema=False)

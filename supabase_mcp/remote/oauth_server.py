@@ -1,6 +1,5 @@
 import click
-from remote.core.oauth_server import SimpleOAuthServerHost
-
+from mcp_oauth import QuickOAuthServerHost
 
 @click.command()
 @click.option("--host", default="127.0.0.1", help="")
@@ -13,8 +12,7 @@ def main(
     superusername: str | None,
     superuserpassword: str | None,
 ):
-    simple_oauth_server_host: SimpleOAuthServerHost = SimpleOAuthServerHost(
-        
+    simple_oauth_server_host: QuickOAuthServerHost = QuickOAuthServerHost(
         oauth_port=port,
         oauth_host=host,
         superusername=superusername,

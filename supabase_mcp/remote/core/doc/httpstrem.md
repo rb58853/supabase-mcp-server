@@ -74,7 +74,7 @@ httpstream es un protocolo de transferencia remoto que permite separar perfectam
 Para crear levantar el servidor `httpstream` debe levantar la api de `fastapi`, una opcion para ello es hacerlo con `uvicorn`, por ejemplo:
 
 ```shell
-uvicorn supabase_mcp.remote.mount:app --host 0.0.0.0 --port 8080
+python3 supabase_mcp/remote_server.py --host 127.0.0.1 --port 8080 --oauth_server http://127.0.0.1:9080
 ```
 
 ### Instalar paquete local y levantarlo en tu propio proyecto

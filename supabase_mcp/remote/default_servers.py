@@ -43,12 +43,7 @@ class DefaultServers:
 
     @property
     def auth_settings(self) -> AuthSettings:
-        """Returns an AuthSettings instance configured for the MCP server.
-
-        This method constructs the AuthSettings object using the current server settings,
-        the required scopes from the authentication settings, and the resource server URL
-        from args.
-        """
+        """Returns an AuthSettings instance configured for the MCP server."""
         return AuthSettings(
             issuer_url=self.oauth_server_url,
             required_scopes=["user"],

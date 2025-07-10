@@ -82,7 +82,7 @@ class ServerMCP:
         # Create an MCP server
         mcp_server: FastMCP | None = None
         if self.trasfer_protocol == "httpstream":
-            if self.oauth_server:
+            if self.auth_settings:
                 # If oauth server is provided, use it
                 mcp_server = FastMCP(
                     name=name,

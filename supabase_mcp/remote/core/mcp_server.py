@@ -2,8 +2,8 @@ from ...core.container import ServicesContainer
 from ...tools.registry import ToolRegistry, ToolName
 from mcp.server.fastmcp import FastMCP
 from ...logger import logger
-from ..fast_api.environment import FastApiEnvironment
-from ..doc.html_doc import server_info
+from .fast_api.environment import FastApiEnvironment
+from .doc.html_doc import server_info
 from ...settings import settings
 from mcp.server.auth.provider import TokenVerifier
 from mcp.server.auth.settings import AuthSettings

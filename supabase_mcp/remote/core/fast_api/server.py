@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .environment import FastApiEnvironment
 from ..doc.html_doc import base, end
 from typing import Optional
-from ...logger import setup_logger
+from ....logger import setup_logger
 
 # from loguru import logger
 

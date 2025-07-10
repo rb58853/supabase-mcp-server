@@ -16,13 +16,20 @@ dependencies = [
     "pyyaml>=6.0.2",
     "supabase>=2.13.0",
     "tenacity>=9.0.0",
-    "mcp-oauth>=0.0.2",
+    "mcp-oauth==0.0.2",
     "fastapi>=0.104.0",
+    "uvicorn>=0.34.2",
 ]
-authors = [
-    {name = "Alexander Zuev", email = "azuev@outlook.com"}
+authors = [{ name = "Alexander Zuev", email = "azuev@outlook.com" }]
+keywords = [
+    "supabase",
+    "mcp",
+    "cursor",
+    "windsurf",
+    "model-context-protocol",
+    "claude",
+    "cline",
 ]
-keywords = ["supabase", "mcp", "cursor", "windsurf", "model-context-protocol", "claude", "cline"]
 license = "Apache-2.0"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -38,7 +45,6 @@ Homepage = "https://github.com/alexander-zuev/supabase-mcp-server"
 Repository = "https://github.com/alexander-zuev/supabase-mcp-server.git"
 Changelog = "https://github.com/alexander-zuev/supabase-mcp-server/blob/main/CHANGELOG.MD"
 Documentation = "https://github.com/alexander-zuev/supabase-mcp-server#readme"
-
 
 
 [tool.hatch.build.targets.wheel]
@@ -69,13 +75,13 @@ publish-url = "https://upload.pypi.org/legacy/"
 target-version = "py312"
 line-length = 120
 select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "UP",  # pyupgrade
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
 ]
 ignore = []
 
@@ -124,7 +130,7 @@ asyncio_default_fixture_loop_scope = "module"
 
 markers = [
     "unit: marks a test as a unit test",
-    "integration: marks a test as an integration test that requires database access"
+    "integration: marks a test as an integration test that requires database access",
 ]
 
 [dependency-groups]
@@ -150,18 +156,18 @@ tab_space_size = 4
 
 [tool.sqlfluff.rules]
 exclude_rules = [
-    "L016",  # Line length rules
-    "L031",  # Table aliasing
-    "L034",  # Column order in GROUP BY
-    "L036",  # Select targets should be on a new line
-    "L037",  # Ambiguous ordering directions
-    "L042",  # Join condition required
-    "L047",  # DISTINCT used with parentheses
-    "LT02",  # Layout indent
-    "LT12",  # Files must end with a single trailing newline
-    "LT14",  # Keyword newline
-    "AL01",  # Aliasing of table
-    "AM05",  # Join clauses should be fully qualified
-    "ST09",  # Join order
-    "CP03"   # Function name capitalization
+    "L016", # Line length rules
+    "L031", # Table aliasing
+    "L034", # Column order in GROUP BY
+    "L036", # Select targets should be on a new line
+    "L037", # Ambiguous ordering directions
+    "L042", # Join condition required
+    "L047", # DISTINCT used with parentheses
+    "LT02", # Layout indent
+    "LT12", # Files must end with a single trailing newline
+    "LT14", # Keyword newline
+    "AL01", # Aliasing of table
+    "AM05", # Join clauses should be fully qualified
+    "ST09", # Join order
+    "CP03", # Function name capitalization
 ]

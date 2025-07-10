@@ -1,5 +1,5 @@
 from .core.mcp_server import ServerMCP
-from .fast_api.server import httpstream_api
+from .core.fast_api.server import httpstream_api
 from ..tools.registry import ToolName
 from mcp.server.auth.provider import TokenVerifier
 from mcp.server.auth.settings import AuthSettings
@@ -11,11 +11,13 @@ class DefaultServers:
     INITIALIZED: bool = False
 
     def __init__(self, root_mcp_server_url: str):
-        oauth_server_host = SimpleOAuthServerHost(mcp_server_url=root_mcp_server_url)
-        self.auth_settings: AuthSettings = oauth_server_host.mcp_auth_field
+        oauth_server_host = SimpleOAuthServerHost()
+        self.auth_settings: AuthSettings = oauth_server_host.mcp_auth_field(
+            mcp_server_url=root_mcp_server_url
+        )
         self.token_verifier: TokenVerifier = oauth_server_host.token_verifier
 
-    def generate(self) -> None:
+    def initialize(self) -> None:
         if not DefaultServers.INITIALIZED:
             ServerMCP(
                 name="admin",

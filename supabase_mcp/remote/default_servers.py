@@ -1,21 +1,15 @@
-from .core.mcp_server import ServerMCP
-from .core.fast_api.server import httpstream_api
-from ..tools.registry import ToolName
-from mcp.server.auth.provider import TokenVerifier
-from mcp.server.auth.settings import AuthSettings
-from .core.oauth_server import SimpleOAuthServerHost
 from mcp_oauth import IntrospectionTokenVerifier
+from .core.mcp_server import ServerMCP
+from ..tools.registry import ToolName
+from mcp.server.auth.settings import AuthSettings
 
 
 class DefaultServers:
     INITIALIZED: bool = False
 
-    def __init__(self, root_mcp_server_url: str):
-        oauth_server_host = SimpleOAuthServerHost()
-        self.auth_settings: AuthSettings = oauth_server_host.mcp_auth_field(
-            mcp_server_url=root_mcp_server_url
-        )
-        self.token_verifier: TokenVerifier = oauth_server_host.token_verifier
+    def __init__(self, mcp_server_url: str, oauth_server_url: str):
+        self.oauth_server_url: str = oauth_server_url
+        self.mcp_server_url: str = mcp_server_url
 
     def initialize(self) -> None:
         if not DefaultServers.INITIALIZED:
@@ -38,3 +32,25 @@ class DefaultServers:
                 ],
             )
         DefaultServers.INITIALIZED = True
+
+    @property
+    def token_verifier(self) -> IntrospectionTokenVerifier:
+        return IntrospectionTokenVerifier(
+            introspection_endpoint=f"{self.oauth_server_url}/introspect",
+            server_url=str(self.oauth_server_url),
+            validate_resource=True,
+        )
+
+    @property
+    def auth_settings(self) -> AuthSettings:
+        """Returns an AuthSettings instance configured for the MCP server.
+
+        This method constructs the AuthSettings object using the current server settings,
+        the required scopes from the authentication settings, and the resource server URL
+        from args.
+        """
+        return AuthSettings(
+            issuer_url=self.oauth_server_url,
+            required_scopes=["user"],
+            resource_server_url=self.mcp_server_url,
+        )

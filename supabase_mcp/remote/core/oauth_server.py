@@ -36,7 +36,6 @@ class SimpleOAuthServerHost:
         self,
         oauth_host: str = DEFAULT_OAUTH_HOST,
         oauth_port: int = DEFAULT_OAUTH_PORT,
-        expose_oauth_server_url: str | None = DEFAULT_EXPOSE_OAUTH_SERVER_URL,
         superusername: str | None = os.getenv("SUPERUSERNAME"),
         superuserpassword: str | None = os.getenv("SUPERUSERPASSWORD"),
         mcp_scope: str = "user",
@@ -47,7 +46,6 @@ class SimpleOAuthServerHost:
         Args:
             oauth_host (str): Host address for the OAuth server.
             oauth_port (int): Port number for the OAuth server.
-            expose_oauth_server_url (str | None): Publicly exposed URL for the OAuth server.
             superusername (str | None): Superuser username for authentication.
             superuserpassword (str | None): Superuser password for authentication.
         """
@@ -59,48 +57,27 @@ class SimpleOAuthServerHost:
         self.mcp_scope: str = mcp_scope
         # self.mcp_scopes: list[str] = mcp_scopes
 
-        self.expose_oauth_server_url: str = (
-            self.oauth_server_url
-            if expose_oauth_server_url is None
-            else expose_oauth_server_url
-        )
-        """If oauthserver is exposed out the same container of the mcp server, then this value should be set to the public URL of the oauth server."""
-
-    def mcp_auth_field(self, mcp_server_url: str) -> AuthSettings:
-        """Returns an AuthSettings instance configured for the MCP server.
-
-        This method constructs the AuthSettings object using the current server settings,
-        the required scopes from the authentication settings, and the resource server URL
-        from args.
-        """
-        return AuthSettings(
-            issuer_url=self.expose_oauth_server_url,
-            required_scopes=[self.mcp_scope],
-            resource_server_url=mcp_server_url,
-        )
-
     @property
-    def token_verifier(self) -> IntrospectionTokenVerifier:
-        return IntrospectionTokenVerifier(
-            introspection_endpoint=f"{self.expose_oauth_server_url}/introspect",
-            server_url=str(self.expose_oauth_server_url),
-            validate_resource=True,
-        )
-
-    def run_oauth_server(self):
-        auth_settings: SimpleAuthSettings = SimpleAuthSettings(
+    def __auth_settings(self) -> SimpleAuthSettings:
+        return SimpleAuthSettings(
             superusername=self.superusername,
             superuserpassword=self.superuserpassword,
             mcp_scope=self.mcp_scope,
         )
-        server_settings: AuthServerSettings = AuthServerSettings(
+
+    @property
+    def __server_settings(self) -> AuthServerSettings:
+        return AuthServerSettings(
             host=self.oauth_host,
             port=self.oauth_port,
             server_url=f"{self.oauth_server_url}",
             auth_callback_path=f"{self.oauth_server_url}/login",
         )
+
+    def run_oauth_server(self):
+
         oauth_server: OAuthServer = OAuthServer(
-            server_settings=server_settings,
-            auth_settings=auth_settings,
+            server_settings=self.__server_settings,
+            auth_settings=self.__auth_settings,
         )
         oauth_server.run_starlette_server()

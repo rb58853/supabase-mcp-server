@@ -125,11 +125,11 @@ The server uses the following environment variables:
 | `SUPABASE_ACCESS_TOKEN` | No | None | Personal access token for Supabase Management API |
 | `SUPABASE_SERVICE_ROLE_KEY` | No | None | Service role key for Auth Admin SDK |
 | `QUERY_API_KEY` | Yes | None | API key from thequery.dev (required for all operations) |
-| `CONTAINER_EXPOSE_IP` | Yes* | 127.0.0.1 | - |
-| `DATABASE_NAME` | Yes* | postgres | - |
-| `DATABASE_USER` | Yes* | postgres | - |
-| `POOLER_PROXY_PORT_TRANSACTION` | Yes* | 6543 | - |
-| `POOLER_TENANT_ID` | Yes* | your-tenant-id | - |
+| `CONTAINER_EXPOSE_IP` | Yes* | `127.0.0.1` | The IP address that the container will expose its services on. |
+| `DATABASE_NAME` | Yes* | `postgres` | The name of the PostgreSQL database to use.|
+| `DATABASE_USER` | Yes*| `postgres` | The username for the PostgreSQL database. |
+| `POOLER_PROXY_PORT_TRANSACTION` | Yes* | `6543` | The port used by the connection pooler for transactional connections. |
+| `POOLER_TENANT_ID` | Yes* | `your-tenant-id` | The unique tenant ID used by the connection pooler for multi-tenancy support. |
 
 > **Note**: The default values are configured for local Supabase development. For remote Supabase projects, you must provide your own values for `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD`.
 

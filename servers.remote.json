@@ -1,0 +1,25 @@
+{
+    "expose_url": "http://127.0.0.1:8080",
+    "servers": [
+        {
+            "name": "admin",
+            "description": "This server specializes in supabase read and write operations",
+            "auth": false,
+            "exclude_tools": []
+        },
+        {
+            "name": "client",
+            "description": "This server specializes in supabase read and public operations",
+            "auth": true,
+            "exclude_tools": [
+                "call_auth_admin_method",
+                "execute_postgresql",
+                "send_management_api_request",
+                "confirm_destructive_operation",
+                "live_dangerously",
+                "get_auth_admin_methods_spec",
+                "execute_postgresql"
+            ]
+        }
+    ]
+}

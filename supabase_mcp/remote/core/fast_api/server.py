@@ -1,27 +1,22 @@
 import contextlib
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.middleware.cors import CORSMiddleware
-from .environment import FastApiEnvironment
+from supabase_mcp.remote.core.server_mcp import ServerMCP
 from ..doc.html_doc import base, end
-from typing import Optional
-from ....logger import setup_logger
+from ....logger import logger
 
-# from loguru import logger
-
-logger = setup_logger()
+# from ....logger import setup_logger
+# logger = setup_logger()
 
 
-def httpstream_api() -> FastAPI:
+def httpstream_api(mcp_servers: list[ServerMCP]) -> FastAPI:
     """
     Inicializa la aplicación FastAPI con configuración básica.
     """
 
     @contextlib.asynccontextmanager
     async def lifespan(app: FastAPI):
-        servers = [
-            server_mcp.mcp_server for server_mcp in FastApiEnvironment.MCP_SERVERS
-        ]
+        servers = [server_mcp.mcp_server for server_mcp in mcp_servers]
         async with contextlib.AsyncExitStack() as stack:
             for server in servers:
                 await stack.enter_async_context(server.session_manager.run())
@@ -30,12 +25,12 @@ def httpstream_api() -> FastAPI:
     # Configuración básica
     app = FastAPI(
         lifespan=lifespan,
-        title="API de Servicios MCP",
-        description="API para servicios de procesamiento",
+        title="API de Servicios MCP para supabase",
+        description="API para servicios de procesamiento de datos usando MCP en supabase",
         version="1.0.0",
     )
 
-    for server_mcp in FastApiEnvironment.MCP_SERVERS:
+    for server_mcp in mcp_servers:
         app.mount(f"/{server_mcp.name}", server_mcp.mcp_server.streamable_http_app())
 
     # Rutas básicas
@@ -51,7 +46,7 @@ def httpstream_api() -> FastAPI:
     async def help() -> str:
         try:
             help_text: str = base + "\n<h1> Aviable Servers</h1>\n"
-            for server in FastApiEnvironment.MCP_SERVERS:
+            for server in mcp_servers:
                 help_text += server.help_html_text() + "\n"
 
             return HTMLResponse(content=help_text + end, status_code=200)

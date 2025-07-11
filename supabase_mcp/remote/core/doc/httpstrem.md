@@ -65,17 +65,11 @@ git clone https://github.com/rb58853/supabase-connection-tester.git
 
 Se sugiere que consulte la documentacion del repositorio clonado, en caso de que lo vaya a utilizar. Ver [aqui](https://github.com/rb58853/supabase-connection-tester).
 
-## Httpstream
+## MCP Servers remote Host
+
+### Httpstream
 
 httpstream es un protocolo de transferencia remoto que permite separar perfectamente cliente servidor. Donde el cliente se conecta al servidor de forma remota y permite una escalabilidad separada entre cliente servidor. Para levantar este servidor httpstream se usa `FastAPI` siguiendo los pasos de [la documentacion oficial de mcp[cli]](https://github.com/modelcontextprotocol/python-sdk).
-
-### Levantar con Uvicorn
-
-Para crear levantar el servidor `httpstream` debe levantar la api de `fastapi`, una opcion para ello es hacerlo con `uvicorn`, por ejemplo:
-
-```shell
-python3 supabase_mcp/remote_server.py --host 127.0.0.1 --port 8080 --oauth_server http://127.0.0.1:9080
-```
 
 ### Instalar paquete local y levantarlo en tu propio proyecto
 
@@ -92,36 +86,18 @@ A continuacion se muestra un ejemplo de codigo que usa el paquete. Crear un nuev
 
 ```python
 #main.py
-from supabase_mcp.httpstream import ServerMCP, FastApiEnvironment, ToolName,httpstream_api
-
-#Originalmente existen dos MCP expuestos. Un MCP para admins y uno para clientes de solo lectura. Si desea elimnar estos  servidores debe agregar la linea
-FastApiEnvironment.clear_servers()
-
-#En caso de querer configurar un nuevo server mcp, copiar la siguiente linea pasandole parametros seleccionados o dejarlo default
-ServerMCP(
-    name="your_server_name",
-    instructions="your server use case",
-    exclude_tools=[],
-    help_html_text="<body> your html text help <body>",
-    use_as_server=True,
-    transfer_protocol = "httpstream"
-)
-
-app = httpstream_api()
 ```
 
 Si solo desea usar los servidores por defecto del paquete su codigo deberia quedar asi:
 
 ```python
 #main.py
-from supabase_mcp.httpstream import httpstream_api
-app = httpstream_api()
 ```
 
-Luego en la carpeta raiz de tu nuevo proyecto levantar tu api con `uvicorn`
+Luego en la carpeta raiz de tu nuevo proyecto levantar tu api con `python3`
 
 ```shell
-uvicorn main:app --host 0.0.0.0 --port 8080
+
 ```
 
 ### Help
@@ -130,7 +106,30 @@ Como sistema simple de ayuda para usar este servidor, puedes abrir directamente 
 
 ![alt text](./images/help.png)
 
----
+## OAuth Server
+
+Para el sistema de autorizacion se usa un paquete simple, basico, pero funcional, ver [mcp-oauth]().
+Si desa usar algun otro tipo de OAuth simplemente puede usarlo pasando la url del mismo al sistema de servers mcp.
+
+### En este proyecto
+
+Para levantar el servidor oauth en este proyecto simplemente debe ejecutar el siguiente bash:
+
+```shell
+```
+
+### En una instalacion
+
+Si instala este paquete, debe crear un script basico para levantar el servidor OAuth. El siguiente codigo es un ejemplo:
+
+```python
+#oauth_server.py
+```
+
+luego solo queda ejecutar este archivo usando `python3`. Asumiendo que el archivo esta en la direccion `src/ouath_server` de tu proyecto, solo queda ejecutar el siguiente bashL
+
+```shell
+```
 
 ## Dependencias
 

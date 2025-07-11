@@ -1,4 +1,20 @@
-from ..fast_api.environment import FastApiEnvironment
+import os
+import json
+
+# This var is used only for documentation
+EXPOSE_URL: str | None = "http://127.0.0.1:8080"
+"""Public hosted root IP """
+
+config_path: str = os.path.join(os.getcwd(), "servers.remote.json")
+
+if os.path.exists(config_path):
+    try:
+        with open(config_path, "r") as file:
+            data: dict = json.load(file)
+        if data.keys().__contains__("expose_url"):
+            EXPOSE_URL = data["expose_url"]
+    except:
+        pass
 
 end: str = """
 </html>
@@ -341,7 +357,7 @@ def server_info(
     tools: list[str],
     is_auth: bool = False,
 ) -> str:
-    http_path = f"{FastApiEnvironment.DNS if FastApiEnvironment.DNS else FastApiEnvironment.EXPOSE_IP}/{name}/mcp"
+    http_path = f"{EXPOSE_URL}/{name}/mcp"
     text: str = f"""
     <body>
     <h2>MCP server {name}</h2>

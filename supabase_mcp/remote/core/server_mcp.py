@@ -2,7 +2,7 @@ from ...core.container import ServicesContainer
 from ...tools.registry import ToolRegistry, ToolName
 from mcp.server.fastmcp import FastMCP
 from ...logger import logger
-from .fast_api.environment import FastApiEnvironment
+
 from .doc.html_doc import server_info
 from ...settings import settings
 from mcp.server.auth.provider import TokenVerifier
@@ -71,8 +71,8 @@ class ServerMCP:
         # Initialize server, tools, resources and prompts
         self.__registry_tools(server=self)
 
-        # Add to servers
-        self.add_to_server()
+        # # Add to servers
+        # self.add_to_server()
 
         logger.info(f"✓ {self.name} MCP server created successfully.\n")
 
@@ -102,14 +102,6 @@ class ServerMCP:
             Exception(f"{self.trasfer_protocol} is not implemented")
 
         return mcp_server
-
-    def add_to_server(self) -> None:
-        """Agrega este servidor a los servidores default que se van a exponer en fastapi. Al momento de crearse, se agrega automaticamente"""
-        FastApiEnvironment.MCP_SERVERS.append(self)
-
-    def remove_from_servers(self) -> None:
-        """Elimina este servidor desde los servidores"""
-        FastApiEnvironment.MCP_SERVERS.remove(self)
 
     def __registry_tools(self, server=None) -> None:
         """ """

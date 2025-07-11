@@ -6,11 +6,9 @@
 > I've decided to no longer actively maintain this one. The official MCP server is as feature-rich, and many more
 > features will be added in the future. Check it out!
 
-
 <p class="center-text">
   <strong>Query MCP is an open-source MCP server that lets your IDE safely run SQL, manage schema changes, call the Supabase Management API, and use Auth Admin SDK — all with built-in safety controls.</strong>
 </p>
-
 
 <p class="center-text">
   <a href="https://pypi.org/project/supabase-mcp-server/"><img src="https://img.shields.io/pypi/v/supabase-mcp-server.svg" alt="PyPI version" /></a>
@@ -22,7 +20,7 @@
   <a href="https://smithery.ai/server/@alexander-zuev/supabase-mcp-server"><img src="https://smithery.ai/badge/@alexander-zuev/supabase-mcp-server" alt="Smithery.ai Downloads" /></a>
   <a href="https://modelcontextprotocol.io/introduction"><img src="https://img.shields.io/badge/MCP-Server-orange" alt="MCP Server" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" /></a>
-</p>    
+</p>
 
 ## Table of contents
 
@@ -30,10 +28,13 @@
   <a href="#getting-started">Getting started</a> •
   <a href="#feature-overview">Feature overview</a> •
   <a href="#troubleshooting">Troubleshooting</a> •
-  <a href="#changelog">Changelog</a>
+  <a href="#changelog">Changelog</a> •
+  <a href="./doc/self_host.md">Self-Host</a> •
+  <a href="./doc/remote_servers.md">Remote-Servers</a>
 </p>
 
 ## ✨ Key features
+
 - 💻 Compatible with Cursor, Windsurf, Cline and other MCP clients supporting `stdio` protocol
 - 🔐 Control read-only and read-write modes of SQL query execution
 - 🔍 Runtime SQL query validation with risk level assessment
@@ -45,28 +46,32 @@
 - 🔨 Pre-built tools to help Cursor & Windsurf work with MCP more effectively
 - 📦 Dead-simple install & setup via package manager (uv, pipx, etc.)
 
-
 ## Getting Started
 
 ### Prerequisites
+
 Installing the server requires the following on your system:
+
 - Python 3.12+
 
 If you plan to install via `uv`, ensure it's [installed](https://docs.astral.sh/uv/getting-started/installation/#__tabbed_1_1).
 
 ### PostgreSQL Installation
+
 PostgreSQL installation is no longer required for the MCP server itself, as it now uses asyncpg which doesn't depend on PostgreSQL development libraries.
 
 However, you'll still need PostgreSQL if you're running a local Supabase instance:
 
 **MacOS**
+
 ```bash
 brew install postgresql@16
 ```
 
 **Windows**
-  - Download and install PostgreSQL 16+ from https://www.postgresql.org/download/windows/
-  - Ensure "PostgreSQL Server" and "Command Line Tools" are selected during installation
+
+- Download and install PostgreSQL 16+ from <https://www.postgresql.org/download/windows/>
+- Ensure "PostgreSQL Server" and "Command Line Tools" are selected during installation
 
 ### Step 1. Installation
 
@@ -85,7 +90,9 @@ uv pip install supabase-mcp-server
 You can also install the server manually by cloning the repository and running `pipx install -e .` from the root directory.
 
 #### Installing from source
+
 If you would like to install from source, for example for local development:
+
 ```bash
 uv venv
 # On Mac
@@ -99,7 +106,6 @@ uv pip install -e .
 #### Installing via Smithery.ai
 
 You can find the full instructions on how to use Smithery.ai to connect to this MCP server [here](https://smithery.ai/server/@alexander-zuev/supabase-mcp-server).
-
 
 ### Step 2. Configuration
 
@@ -119,14 +125,22 @@ The server uses the following environment variables:
 | `SUPABASE_ACCESS_TOKEN` | No | None | Personal access token for Supabase Management API |
 | `SUPABASE_SERVICE_ROLE_KEY` | No | None | Service role key for Auth Admin SDK |
 | `QUERY_API_KEY` | Yes | None | API key from thequery.dev (required for all operations) |
+| `CONTAINER_EXPOSE_IP` | Yes* | 127.0.0.1 | - |
+| `DATABASE_NAME` | Yes* | postgres | - |
+| `DATABASE_USER` | Yes* | postgres | - |
+| `POOLER_PROXY_PORT_TRANSACTION` | Yes* | 6543 | - |
+| `POOLER_TENANT_ID` | Yes* | your-tenant-id | - |
 
 > **Note**: The default values are configured for local Supabase development. For remote Supabase projects, you must provide your own values for `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD`.
 
 > 🚨 **CRITICAL CONFIGURATION NOTE**: For remote Supabase projects, you MUST specify the correct region where your project is hosted using `SUPABASE_REGION`. If you encounter a "Tenant or user not found" error, this is almost certainly because your region setting doesn't match your project's actual region. You can find your project's region in the Supabase dashboard under Project Settings.
 
+> 🗒 **CONFIGURATION NOTE**: `CONTAINER_EXPOSE_IP`, `DATABASE_NAME`, `DATABASE_USER`, `POOLER_PROXY_PORT_TRANSACTION`,`POOLER_TENANT_ID` just are required by [**SELF-HOST**](./doc//self_host.md) implementation.
+
 #### Connection Types
 
 ##### Database Connection
+
 - The server connects to your Supabase PostgreSQL database using the transaction pooler endpoint
 - Local development uses a direct connection to `127.0.0.1:54322`
 - Remote projects use the format: `postgresql://postgres.[project_ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
@@ -134,11 +148,13 @@ The server uses the following environment variables:
 > ⚠️ **Important**: Session pooling connections are not supported. The server exclusively uses transaction pooling for better compatibility with the MCP server architecture.
 
 ##### Management API Connection
+
 - Requires `SUPABASE_ACCESS_TOKEN` to be set
 - Connects to the Supabase Management API at `https://api.supabase.com`
 - Only works with remote Supabase projects (not local development)
 
 ##### Auth Admin SDK Connection
+
 - Requires `SUPABASE_SERVICE_ROLE_KEY` to be set
 - For local development, connects to `http://127.0.0.1:54321`
 - For remote projects, connects to `https://[project_ref].supabase.co`
@@ -199,7 +215,7 @@ If you're running the server from source (not via package), you can create a `.e
 
 - **Project Reference**: Found in your Supabase project URL: `https://supabase.com/dashboard/project/<project-ref>`
 - **Database Password**: Set during project creation or found in Project Settings → Database
-- **Access Token**: Generate at https://supabase.com/dashboard/account/tokens
+- **Access Token**: Generate at <https://supabase.com/dashboard/account/tokens>
 - **Service Role Key**: Found in Project Settings → API → Project API keys
 
 #### Supported Regions
@@ -233,6 +249,7 @@ The server supports all Supabase regions:
 ### Step 3. Usage
 
 In general, any MCP client that supports `stdio` protocol should work with this MCP server. This server was explicitly tested to work with:
+
 - Cursor
 - Windsurf
 - Cline
@@ -243,7 +260,9 @@ Additionally, you can also use smithery.ai to install this server a number of cl
 Follow the guides below to install this MCP server in your client.
 
 #### Cursor
+
 Go to Settings -> Features -> MCP Servers and add a new server with this configuration:
+
 ```bash
 # can be set to any name
 name: supabase
@@ -260,7 +279,9 @@ If configuration is correct, you should see a green dot indicator and the number
 ![How successful Cursor config looks like](https://github.com/user-attachments/assets/45df080a-8199-4aca-b59c-a84dc7fe2c09)
 
 #### Windsurf
+
 Go to Cascade -> Click on the hammer icon -> Configure -> Fill in the configuration:
+
 ```json
 {
     "mcpServers": {
@@ -278,14 +299,17 @@ Go to Cascade -> Click on the hammer icon -> Configure -> Fill in the configurat
     }
 }
 ```
+
 If configuration is correct, you should see green dot indicator and clickable supabase server in the list of available servers.
 
 ![How successful Windsurf config looks like](https://github.com/user-attachments/assets/322b7423-8c71-410b-bcab-aff1b143faa4)
 
 #### Claude Desktop
+
 Claude Desktop also supports MCP servers through a JSON configuration. Follow these steps to set up the Supabase MCP server:
 
 1. **Find the full path to the executable** (this step is critical):
+
    ```bash
    # On macOS/Linux
    which supabase-mcp-server
@@ -293,6 +317,7 @@ Claude Desktop also supports MCP servers through a JSON configuration. Follow th
    # On Windows
    where supabase-mcp-server
    ```
+
    Copy the full path that is returned (e.g., `/Users/username/.local/bin/supabase-mcp-server`).
 
 2. **Configure the MCP server** in Claude Desktop:
@@ -325,9 +350,11 @@ If configuration is correct, you should see the Supabase MCP server listed as av
 ![How successful Windsurf config looks like](https://github.com/user-attachments/assets/500bcd40-6245-40a7-b23b-189827ed2923)
 
 #### Cline
+
 Cline also supports MCP servers through a similar JSON configuration. Follow these steps to set up the Supabase MCP server:
 
 1. **Find the full path to the executable** (this step is critical):
+
    ```bash
    # On macOS/Linux
    which supabase-mcp-server
@@ -335,6 +362,7 @@ Cline also supports MCP servers through a similar JSON configuration. Follow the
    # On Windows
    where supabase-mcp-server
    ```
+
    Copy the full path that is returned (e.g., `/Users/username/.local/bin/supabase-mcp-server`).
 
 2. **Configure the MCP server** in Cline:
@@ -369,6 +397,7 @@ If configuration is correct, you should see a green indicator next to the Supaba
 ### Troubleshooting
 
 Here are some tips & tricks that might help you:
+
 - **Debug installation** - run `supabase-mcp-server` directly from the terminal to see if it works. If it doesn't, there might be an issue with the installation.
 - **MCP Server configuration** - if the above step works, it means the server is installed and configured correctly. As long as you provided the right command, IDE should be able to connect. Make sure to provide the right path to the server executable.
 - **"No tools found" error** - If you see "Client closed - no tools available" in Cursor despite the package being installed:
@@ -382,6 +411,7 @@ Here are some tips & tricks that might help you:
     - Windows: `%USERPROFILE%\.local\share\supabase-mcp\mcp_server.log`
   - Logs include connection status, configuration details, and operation results
   - View logs using any text editor or terminal commands:
+
     ```bash
     # On macOS/Linux
     cat ~/.local/share/supabase-mcp/mcp_server.log
@@ -393,6 +423,7 @@ Here are some tips & tricks that might help you:
 If you are stuck or any of the instructions above are incorrect, please raise an issue.
 
 ### MCP Inspector
+
 A super useful tool to help debug MCP server issues is MCP Inspector. If you installed from source, you can run `supabase-mcp-inspector` from the project repo and it will run the inspector instance. Coupled with logs this will give you complete overview over what's happening in the server.
 > 📝 Running `supabase-mcp-inspector`, if installed from package, doesn't work properly - I will validate and fix in the coming release.
 
@@ -414,7 +445,6 @@ Since v0.3+ server provides comprehensive database management capabilities with 
 - **Automatic Migration Versioning**:
   - Database-altering operations operations are automatically versioned
   - Generates descriptive names based on operation type and target
-
 
 - **Safety Controls**:
   - Default SAFE mode allows only read-only operations
@@ -460,22 +490,24 @@ Since v0.3.0 server provides secure access to the Supabase Management API with b
 I was planning to add support for Python SDK methods to the MCP server. Upon consideration I decided to only add support for Auth admin methods as I often found myself manually creating test users which was prone to errors and time consuming. Now I can just ask Cursor to create a test user and it will be done seamlessly. Check out the full Auth Admin SDK method docs to know what it can do.
 
 Since v0.3.6 server supports direct access to Supabase Auth Admin methods via Python SDK:
-  - Includes the following tools:
-    - `get_auth_admin_methods_spec` to retrieve documentation for all available Auth Admin methods
-    - `call_auth_admin_method` to directly invoke Auth Admin methods with proper parameter handling
-  - Supported methods:
-    - `get_user_by_id`: Retrieve a user by their ID
-    - `list_users`: List all users with pagination
-    - `create_user`: Create a new user
-    - `delete_user`: Delete a user by their ID
-    - `invite_user_by_email`: Send an invite link to a user's email
-    - `generate_link`: Generate an email link for various authentication purposes
-    - `update_user_by_id`: Update user attributes by ID
-    - `delete_factor`: Delete a factor on a user (currently not implemented in SDK)
+
+- Includes the following tools:
+  - `get_auth_admin_methods_spec` to retrieve documentation for all available Auth Admin methods
+  - `call_auth_admin_method` to directly invoke Auth Admin methods with proper parameter handling
+- Supported methods:
+  - `get_user_by_id`: Retrieve a user by their ID
+  - `list_users`: List all users with pagination
+  - `create_user`: Create a new user
+  - `delete_user`: Delete a user by their ID
+  - `invite_user_by_email`: Send an invite link to a user's email
+  - `generate_link`: Generate an email link for various authentication purposes
+  - `update_user_by_id`: Update user attributes by ID
+  - `delete_factor`: Delete a factor on a user (currently not implemented in SDK)
 
 #### Why use Auth Admin SDK instead of raw SQL queries?
 
 The Auth Admin SDK provides several key advantages over direct SQL manipulation:
+
 - **Functionality**: Enables operations not possible with SQL alone (invites, magic links, MFA)
 - **Accuracy**: More reliable then creating and executing raw SQL queries on auth schemas
 - **Simplicity**: Offers clear methods with proper validation and error handling
@@ -517,6 +549,7 @@ Simplifies debugging across your Supabase stack without switching between interf
 ### Automatic Versioning of Database Changes
 
 "With great power comes great responsibility." While `execute_postgresql` tool coupled with aptly named `live_dangerously` tool provide a powerful and simple way to manage your Supabase database, it also means that dropping a table or modifying one is one chat message away. In order to reduce the risk of irreversible changes, since v0.3.8 the server supports:
+
 - automatic creation of migration scripts for all write & destructive sql operations executed on the database
 - improved safety mode of query execution, in which all queries are categorized in:
   - `safe` type: always allowed. Includes all read-only ops.
@@ -524,15 +557,18 @@ Simplifies debugging across your Supabase stack without switching between interf
   - `destructive` type: requires `write` mode to be enabled by the user AND a 2-step confirmation of query execution for clients that do not execute tools automatically.
 
 ### Universal Safety Mode
+
 Since v0.3.8 Safety Mode has been standardized across all services (database, API, SDK) using a universal safety manager. This provides consistent risk management and a unified interface for controlling safety settings across the entire MCP server.
 
 All operations (SQL queries, API requests, SDK methods) are categorized into risk levels:
+
 - `Low` risk: Read-only operations that don't modify data or structure (SELECT queries, GET API requests)
 - `Medium` risk: Write operations that modify data but not structure (INSERT/UPDATE/DELETE, most POST/PUT API requests)
 - `High` risk: Destructive operations that modify database structure or could cause data loss (DROP/TRUNCATE, DELETE API endpoints)
 - `Extreme` risk: Operations with severe consequences that are blocked entirely (deleting projects)
 
 Safety controls are applied based on risk level:
+
 - Low risk operations are always allowed
 - Medium risk operations require unsafe mode to be enabled
 - High risk operations require unsafe mode AND explicit confirmation
@@ -544,7 +580,6 @@ Any high-risk operations (be it a postgresql or api request) will be blocked eve
 ![Every high-risk operation is blocked](https://github.com/user-attachments/assets/c0df79c2-a879-4b1f-a39d-250f9965c36a)
 You will have to confirm and approve every high-risk operation explicitly in order for it to be executed.
 ![Explicit approval is always required](https://github.com/user-attachments/assets/5cd7a308-ec2a-414e-abe2-ff2f3836dd8b)
-
 
 ## Changelog
 
@@ -559,10 +594,10 @@ You will have to confirm and approve every high-risk operation explicitly in ord
 - 📖 Radically improved knowledge and tools of api spec ✅ (v0.3.8)
 - ✍️ Improved consistency of migration-related tools for a more organized database vcs ✅ (v0.3.10)
 - 🥳 Query MCP is released (v0.4.0)
-
+- 📡 Support for the httpstream remote protocol ✅
+- 💿 Support for self-hosting Supabase projects with Docker ✅
 
 For a more detailed roadmap, please see this [discussion](https://github.com/alexander-zuev/supabase-mcp-server/discussions/46) on GitHub.
-
 
 ## Star History
 

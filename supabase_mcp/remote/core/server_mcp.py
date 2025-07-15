@@ -1,3 +1,4 @@
+from ...prompts.extra_prompts import ExtraPrompts
 from ...core.container import ServicesContainer
 from ...tools.registry import ToolRegistry, ToolName
 from mcp.server.fastmcp import FastMCP
@@ -30,6 +31,7 @@ class ServerMCP:
         transfer_protocol: str = "httpstream",
         auth_settings: AuthSettings | None = None,
         token_verifier: TokenVerifier | None = None,
+        extra_prompts: ExtraPrompts | None = None,
     ):
         """
         Initializes the ServerMCP instance.
@@ -54,6 +56,7 @@ class ServerMCP:
         self.trasfer_protocol: str = transfer_protocol
         self.auth_settings: AuthSettings | None = auth_settings
         self.token_verifier: TokenVerifier | None = token_verifier
+        self.extra_propmpts: ExtraPrompts | None = extra_prompts
 
         # Set MCP server
         self.mcp_server = self.__create_fastmcp_server(
@@ -70,6 +73,7 @@ class ServerMCP:
 
         # Initialize server, tools, resources and prompts
         self.__registry_tools(server=self)
+        self.__registry_prompts()
 
         # # Add to servers
         # self.add_to_server()
@@ -113,9 +117,10 @@ class ServerMCP:
         """ """
         Exception("Not Implemented Resources")
 
-    def __registry_prompt(self) -> None:
+    def __registry_prompts(self) -> None:
         """ """
-        Exception("Not Implemented Resources")
+        if self.extra_propmpts is not None:
+            self.extra_propmpts.integrate_prompts(self.mcp_server)
 
     def help_html_text(self) -> str:
         """

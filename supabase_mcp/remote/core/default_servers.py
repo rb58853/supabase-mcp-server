@@ -1,4 +1,6 @@
 from mcp_oauth import IntrospectionTokenVerifier
+
+from supabase_mcp.prompts.extra_prompts import ExtraPrompts
 from .server_mcp import ServerMCP
 from ...tools.registry import ToolName
 from ...logger import logger
@@ -8,10 +10,16 @@ import json
 
 
 class DefaultServers:
-    def __init__(self, mcp_server_url: str, oauth_server_url: str):
+    def __init__(
+        self,
+        mcp_server_url: str,
+        oauth_server_url: str,
+        extra_prompts: ExtraPrompts | None = None,
+    ):
         self.oauth_server_url: str = oauth_server_url
         self.mcp_server_url: str = mcp_server_url
         self.servers: list[ServerMCP] = []
+        self.extra_prompts: ExtraPrompts | None = extra_prompts
         self.__generate_servers()
 
     def __generate_servers(self):
@@ -74,6 +82,7 @@ class DefaultServers:
                 exclude_tools=exclude_tools,
                 auth_settings=self.auth_settings if auth else None,
                 token_verifier=self.token_verifier if auth else None,
+                extra_prompts=self.extra_prompts,
             )
         )
 

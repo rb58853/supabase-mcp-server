@@ -4,13 +4,13 @@
         {
             "name": "admin",
             "description": "This server specializes in supabase read and write operations",
-            "auth": false,
+            "auth": true,
             "exclude_tools": []
         },
         {
             "name": "client",
             "description": "This server specializes in supabase read and public operations",
-            "auth": true,
+            "auth": false,
             "exclude_tools": [
                 "call_auth_admin_method",
                 "execute_postgresql",

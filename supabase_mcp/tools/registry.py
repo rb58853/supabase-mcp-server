@@ -24,7 +24,6 @@ class ToolRegistry:
         exclude_tools: list[ToolName] = server.exclude_tools if server else []
 
         if ToolName.GET_SCHEMAS not in exclude_tools:
-
             @mcp.tool(description=tool_manager.get_description(ToolName.GET_SCHEMAS))  # type: ignore
             async def get_schemas() -> QueryResult:
                 """List all database schemas with their sizes and table counts."""
@@ -33,7 +32,6 @@ class ToolRegistry:
                 )
 
         if ToolName.GET_TABLES not in exclude_tools:
-
             @mcp.tool(description=tool_manager.get_description(ToolName.GET_TABLES))  # type: ignore
             async def get_tables(schema_name: str) -> QueryResult:
                 """List all tables, foreign tables, and views in a schema with their sizes, row counts, and metadata."""
@@ -53,7 +51,7 @@ class ToolRegistry:
                     schema_name=schema_name,
                     table=table,
                 )
-
+        if ToolName.EXECUTE_POSTGRESQL not in exclude_tools:
             @mcp.tool(description=tool_manager.get_description(ToolName.EXECUTE_POSTGRESQL))  # type: ignore
             async def execute_postgresql(
                 query: str, migration_name: str = ""

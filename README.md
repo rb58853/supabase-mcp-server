@@ -79,19 +79,33 @@ Since v0.2.0 I introduced support for package installation. You can use your fav
 
 ```bash
 # if pipx is installed (recommended)
-git clone https://github.com/rb58853/supabase-mcp-server
-cd supabase-mcp-server
-python3 -m build
-pipx install -e .
+pipx install supabase-mcp-server
+
+# if uv is installed
+uv pip install supabase-mcp-server
 ```
 
+`pipx` is recommended because it creates isolated environments for each package.
+
+You can also install the server manually by cloning the repository and running `pipx install -e .` from the root directory.
+
+#### Installing from source
+
+If you would like to install from source, for example for local development:
+
 ```bash
-# if uv is installed
-git clone https://github.com/rb58853/supabase-mcp-server
-cd supabase-mcp-server
-python3 -m build
+uv venv
+# On Mac
+source .venv/bin/activate
+# On Windows
+.venv\Scripts\activate
+# Install package in editable mode
 uv pip install -e .
 ```
+
+#### Installing via Smithery.ai
+
+You can find the full instructions on how to use Smithery.ai to connect to this MCP server [here](https://smithery.ai/server/@alexander-zuev/supabase-mcp-server).
 
 ### Step 2. Configuration
 
